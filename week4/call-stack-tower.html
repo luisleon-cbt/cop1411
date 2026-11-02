@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The call stack tower</title>
+<meta name="description" content="COP1411 Week 4 interactive: Call a dispatch toolkit function and watch its frame rise, its parameters and locals live inside it, and its return value fly back down to MAIN.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS (scene explorer: the call stack tower) */
+  .scene{position:relative;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  .scene canvas,.scene svg.flat{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .scene svg.flat text{font-family:var(--font-mono)}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre;max-height:430px}
+  .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .code .ln.bug{box-shadow:inset 3px 0 0 var(--bad)}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
+  .zc{position:absolute;right:12px;bottom:12px;z-index:4;display:flex;flex-direction:column;gap:3px;align-items:center;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;padding:4px}
+  .zc button{width:30px;height:28px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);color:var(--silk);font:600 14px var(--font-mono);cursor:pointer;padding:0}
+  .zc button.fit{font-size:9px;height:24px}
+  .zc .pad{display:grid;grid-template-columns:repeat(3,22px);grid-template-rows:repeat(3,22px);gap:1px;margin-top:3px}
+  .zc .pad button{width:22px;height:22px;font-size:10px}
+  .zc .pad span{display:block}
+  .intro{position:absolute;inset:0;z-index:5;display:grid;place-items:center;pointer-events:none;text-align:center}
+  .intro b{font:800 clamp(22px,4vw,44px) var(--font-display);font-stretch:118%;color:var(--silk);text-shadow:0 2px 20px rgba(0,0,0,.6)}
+  .intro small{display:block;font:500 12px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-gold);margin-top:6px}
+  .picks{display:grid;gap:10px}
+  .picks label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--silk)}
+  .picks label>span:first-child{min-width:70px;color:var(--silk-dim);font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase}
+  .picks select,.picks input[type=text],.picks input[type=number]{flex:1;min-width:0;width:100%}
+  .picks input[type=number]{width:84px;flex:none}
+  .args[hidden]{display:none}
+  .args{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+  .presets{display:flex;flex-wrap:wrap;gap:6px}
+  .presets .btn{padding:6px 9px;font-size:11px}
+  .toggle{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font-size:14px}
+  .toggle input{width:18px;height:18px;flex:none}
+  .toggle.on{border-color:var(--bad);background:rgba(240,120,106,.08)}
+  .stackv{display:flex;flex-direction:column-reverse;gap:4px;margin:0;padding:0;list-style:none}
+  .stackv li{border:1px solid var(--line);border-radius:5px;padding:7px 10px;font:600 12.5px var(--font-mono);background:var(--panel-2);color:var(--silk)}
+  .stackv li.frame{border-color:var(--cbt-sky);background:rgba(56,176,224,.12)}
+  .stackv li.main{border-color:var(--cbt-gold);color:var(--cbt-gold)}
+  .stackv li.err{border-color:var(--bad);background:rgba(240,120,106,.12)}
+  .listv{display:flex;flex-wrap:wrap;gap:4px;min-height:30px}
+  .listv span{font:600 13px var(--font-mono);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 8px;color:var(--out)}
+  .listv span.hi{border-color:var(--cbt-gold);color:var(--cbt-gold)}
+  .listv span.hit{border-color:var(--ok);color:var(--ok)}
+  .listv em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .screen{font:500 13px/1.5 var(--font-mono);background:#060917;border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-height:44px;white-space:pre-wrap;color:var(--out)}
+  .screen.err{color:var(--bad)}
+  .reg .rv.bad{color:var(--bad)}
+  .counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .counts .reg{text-align:center}.counts .reg .rv{display:block;text-align:center}.counts .reg .rn{display:block;color:var(--silk-dim)}
+  .info{border:1px solid var(--line);border-radius:6px;padding:12px 14px;background:var(--panel)}
+  .info b{color:var(--cbt-gold)}
+  .bugnote{font-size:13px;color:var(--silk-dim);margin:0}
+  @media(max-width:520px){.counts{grid-template-columns:repeat(3,minmax(0,1fr))}.picks label{flex-wrap:wrap}.picks label>span:first-child{min-width:0;width:100%}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 4 · Interactive A</div>
+  </div>
+</header>
+
+<div class="app">
+  <header class="lab-head">
+    <p class="eyebrow">COP1411 · Week 4 · Explorer</p>
+    <h1>The call stack tower</h1>
+    <p class="lede">Call a dispatch toolkit function and watch its frame rise, its parameters and locals live inside it, and its return value fly back down to MAIN. A frame is the box of memory Python builds for one call; when the call returns, the frame and everything inside it are gone.</p>
+  </header>
+  <section class="stage scene" id="stage" aria-label="The call stack tower scene. Use the controls under it to run the program step by step.">
+    <div class="hud hud-top">
+      <ol class="phases" aria-label="Phase">
+        <li data-p="call" style="--c:var(--cbt-gold)">Call</li>
+        <li data-p="bind" style="--c:var(--cbt-sky)">Bind</li>
+        <li data-p="body" style="--c:var(--oper)">Body</li>
+        <li data-p="return" style="--c:var(--alu)">Return</li>
+        <li data-p="main" style="--c:var(--out)">Main</li>
+      </ol>
+      <div class="ticks">step <b id="hudStep">0</b></div>
+    </div>
+    <div class="hud hud-bottom">
+      <div class="legend" aria-label="Colors">
+        <span style="--c:var(--cbt-gold)"><i></i>value, executing line</span>
+        <span style="--c:var(--cbt-sky)"><i></i>frame (scope)</span>
+        <span style="--c:var(--alu)"><i></i>match, success</span>
+        <span style="--c:var(--bad)"><i></i>error, wrong value</span>
+      </div>
+    </div>
+    <div class="zc" aria-label="Zoom and pan">
+      <button type="button" id="zIn" aria-label="Zoom in">+</button>
+      <button type="button" id="zOut" aria-label="Zoom out">-</button>
+      <button type="button" id="zFit" class="fit" aria-label="Fit the scene">FIT</button>
+      <div class="pad">
+        <span></span><button type="button" data-pan="up" aria-label="Pan up">&#9650;</button><span></span>
+        <button type="button" data-pan="left" aria-label="Pan left">&#9664;</button><span></span><button type="button" data-pan="right" aria-label="Pan right">&#9654;</button>
+        <span></span><button type="button" data-pan="down" aria-label="Pan down">&#9660;</button><span></span>
+      </div>
+    </div>
+    <div class="intro" id="intro" aria-hidden="true"><div><b>The call stack tower</b><small>Palmetto Parcel dispatch toolkit</small></div></div>
+  </section>
+
+  <section class="guide" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How to use this lab</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Under <b>Pick a call</b>, choose a function and its arguments. The code panel shows toolkit.py and the call MAIN makes.</li>
+      <li data-h="2">Press <b>Step</b> to run one line. On the scene, a frame rises on the MAIN floor when the function is called, cards appear for its parameters and locals, and the return value flies back down.</li>
+      <li data-h="3">Press <b>Step back</b> to see a step again, or <b>Run</b> to play every step. Try find_package and sort_by_weight to watch the shelf.</li>
+      <li data-h="4">Turn on <b>Copilot's refactor</b> and run the same call. Each function has one bug; a coral return value means the test named in the narration catches it.</li>
+      <li data-h="5">Scroll down to <b>Try it</b>, edit toolkit.py, and press <b>Run</b> there to run real Python against five tests.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Press <b>Step</b> to call price(12, 8, False).</span></div>
+      <ul class="tips"><li>Keyboard: Space steps, B steps back, R runs or pauses. On the scene: drag to orbit, wheel to zoom, + and - keys zoom, arrow keys pan.</li></ul>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <section class="narr" aria-live="polite">
+      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 0</span></div>
+      <p id="narration">Press Step to start, or Run to play every step.</p>
+    </section>
+    <div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="btnRun">Run</button>
+        <button type="button" class="btn" id="btnStep">Step</button>
+        <button type="button" class="btn" id="btnBack">Step back</button>
+        <button type="button" class="btn" id="btnReset">Reset</button>
+      </div>
+      <div class="speed" style="margin-top:12px"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="4" step="1" value="2"><output id="speedOut">1×</output></div>
+    </div>
+    <section>
+      <h2>Pick a call</h2>
+      <div class="picks">
+        <label><span>Function</span><select id="fnSel">
+          <option value="price">price(weight, miles, fragile)</option>
+          <option value="zone">zone(city)</option>
+          <option value="manifest_total">manifest_total(weights)</option>
+          <option value="find_package">find_package(tracking, packages)</option>
+          <option value="sort_by_weight">sort_by_weight(weights)</option>
+        </select></label>
+        <div class="args" data-fn="price">
+          <label><span>weight</span><input type="number" id="aW" value="12" min="0" max="999" step="1"><span>lb</span></label>
+          <label><span>miles</span><input type="number" id="aM" value="8" min="0" max="999" step="1"></label>
+          <label><span>fragile</span><input type="checkbox" id="aF"> <span>True when checked</span></label>
+          <div class="presets"><button type="button" class="btn" data-preset="p1">0001: 12 lb, 8 mi</button><button type="button" class="btn" data-preset="p2">0002: 3 lb, 2 mi, fragile</button><button type="button" class="btn" data-preset="p5">0005: 60 lb, 14 mi, fragile</button><button type="button" class="btn" data-preset="p4">0004: 20 lb, 19 mi</button></div>
+        </div>
+        <div class="args" data-fn="zone" hidden>
+          <label><span>city</span><select id="aCity"><option>Doral</option><option>Hialeah</option><option>Miami Gardens</option><option selected>Kendall</option><option>Homestead</option><option>Fort Lauderdale</option><option>doral</option></select></label>
+        </div>
+        <div class="args" data-fn="manifest_total" hidden>
+          <label><span>weights</span><input type="text" id="aList" value="12, 3, 20, 50, 45" aria-label="weights, separated by commas"></label>
+          <div class="presets"><button type="button" class="btn" data-preset="van1">VAN-1: 12, 3, 20, 50, 45</button><button type="button" class="btn" data-preset="empty">Empty list</button><button type="button" class="btn" data-preset="over">Overload: 400, 350, 300, 200</button></div>
+        </div>
+        <div class="args" data-fn="find_package" hidden>
+          <label><span>tracking</span><select id="aTrack"><option>PP-2026-0001</option><option>PP-2026-0002</option><option>PP-2026-0003</option><option selected>PP-2026-0004</option><option>PP-2026-0005</option><option>PP-2026-0009</option></select></label>
+          <p class="bugnote">packages is the shelf: PP-2026-0001 to PP-2026-0005. PP-2026-0009 is not on it.</p>
+        </div>
+        <div class="args" data-fn="sort_by_weight" hidden>
+          <label><span>weights</span><input type="text" id="aSort" value="12, 3, 20, 50, 45" aria-label="weights, separated by commas"></label>
+          <div class="presets"><button type="button" class="btn" data-preset="svan1">VAN-1: 12, 3, 20, 50, 45</button><button type="button" class="btn" data-preset="srev">Reversed: 50, 45, 20, 12, 3</button><button type="button" class="btn" data-preset="ssorted">Already sorted: 3, 12, 20, 45, 50</button></div>
+        </div>
+        <label class="toggle" id="cpWrap"><input type="checkbox" id="copilot"><span><b>Copilot's refactor</b>: swap every function for a Copilot version with one bug each, then run the same call.</span></label>
+        <p class="bugnote" id="argNote"></p>
+      </div>
+    </section>
+    <section>
+      <h2>The program: toolkit.py</h2>
+      <pre class="code" id="code"></pre>
+    </section>
+    <section>
+      <h2>Live state: the stack</h2>
+      <ul class="stackv" id="stackv"></ul>
+      <p class="bugnote" style="margin-top:8px">Top frame first. MAIN is the floor; a frame exists only while its call runs.</p>
+    </section>
+    <section>
+      <h2>Locals of the top frame</h2>
+      <div class="regs" id="locals"></div>
+      <p class="bugnote" id="localsNote" style="margin-top:8px">No frame yet. Only MAIN's names exist: packages, result.</p>
+    </section>
+    <section>
+      <h2>MAIN</h2>
+      <div class="regs">
+        <div class="reg kv" id="r-result"><span class="rn">result</span><span class="rv" id="v-result">?</span><span class="rf">what the call returned</span><span class="rs" id="s-result"></span></div>
+      </div>
+      <h3 style="margin-top:10px">Screen</h3>
+      <div class="screen" id="screen">(nothing printed yet)</div>
+    </section>
+    <section>
+      <h2>Counters and the list</h2>
+      <div class="counts">
+        <div class="reg"><span class="rn">passes</span><span class="rv" id="v-pass">0</span></div>
+        <div class="reg"><span class="rn">comparisons</span><span class="rv" id="v-comp">0</span></div>
+        <div class="reg"><span class="rn">swaps</span><span class="rv" id="v-swap">0</span></div>
+      </div>
+      <h3 style="margin-top:10px">The list on the shelf</h3>
+      <div class="listv" id="listv"><em>No list in this call.</em></div>
+    </section>
+    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any part of the scene (the MAIN floor, a frame, the shelf, a package, the scanner) to learn what it does.</div>
+    <section class="span-all">
+      <h2>Try it: edit and run the Python</h2>
+      <p class="bugnote" style="margin:0 0 10px">This is the whole toolkit. Five tests run after your code. Ideas: change <code>total = 0</code> to <code>total = 1</code> and watch which test fails; add <code>print(p)</code> at the end to see NameError; write <code>lane(weight, fragile, city)</code> that calls <code>zone(city)</code> inside it.</p>
+      <div id="sandbox"></div>
+    </section>
+    <section>
+      <h2>Things to notice</h2>
+      <ul class="notice">
+        <li>The parameter cards appear only after the call and vanish at the return. That is scope: a name lives inside the frame that created it.</li>
+        <li>zone returns from the first True branch. The lines after it never run for that call.</li>
+        <li>find_package stops at the first match. return -1 only runs when the loop finishes with no match.</li>
+        <li>Bubble sort on 12, 3, 20, 50, 45 makes 4 passes, 10 comparisons, and only 2 swaps. The reversed list needs 10 swaps.</li>
+        <li>Copilot's price returns the right number for package 0001 and the wrong number for 0005. One passing test proves nothing; the test that can fail is the one that matters.</li>
+      </ul>
+    </section>
+    <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+  </aside>
+</div>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+const hasTHREE = typeof window.THREE !== 'undefined';
+const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+// PYSANDBOX START
+// CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
+// Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
+//   const sb = PySandbox(hostEl, {title, code, inputs, tests: [{expr, expect}], timeout: 15000, onRun(result), onTests(passed, total)});
+//   sb.run(); sb.setCode(s); sb.getCode(); sb.setInputs(s); sb.reset(); sb.output()
+// result: {ok, out, err, tests: [{expr, expect, got, pass}]}. Without the CDN the box shows a plain fallback message.
+function PySandbox(host, opts) {
+  'use strict';
+  const O = Object.assign({title: 'Try it: edit and run the Python', code: 'print("hello")', inputs: '', tests: [], timeout: 15000,
+    pyodideUrl: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', runLabel: 'Run', resetLabel: 'Reset code'}, opts || {});
+  if (!document.getElementById('pysandbox-css')) {
+    const st = document.createElement('style'); st.id = 'pysandbox-css';
+    st.textContent = '.pysb{border:1px solid var(--line,#2a3270);border-radius:8px;background:rgba(11,15,43,.6);overflow:hidden;font-family:Figtree,system-ui,sans-serif}' +
+      '.pysb-head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line,#2a3270);font-size:13px}' +
+      '.pysb-head b{font-family:Archivo,sans-serif;font-weight:700}.pysb-status{margin-left:auto;font:500 11px "Red Hat Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-grid{display:grid;grid-template-columns:1fr 200px;gap:0}@media(max-width:700px){.pysb-grid{grid-template-columns:1fr}}' +
+      '.pysb textarea{width:100%;box-sizing:border-box;border:0;background:#0b0f2b;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;padding:10px 12px;resize:vertical;min-height:160px;outline:none;tab-size:4}' +
+      '.pysb textarea:focus{box-shadow:inset 0 0 0 2px var(--cbt-gold,#E0B840)}' +
+      '.pysb-in{border-left:1px solid var(--line,#2a3270)}@media(max-width:700px){.pysb-in{border-left:0;border-top:1px solid var(--line,#2a3270)}}' +
+      '.pysb-in label,.pysb-out label{display:block;padding:6px 12px 0;font:500 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-in textarea{min-height:60px}' +
+      '.pysb-bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line,#2a3270);flex-wrap:wrap}' +
+      '.pysb-bar button{font:600 13px Figtree,sans-serif;padding:7px 14px;border-radius:6px;border:1px solid var(--line,#2a3270);background:#1b2140;color:#eef1fa;cursor:pointer}' +
+      '.pysb-bar button.primary{background:var(--cbt-gold,#E0B840);color:#1a1205;border-color:transparent}.pysb-bar button:disabled{opacity:.5;cursor:default}' +
+      '.pysb-bar .hint{font-size:12px;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-prog{height:3px;background:transparent;position:relative;overflow:hidden}.pysb-prog i{position:absolute;left:-40%;top:0;bottom:0;width:40%;background:var(--cbt-sky,#38B0E0);animation:pysbp 1.2s linear infinite}@keyframes pysbp{to{left:100%}}' +
+      '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
+      '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
+      '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}';
+    document.head.appendChild(st);
+  }
+  host.classList.add('pysb');
+  host.innerHTML = '<div class="pysb-head"><b></b><span class="pysb-status">Python not loaded yet</span></div><div class="pysb-prog"></div>' +
+    '<div class="pysb-grid"><div><textarea class="pysb-code" spellcheck="false" aria-label="Python code"></textarea></div>' +
+    '<div class="pysb-in"><label>Inputs (one per input() call)</label><textarea class="pysb-inputs" spellcheck="false" aria-label="Inputs, one per line"></textarea></div></div>' +
+    '<div class="pysb-bar"><button type="button" class="primary pysb-run"></button><button type="button" class="pysb-reset"></button><span class="hint">Ctrl+Enter runs. The first run downloads Python (about 10 MB) once.</span></div>' +
+    '<div class="pysb-out"><label>Output</label><pre class="pysb-pre">Nothing run yet.</pre><ul class="pysb-tests" hidden></ul></div>';
+  const q = s => host.querySelector(s);
+  q('.pysb-head b').textContent = O.title; q('.pysb-run').textContent = O.runLabel; q('.pysb-reset').textContent = O.resetLabel;
+  const code = q('.pysb-code'), inputs = q('.pysb-inputs'), pre = q('.pysb-pre'), status = q('.pysb-status'), prog = q('.pysb-prog'), tests = q('.pysb-tests'), btnRun = q('.pysb-run');
+  code.value = O.code; inputs.value = O.inputs;
+  let worker = null, ready = false, loading = false, timer = null, last = null, failed = false;
+  const WORKER_SRC = [
+    'var py = null, url = "' + O.pyodideUrl + '";',
+    'self.onmessage = async function (e) {',
+    '  var m = e.data;',
+    '  try {',
+    '    if (!py) { importScripts(url + "pyodide.js"); py = await loadPyodide({indexURL: url}); postMessage({type: "ready", version: py.version}); }',
+    '    if (m.type !== "run") return;',
+    '    var lines = m.inputs.split(/\\r?\\n/); var out = [];',
+    '    py.setStdout({batched: function (s) { out.push(s); }}); py.setStderr({batched: function (s) { out.push(s); }});',
+    '    py.setStdin({stdin: function () { var l = lines.length ? lines.shift() : ""; return l + "\\n"; }, isatty: false});',
+    '    var ns = py.globals.get("dict")(); var result = {type: "done", ok: true, out: "", err: "", tests: []};',
+    '    try { await py.runPythonAsync(m.code, {globals: ns}); }',
+    '    catch (err) { result.ok = false; result.err = String(err.message || err); }',
+    '    result.out = out.join("\\n");',
+    '    for (var i = 0; i < m.tests.length; i++) { var t = m.tests[i], got;',
+    '      try { got = py.runPython("repr(" + t.expr + ")", {globals: ns}); } catch (e2) { got = "error: " + String(e2.message || e2).trim().split("\\n").pop(); }',
+    '      result.tests.push({expr: t.expr, expect: t.expect, got: got, pass: got === t.expect}); }',
+    '    ns.destroy(); postMessage(result);',
+    '  } catch (err) { postMessage({type: "fatal", err: String(err.message || err)}); }',
+    '};'].join('\n');
+  function spawn() {
+    const blob = new Blob([WORKER_SRC], {type: 'application/javascript'});
+    worker = new Worker(URL.createObjectURL(blob)); ready = false;
+    worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') { ready = true; loading = false; prog.innerHTML = ''; status.textContent = 'Python ' + m.version + ' ready'; return; }
+      if (m.type === 'fatal') { fail(m.err); return; }
+      if (m.type === 'done') { clearTimeout(timer); btnRun.disabled = false; show(m); }
+    };
+    worker.onerror = e => { fail(e.message || 'worker error'); };
+  }
+  function fail(msg) {
+    clearTimeout(timer); loading = false; ready = false; failed = true; btnRun.disabled = false; prog.innerHTML = '';
+    status.textContent = 'Python could not load';
+    pre.className = 'pysb-pre err'; pre.textContent = 'Python could not load here (the network may block cdn.jsdelivr.net). Copy the code into IDLE on the lab PC and run it there.' + (msg ? '\nDetails: ' + msg : '');
+    if (worker) { worker.terminate(); worker = null; }
+  }
+  function trimTrace(err) {
+    // keep from the first line that mentions the student's code; Pyodide adds its own frames above it
+    const i = err.indexOf('File "<exec>"'); if (i < 0) return err.trim();
+    const head = err.slice(0, i).split('\n').filter(l => /^Traceback/.test(l)).join('\n');
+    return (head ? head + '\n  ' : '') + err.slice(i).trim();
+  }
+  function show(m) {
+    last = m; const err = m.err ? trimTrace(m.err) : '';
+    pre.className = 'pysb-pre' + (m.ok ? '' : ' err');
+    pre.textContent = (m.out ? m.out + (m.out.endsWith('\n') ? '' : '\n') : '') + (err ? err : '') || '(no output)';
+    if (O.tests && O.tests.length) {
+      tests.hidden = false; tests.innerHTML = m.tests.map(t => '<li class="' + (t.pass ? 'pass' : 'fail') + '"><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">got ' + esc(t.got) + '</span></li>').join('');
+      const passed = m.tests.filter(t => t.pass).length; status.textContent = passed + ' of ' + m.tests.length + ' tests pass';
+      if (O.onTests) O.onTests(passed, m.tests.length, m);
+    } else status.textContent = m.ok ? 'Ran without errors' : 'Stopped with an error';
+    if (O.onRun) O.onRun(m);
+  }
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  function run() {
+    if (failed) { failed = false; }
+    if (!worker) spawn();
+    btnRun.disabled = true; tests.hidden = true; pre.className = 'pysb-pre'; pre.textContent = ready ? 'Running...' : 'Loading Python (about 10 MB, once)...';
+    if (!ready) { loading = true; status.textContent = 'Loading Python...'; prog.innerHTML = '<i></i>'; }
+    worker.postMessage({type: 'run', code: code.value, inputs: inputs.value, tests: O.tests || []});
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ready && loading) return; // still downloading; the fatal handler covers real failures
+      worker.terminate(); worker = null; ready = false; btnRun.disabled = false;
+      pre.className = 'pysb-pre err'; pre.textContent = 'Stopped after ' + Math.round(O.timeout / 1000) + ' seconds: the program never finished. Look for a loop whose condition never becomes False.';
+      status.textContent = 'Stopped (infinite loop?)'; if (O.onRun) O.onRun({ok: false, out: '', err: 'timeout', tests: []});
+    }, O.timeout + (ready ? 0 : 60000));
+  }
+  btnRun.addEventListener('click', run);
+  q('.pysb-reset').addEventListener('click', () => { code.value = O.code; inputs.value = O.inputs; pre.className = 'pysb-pre'; pre.textContent = 'Code reset. Press Run.'; tests.hidden = true; });
+  code.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if (e.key === 'Tab') { e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '    ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 4; } });
+  const api = {run: run, setCode: s => { code.value = s; }, getCode: () => code.value, setInputs: s => { inputs.value = s; }, setTests: t => { O.tests = t; },
+    reset: () => q('.pysb-reset').click(), output: () => pre.textContent, last: () => last, isReady: () => ready, el: host};
+  window.__pysandboxes = window.__pysandboxes || []; window.__pysandboxes.push(api);
+  return api;
+}
+// PYSANDBOX END
+
+
+// ---- Python value formatting (matches repr) ----
+const pyFloat = v => Number.isInteger(v) ? v.toFixed(1) : String(v);
+const pyBool = b => b ? 'True' : 'False';
+const pyList = a => '[' + a.join(', ') + ']';
+const pyStr = s => '"' + s + '"';
+const pyRepr = s => "'" + s + "'";
+
+// ---- toolkit.py: the correct functions and Copilot's refactor (one bug each) ----
+const PACKAGES = ['PP-2026-0001', 'PP-2026-0002', 'PP-2026-0003', 'PP-2026-0004', 'PP-2026-0005'];
+const FN = {
+  price: {
+    ok: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '        p = p + 3.00', '    return p'],
+    cp: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    return p'],
+    bugLine: 2, bug: 'Copilot dropped the fragile surcharge: there is no if fragile line.', test: 'price(60, 14, True) expecting 59.0'
+  },
+  zone: {
+    ok: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"'],
+    cp: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens" or city == "Kendall":', '        return "B"', '    elif city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"'],
+    bugLine: 3, bug: 'Copilot listed Kendall with the zone B cities.', test: 'zone("Kendall") expecting \'C\''
+  },
+  manifest_total: {
+    ok: ['def manifest_total(weights):', '    total = 0', '    for w in weights:', '        total = total + w', '    return total'],
+    cp: ['def manifest_total(weights):', '    total = 1', '    for w in weights:', '        total = total + w', '    return total'],
+    bugLine: 1, bug: 'Copilot started the accumulator at 1 instead of 0.', test: 'manifest_total([12, 3, 20, 50, 45]) expecting 130'
+  },
+  find_package: {
+    ok: ['def find_package(tracking, packages):', '    for i in range(len(packages)):', '        if packages[i] == tracking:', '            return i', '    return -1'],
+    cp: ['def find_package(tracking, packages):', '    for i in range(len(packages)):', '        if packages[i] == tracking:', '            return packages[i]', '    return -1'],
+    bugLine: 3, bug: 'Copilot returns the item itself instead of its index.', test: 'find_package("PP-2026-0004", packages) expecting 3'
+  },
+  sort_by_weight: {
+    ok: ['def sort_by_weight(weights):', '    n = len(weights)', '    for i in range(n - 1):', '        for j in range(n - 1 - i):', '            if weights[j] > weights[j + 1]:', '                weights[j], weights[j + 1] = weights[j + 1], weights[j]', '    return weights'],
+    cp: ['def sort_by_weight(weights):', '    n = len(weights)', '    for i in range(n - 1):', '        for j in range(n - i):', '            if weights[j] > weights[j + 1]:', '                weights[j], weights[j + 1] = weights[j + 1], weights[j]', '    return weights'],
+    bugLine: 3, bug: 'Copilot wrote range(n - i): the inner loop runs one time too many.', test: 'sort_by_weight([12, 3, 20, 50, 45]) expecting [3, 12, 20, 45, 50]'
+  }
+};
+const ORDER = ['price', 'zone', 'manifest_total', 'find_package', 'sort_by_weight'];
+function buildProgram(copilot, callText) {
+  const lines = [], off = {};
+  ORDER.forEach(name => { off[name] = lines.length + 1; lines.push(...(copilot ? FN[name].cp : FN[name].ok)); lines.push(''); });
+  lines.push('packages = [' + PACKAGES.map(pyStr).join(', ') + ']');
+  const callLine = lines.length + 1; lines.push('result = ' + callText);
+  const printLine = lines.length + 1; lines.push('print(result)');
+  return {lines, off, callLine, printLine};
+}
+let PROG = buildProgram(false, 'price(12, 8, False)'), COPILOT = false, CUR = 'price';
+function renderCode(active) {
+  const el = $('#code'); const bugAt = COPILOT ? PROG.off[CUR] + FN[CUR].bugLine : -1;
+  el.innerHTML = PROG.lines.map((l, i) => '<span class="ln' + (i + 1 === active ? ' on' : '') + (i + 1 === bugAt ? ' bug' : '') + '"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' +
+    (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
+  const on = el.querySelector('.ln.on'); if (on) el.scrollTop = Math.max(0, on.offsetTop - el.clientHeight / 2);
+}
+
+// ---- shared layout (world units; the SVG fallback maps the same numbers) ----
+const L = {frameX: -2.0, frameY: k => 0.7 + k * 1.45, frameW: 3.4, frameH: 1.3, frameD: 1.7, slotX: i => 0.95 + i * 0.72, shelfY: 0.55, resultPos: {x: -2.0, y: 0.32, z: 1.6}};
+const COL = {gold: 0xE0B840, sky: 0x38B0E0, coral: 0xF0786A, green: 0x6FD49B, navy: 0x1B2150, navy2: 0x283068, ice: 0x9FE7FF, oper: 0xA9B4FF};
+const boxSize = w => Math.min(0.78, 0.34 + (Math.min(w, 400) / 400) * 0.44);
+const short = t => t.length > 8 ? t.slice(-4) : t;
+
+// ---- the Three.js scene ----
+function Scene3D(stage) {
+  const r = new THREE.WebGLRenderer({antialias: true, alpha: true}); r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  r.setSize(stage.clientWidth, stage.clientHeight); r.domElement.setAttribute('aria-hidden', 'true'); stage.appendChild(r.domElement);
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(38, stage.clientWidth / stage.clientHeight, 0.1, 100);
+  const HOME = {pos: new THREE.Vector3(0.4, 4.0, 8.2), tgt: new THREE.Vector3(0.4, 1.25, 0)};
+  const fitHome = () => { const a = Math.max(0.3, stage.clientWidth / stage.clientHeight); const k = Math.max(1, 1.45 / a); HOME.tgt.set(a < 1 ? -0.3 : 0.4, a < 1 ? 0.5 : 1.25, 0); HOME.pos.copy(HOME.tgt).add(new THREE.Vector3(0, 2.75, 8.2).multiplyScalar(k)); };
+  fitHome(); cam.position.copy(HOME.pos);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x223366, 1.05)); const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(4, 9, 6); scene.add(sun);
+  const ctl = THREE.OrbitControls ? new THREE.OrbitControls(cam, r.domElement) : null;
+  if (ctl) { ctl.enableDamping = true; ctl.target.copy(HOME.tgt); ctl.maxPolarAngle = Math.PI * 0.49; ctl.minDistance = 3; ctl.maxDistance = 24; ctl.enablePan = false; }
+  const tgt = () => ctl ? ctl.target : HOME.tgt;
+  // text sprites (canvas textures)
+  function textSprite(text, o) {
+    o = Object.assign({size: 30, color: '#eef1fa', bg: null, h: 0.34, pad: 14, weight: 600}, o || {});
+    const c = document.createElement('canvas'), ctx = c.getContext('2d'); const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false})); sp.renderOrder = 10;
+    function set(t, color, bg) { if (color) o.color = color; if (bg !== undefined) o.bg = bg; const font = o.weight + ' ' + o.size + 'px "Red Hat Mono", Consolas, monospace';
+      ctx.font = font; const w = Math.ceil(ctx.measureText(t).width) + o.pad * 2, h = Math.round(o.size * 1.6); c.width = w; c.height = h; ctx.font = font; ctx.textBaseline = 'middle';
+      if (o.bg) { ctx.fillStyle = o.bg; ctx.beginPath(); ctx.roundRect(1, 1, w - 2, h - 2, 8); ctx.fill(); }
+      ctx.fillStyle = o.color; ctx.fillText(t, o.pad, h / 2); tex.needsUpdate = true; sp.scale.set(o.h * w / h, o.h, 1); sp.userData.text = t; }
+    set(text); sp.userData.set = set; return sp;
+  }
+  const mat = (color, o) => new THREE.MeshStandardMaterial(Object.assign({color, roughness: .55, metalness: .1}, o || {}));
+  const edges = (geo, color) => new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color, transparent: true, opacity: .9}));
+  const pick = [];
+  // MAIN floor
+  const floorGeo = new THREE.BoxGeometry(9.2, 0.3, 4.4); const floor = new THREE.Mesh(floorGeo, mat(COL.navy)); floor.position.set(0.3, -0.15, 0); scene.add(floor); floor.add(edges(floorGeo, COL.gold)); floor.userData.key = 'main'; pick.push(floor);
+  const mainLabel = textSprite('MAIN', {size: 34, color: '#E0B840', h: 0.42}); mainLabel.position.set(-3.4, 0.22, 1.8); scene.add(mainLabel);
+  const resultLabel = textSprite('result = ?', {size: 26, color: '#9FE7FF', bg: 'rgba(6,9,23,.85)', h: 0.3}); resultLabel.position.set(L.resultPos.x, L.resultPos.y, L.resultPos.z); scene.add(resultLabel);
+  // shelf
+  const shelfGrp = new THREE.Group(); scene.add(shelfGrp);
+  const plankGeo = new THREE.BoxGeometry(4.3, 0.08, 1.1); const plank = new THREE.Mesh(plankGeo, mat(COL.navy2)); plank.position.set(L.slotX(2), L.shelfY, 0); shelfGrp.add(plank); plank.add(edges(plankGeo, COL.sky)); plank.userData.key = 'shelf'; pick.push(plank);
+  [-1, 1].forEach(s => { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, L.shelfY, 0.08), mat(COL.navy2)); leg.position.set(L.slotX(2) + s * 2.05, L.shelfY / 2, 0.45); shelfGrp.add(leg); });
+  const shelfLabel = textSprite('packages', {size: 24, color: '#aeb3c9', h: 0.26}); shelfLabel.position.set(L.slotX(2), 0.3, 0.75); shelfGrp.add(shelfLabel);
+  const scanner = new THREE.Mesh(new THREE.BoxGeometry(0.62, 1.3, 1.0), new THREE.MeshBasicMaterial({color: COL.green, transparent: true, opacity: .28})); scanner.position.set(L.slotX(0), L.shelfY + 0.7, 0); scanner.visible = false; shelfGrp.add(scanner); scanner.userData.key = 'scanner'; pick.push(scanner);
+  const scanBeam = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.3, 1.0), new THREE.MeshBasicMaterial({color: COL.green})); scanner.add(scanBeam);
+  // frames and boxes
+  const frames = []; const boxes = new Map(); let valuePill = null;
+  function frameMesh(k, name) {
+    const g = new THREE.Group(); const geo = new THREE.BoxGeometry(L.frameW, L.frameH, L.frameD);
+    const box = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({color: COL.sky, transparent: true, opacity: .16, roughness: .2, metalness: 0, side: THREE.DoubleSide})); box.userData.key = 'frame'; pick.push(box);
+    const ed = edges(geo, COL.sky); g.add(box); g.add(ed); g.position.set(L.frameX, L.frameY(k), 0);
+    const lab = textSprite(name + '()', {size: 30, color: '#9FE7FF', h: 0.36}); lab.position.set(0, L.frameH / 2 + 0.25, 0); g.add(lab);
+    const f = {g, box, ed, lab, cards: new Map(), name, k}; frames[k] = f; scene.add(g); return f;
+  }
+  function reflow(f) { const W = L.frameW - 0.3, gap = 0.1; const rows = [[]]; let x = 0; f.cards.forEach(c => { const w = c.userData.w || c.scale.x; if (x > 0 && x + w > W) { rows.push([]); x = 0; } rows[rows.length - 1].push(c); x += w + gap; });
+    rows.forEach((cells, ri) => { const tw = cells.reduce((a, c) => a + (c.userData.w || c.scale.x), 0) + gap * (cells.length - 1); let sx = -tw / 2; cells.forEach(c => { const w = c.userData.w || c.scale.x; c.position.set(sx + w / 2, 0.42 - ri * 0.32, 0.5); sx += w + gap; }); }); }
+  function setCard(f, name, value, flash) {
+    let c = f.cards.get(name); const text = name + ' = ' + value;
+    if (!c) { c = textSprite(text, {size: 26, color: '#1a1205', bg: '#E0B840', h: text.length > 24 ? 0.22 : 0.28}); c.userData.w = c.scale.x; f.g.add(c); f.cards.set(name, c); reflow(f); if (flash && hasGSAP) { const sx = c.scale.x, sy = c.scale.y; c.scale.set(sx * 0.01, sy * 0.01, 1); gsap.to(c.scale, {x: sx, y: sy, duration: .4, ease: 'back.out(2)'}); } }
+    else if (c.userData.text !== text) { c.userData.set(text); c.userData.w = c.scale.x; reflow(f); if (flash && hasGSAP) gsap.fromTo(c.position, {y: c.position.y + 0.15}, {y: c.position.y, duration: .35, ease: 'bounce.out'}); }
+    return c;
+  }
+  function removeFrame(k) { const f = frames[k]; if (!f) return; scene.remove(f.g); const i = pick.indexOf(f.box); if (i >= 0) pick.splice(i, 1); frames.length = k; }
+  function syncShelf(S) {
+    const want = new Set((S.list || []).map(it => it.id));
+    boxes.forEach((b, id) => { if (!want.has(id)) { shelfGrp.remove(b.m); const i = pick.indexOf(b.m); if (i >= 0) pick.splice(i, 1); boxes.delete(id); } });
+    (S.list || []).forEach((it, i) => {
+      let b = boxes.get(it.id);
+      if (!b) { const s = boxSize(it.w || 20); const geo = new THREE.BoxGeometry(s, s, s); const m = new THREE.Mesh(geo, mat(0x3b4a9a)); m.add(edges(geo, 0xA9B4FF)); m.userData.key = 'pkg'; m.userData.item = it; pick.push(m);
+        const lab = textSprite(it.label, {size: 26, color: '#eef1fa', h: 0.26}); lab.position.set(0, s / 2 + 0.2, 0); m.add(lab); b = {m, s, lab}; boxes.set(it.id, b); shelfGrp.add(m); }
+      b.m.position.set(L.slotX(i), L.shelfY + b.s / 2 + 0.04, 0);
+      const hi = S.hi && (S.hi[0] === i || S.hi[1] === i), hit = S.scan === i && S.scanHit;
+      b.m.material.color.set(hit ? COL.green : hi ? COL.gold : 0x3b4a9a); b.m.material.emissive.set(hit ? 0x1f5a35 : hi ? 0x5a4810 : 0x000000);
+    });
+    shelfGrp.visible = !!(S.list && S.list.length) || S.showShelf;
+    scanner.visible = S.scan !== null && S.scan !== undefined; if (scanner.visible) { scanner.position.x = L.slotX(S.scan < 0 ? (S.list || []).length : S.scan); scanner.material.color.set(S.scan < 0 ? COL.coral : S.scanHit ? COL.green : COL.ice); scanBeam.material.color.set(S.scan < 0 ? COL.coral : S.scanHit ? COL.green : COL.ice); }
+  }
+  const api = {
+    onPick: null,
+    update(S) {
+      for (let k = frames.length - 1; k >= (S.stack || []).length; k--) removeFrame(k);
+      (S.stack || []).forEach((fr, k) => { let f = frames[k]; if (!f || f.name !== fr.name) { removeFrame(k); f = frameMesh(k, fr.name); }
+        f.g.scale.set(1, 1, 1); f.box.material.opacity = .16; f.box.material.color.set(S.err ? COL.coral : COL.sky); f.ed.material.color.set(S.err ? COL.coral : COL.sky);
+        const names = new Set(fr.vars.map(v => v[0])); f.cards.forEach((c, n) => { if (!names.has(n)) { f.g.remove(c); f.cards.delete(n); } });
+        fr.vars.forEach(v => setCard(f, v[0], v[1], false)); reflow(f); });
+      if (valuePill) { scene.remove(valuePill); valuePill = null; }
+      resultLabel.userData.set('result = ' + (S.result === null ? '?' : S.result), S.resultBad ? '#F0786A' : '#9FE7FF');
+      syncShelf(S);
+    },
+    play(name, tl, d) {
+      if (!hasGSAP) return;
+      if (name === 'call') { const f = frameMesh(d.k, d.name); f.g.position.y = -0.3; f.g.scale.set(1, 0.05, 1); f.box.material.opacity = 0;
+        tl.to(f.g.position, {y: L.frameY(d.k), duration: .7, ease: 'power3.out'}, 0).to(f.g.scale, {y: 1, duration: .7, ease: 'power3.out'}, 0).to(f.box.material, {opacity: .16, duration: .5}, .2); }
+      else if (name === 'bind') { const f = frames[d.k]; if (!f) return; d.vars.forEach((v, i) => tl.call(() => setCard(f, v[0], v[1], true), null, i * .22)); tl.to({}, {duration: d.vars.length * .22 + .3}); }
+      else if (name === 'set') { const f = frames[d.k]; if (!f) return; tl.call(() => setCard(f, d.name, d.value, true)); tl.to({}, {duration: .55}); }
+      else if (name === 'test') { const f = frames[d.k]; const c = f && f.cards.get(d.name); if (c) { tl.call(() => c.userData.set(c.userData.text, '#1a1205', d.ok ? '#6FD49B' : '#F0786A')); tl.to({}, {duration: .5}); tl.call(() => c.userData.set(c.userData.text, '#1a1205', '#E0B840')); } else tl.to({}, {duration: .4}); }
+      else if (name === 'skip') { tl.to({}, {duration: .35}); }
+      else if (name === 'load') { tl.call(() => syncShelf(Object.assign({}, d.S, {list: d.list, showShelf: true}))); d.list.forEach((it, i) => { tl.call(() => { const b = boxes.get(it.id); if (b) { b.m.position.y += 1.2; gsap.to(b.m.position, {y: L.shelfY + b.s / 2 + 0.04, duration: .45, ease: 'bounce.out'}); } }, null, i * .12); }); tl.to({}, {duration: d.list.length * .12 + .5}); }
+      else if (name === 'focus') { const b = d.item && boxes.get(d.item.id); if (b) { tl.to(b.m.material.color, {r: 0.88, g: 0.72, b: 0.25, duration: .25}, 0).to(b.m.position, {y: b.m.position.y + 0.25, duration: .25, yoyo: true, repeat: 1}, 0); } else tl.to({}, {duration: .3}); }
+      else if (name === 'compare') { const a = boxes.get(d.a.id), b = boxes.get(d.b.id); if (a && b) { [a, b].forEach(x => tl.to(x.m.material.color, {r: 0.88, g: 0.72, b: 0.25, duration: .25}, 0)); tl.to(a.m.position, {y: a.m.position.y + 0.2, duration: .25, yoyo: true, repeat: 1}, 0).to(b.m.position, {y: b.m.position.y + 0.2, duration: .25, yoyo: true, repeat: 1}, 0); } tl.to({}, {duration: .25}); }
+      else if (name === 'swap') { const a = boxes.get(d.a.id), b = boxes.get(d.b.id); if (a && b) { const ax = a.m.position.x, bx = b.m.position.x;
+        tl.to(a.m.position, {y: a.m.position.y + 0.9, duration: .25, ease: 'power2.out'}, 0).to(a.m.position, {x: bx, duration: .4, ease: 'power2.inOut'}, .2).to(a.m.position, {y: L.shelfY + a.s / 2 + 0.04, duration: .3, ease: 'bounce.out'}, .55)
+          .to(b.m.position, {z: 0.9, duration: .25}, 0).to(b.m.position, {x: ax, duration: .4, ease: 'power2.inOut'}, .2).to(b.m.position, {z: 0, duration: .3}, .55); } else tl.to({}, {duration: .4}); }
+      else if (name === 'scan') { tl.call(() => { scanner.visible = true; scanner.material.color.set(COL.ice); scanBeam.material.color.set(COL.ice); }); tl.to(scanner.position, {x: L.slotX(d.i), duration: .45, ease: 'power2.inOut'}); if (d.hit) { const b = d.item && boxes.get(d.item.id); tl.call(() => { scanner.material.color.set(COL.green); scanBeam.material.color.set(COL.green); if (b) b.m.material.color.set(COL.green); }); tl.to(scanner.material, {opacity: .5, duration: .2, yoyo: true, repeat: 3}); } else tl.to({}, {duration: .2}); }
+      else if (name === 'scanOff') { tl.to(scanner.position, {x: L.slotX(d.n), duration: .5, ease: 'power2.in'}); tl.call(() => { scanner.material.color.set(COL.coral); scanBeam.material.color.set(COL.coral); }); tl.to(scanner.material, {opacity: .5, duration: .2, yoyo: true, repeat: 3}); }
+      else if (name === 'return') { const f = frames[d.k]; if (!f) return; const pill = textSprite(String(d.value), {size: 30, color: '#06120f', bg: d.bad ? '#F0786A' : '#E0B840', h: 0.34}); pill.position.set(L.frameX, L.frameY(d.k), 0.9); scene.add(pill); valuePill = pill;
+        tl.to(pill.position, {y: L.resultPos.y + 0.05, z: L.resultPos.z, duration: .9, ease: 'power2.inOut'}, 0).to(f.box.material, {opacity: 0, duration: .6}, .3).to(f.ed.material, {opacity: 0, duration: .6}, .3).to(f.g.scale, {y: 0.05, duration: .6, ease: 'power2.in'}, .3)
+          .call(() => { f.cards.forEach(c => c.visible = false); f.lab.visible = false; }, null, .6)
+          .call(() => { resultLabel.userData.set('result = ' + d.value, d.bad ? '#F0786A' : '#9FE7FF'); scene.remove(pill); valuePill = null; }, null, .95); tl.to({}, {duration: .2}); }
+      else if (name === 'error') { const f = frames[d.k]; if (!f) return; tl.call(() => { f.box.material.color.set(COL.coral); f.ed.material.color.set(COL.coral); scanner.material.color.set(COL.coral); scanBeam.material.color.set(COL.coral); });
+        tl.to(f.g.position, {x: L.frameX + 0.12, duration: .06, yoyo: true, repeat: 7}).to(f.box.material, {opacity: .35, duration: .25, yoyo: true, repeat: 3}, 0); if (d.i !== undefined) tl.to(scanner.position, {x: L.slotX(d.i), duration: .4}, 0); }
+      else if (name === 'main') { tl.to(resultLabel.scale, {x: resultLabel.scale.x * 1.25, y: resultLabel.scale.y * 1.25, duration: .25, yoyo: true, repeat: 1}); }
+    },
+    zoom(f) { const t = tgt(); const v = cam.position.clone().sub(t); const d = THREE.MathUtils.clamp(v.length() * f, 3, 24); cam.position.copy(t).add(v.setLength(d)); },
+    pan(dx, dy) { const t = tgt(); const right = new THREE.Vector3(); cam.getWorldDirection(right); right.cross(cam.up).normalize(); const up = new THREE.Vector3(0, 1, 0); const mv = right.multiplyScalar(dx).add(up.multiplyScalar(dy)); t.add(mv); cam.position.add(mv); if (!ctl) cam.lookAt(t); },
+    fit() { if (hasGSAP) { gsap.to(cam.position, {x: HOME.pos.x, y: HOME.pos.y, z: HOME.pos.z, duration: .6}); gsap.to(tgt(), {x: HOME.tgt.x, y: HOME.tgt.y, z: HOME.tgt.z, duration: .6}); } else { cam.position.copy(HOME.pos); tgt().copy(HOME.tgt); } },
+    intro() { if (!hasGSAP || reduced) return; cam.position.set(-4, 7, 14); gsap.to(cam.position, {x: HOME.pos.x, y: HOME.pos.y, z: HOME.pos.z, duration: 1.6, ease: 'power2.inOut'}); }
+  };
+  // picking
+  const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
+  r.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+  r.domElement.addEventListener('pointerup', e => { if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return; const b = r.domElement.getBoundingClientRect(); ptr.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); ray.setFromCamera(ptr, cam); const hit = ray.intersectObjects(pick, false)[0]; if (hit && api.onPick) api.onPick(hit.object.userData.key, hit.object.userData.item); });
+  const tick = () => { if (ctl) ctl.update(); else cam.lookAt(HOME.tgt); r.render(scene, cam); requestAnimationFrame(tick); }; tick();
+  window.addEventListener('resize', () => { r.setSize(stage.clientWidth, stage.clientHeight); cam.aspect = stage.clientWidth / stage.clientHeight; cam.updateProjectionMatrix(); fitHome(); });
+  return api;
+}
+
+// ---- the SVG fallback: the same tower and shelf, flat ----
+function Scene2D(stage) {
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '50 90 740 380'); svg.setAttribute('class', 'flat'); svg.setAttribute('aria-hidden', 'true'); stage.appendChild(svg);
+  const X = x => 400 + 80 * x, Y = y => 400 - 80 * y, U = 80;
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+  const text = (t, x, y, attrs, parent) => { const e = el('text', Object.assign({x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: '#eef1fa', 'font-size': 13, 'font-weight': 600}, attrs), parent); e.textContent = t; return e; };
+  const note = el('text', {x: 420, y: 108, 'text-anchor': 'middle', fill: '#aeb3c9', 'font-size': 11}); note.textContent = 'Flat view (no WebGL): the same tower and shelf';
+  const floor = el('rect', {x: X(-4.3), y: Y(0), width: 9.2 * U, height: 24, rx: 4, fill: '#1B2150', stroke: '#E0B840', 'data-key': 'main'});
+  text('MAIN', X(-3.9), Y(0) + 12, {fill: '#E0B840', 'font-size': 14});
+  const resultT = text('result = ?', X(-1.2), Y(0) + 13, {fill: '#9FE7FF', 'font-size': 12});
+  const shelfG = el('g', {}); const plank = el('rect', {x: X(L.slotX(0)) - 0.5 * U, y: Y(L.shelfY), width: 4.3 * U, height: 7, fill: '#283068', stroke: '#38B0E0', 'data-key': 'shelf'}, shelfG);
+  el('rect', {x: X(L.slotX(0)) - 0.4 * U, y: Y(L.shelfY) + 7, width: 6, height: L.shelfY * U - 7, fill: '#283068'}, shelfG); el('rect', {x: X(L.slotX(4)) + 0.4 * U, y: Y(L.shelfY) + 7, width: 6, height: L.shelfY * U - 7, fill: '#283068'}, shelfG);
+  text('packages', X(L.slotX(2)), Y(0) - 12, {fill: '#aeb3c9', 'font-size': 11, 'font-weight': 400}, shelfG);
+  const scanner = el('rect', {x: X(L.slotX(0)) - 25, y: Y(L.shelfY + 1.35), width: 50, height: 1.3 * U, fill: '#6FD49B', 'fill-opacity': .22, stroke: '#6FD49B', 'data-key': 'scanner', visibility: 'hidden'}, shelfG);
+  const frames = [], boxes = new Map(); let pill = null;
+  function frameEl(k, name) { const g = el('g', {'data-key': 'frame'}); const y0 = Y(L.frameY(k)) - L.frameH * U / 2;
+    const rect = el('rect', {x: X(L.frameX) - L.frameW * U / 2, y: y0, width: L.frameW * U, height: L.frameH * U, rx: 8, fill: '#38B0E0', 'fill-opacity': .14, stroke: '#38B0E0', 'stroke-width': 1.5}, g);
+    const lab = text(name + '()', X(L.frameX), y0 - 12, {fill: '#9FE7FF', 'font-size': 13}, g); const f = {g, rect, lab, cards: new Map(), name, k, y0}; frames[k] = f; return f; }
+  function reflow(f) { const W = (L.frameW - 0.3) * U, gap = 8; const rows = [[]]; let x = 0; f.cards.forEach(c => { if (x > 0 && x + c.w > W) { rows.push([]); x = 0; } rows[rows.length - 1].push(c); x += c.w + gap; });
+    rows.forEach((cells, ri) => { const tw = cells.reduce((a, c) => a + c.w, 0) + gap * (cells.length - 1); let sx = X(L.frameX) - tw / 2; cells.forEach(c => { const cy = f.y0 + 24 + ri * 26; c.r.setAttribute('x', sx); c.r.setAttribute('y', cy - 10); c.r.setAttribute('width', c.w); c.t.setAttribute('x', sx + c.w / 2); c.t.setAttribute('y', cy + 1); sx += c.w + gap; }); }); }
+  function setCard(f, name, value) { let c = f.cards.get(name); const txt = name + ' = ' + value;
+    if (!c) { const g = el('g', {}, f.g); const r = el('rect', {height: 20, rx: 4, fill: '#E0B840'}, g); const t = text(txt, 0, 0, {fill: '#1a1205', 'font-size': txt.length > 24 ? 9.5 : 11}, g); c = {g, r, t, w: 60}; f.cards.set(name, c); }
+    else { c.t.textContent = txt; c.t.setAttribute('font-size', txt.length > 24 ? 9.5 : 11); }
+    c.w = Math.max(50, c.t.getComputedTextLength ? c.t.getComputedTextLength() + 14 : 88); reflow(f); return c; }
+  function removeFrame(k) { const f = frames[k]; if (f) { f.g.remove(); frames.length = k; } }
+  function syncShelf(S) {
+    const want = new Set((S.list || []).map(it => it.id)); boxes.forEach((b, id) => { if (!want.has(id)) { b.g.remove(); boxes.delete(id); } });
+    (S.list || []).forEach((it, i) => { let b = boxes.get(it.id); const s = boxSize(it.w || 20) * U;
+      if (!b) { const g = el('g', {'data-key': 'pkg'}, shelfG); const r = el('rect', {width: s, height: s, rx: 4, fill: '#3b4a9a', stroke: '#A9B4FF'}, g); const t = text(it.label, 0, 0, {'font-size': 12}, g); b = {g, r, t, s}; boxes.set(it.id, b); g.userData = it; g.addEventListener('click', () => api.onPick && api.onPick('pkg', it)); }
+      b.g.setAttribute('transform', ''); b.r.setAttribute('x', X(L.slotX(i)) - s / 2); b.r.setAttribute('y', Y(L.shelfY) - s); b.t.setAttribute('x', X(L.slotX(i))); b.t.setAttribute('y', Y(L.shelfY) - s - 10);
+      const hi = S.hi && (S.hi[0] === i || S.hi[1] === i), hit = S.scan === i && S.scanHit; b.r.setAttribute('fill', hit ? '#2f8a55' : hi ? '#9a7a1a' : '#3b4a9a'); });
+    shelfG.style.visibility = (S.list && S.list.length) || S.showShelf ? 'visible' : 'hidden';
+    scanner.setAttribute('visibility', S.scan === null || S.scan === undefined ? 'hidden' : 'visible');
+    if (S.scan !== null && S.scan !== undefined) { scanner.setAttribute('x', X(L.slotX(S.scan < 0 ? (S.list || []).length : S.scan)) - 25); const c = S.scan < 0 ? '#F0786A' : S.scanHit ? '#6FD49B' : '#9FE7FF'; scanner.setAttribute('fill', c); scanner.setAttribute('stroke', c); }
+  }
+  const api = {
+    onPick: null,
+    update(S) {
+      for (let k = frames.length - 1; k >= (S.stack || []).length; k--) removeFrame(k);
+      (S.stack || []).forEach((fr, k) => { let f = frames[k]; if (!f || f.name !== fr.name) { removeFrame(k); f = frameEl(k, fr.name); } f.g.setAttribute('transform', ''); f.rect.setAttribute('fill-opacity', .14); f.rect.setAttribute('stroke', S.err ? '#F0786A' : '#38B0E0'); f.rect.setAttribute('fill', S.err ? '#F0786A' : '#38B0E0');
+        const names = new Set(fr.vars.map(v => v[0])); f.cards.forEach((c, n) => { if (!names.has(n)) { c.g.remove(); f.cards.delete(n); } }); fr.vars.forEach(v => { const c = setCard(f, v[0], v[1]); c.g.setAttribute('opacity', 1); }); reflow(f); });
+      if (pill) { pill.remove(); pill = null; }
+      resultT.textContent = 'result = ' + (S.result === null ? '?' : S.result); resultT.setAttribute('fill', S.resultBad ? '#F0786A' : '#9FE7FF');
+      syncShelf(S);
+    },
+    play(name, tl, d) {
+      if (!hasGSAP) return;
+      if (name === 'call') { const f = frameEl(d.k, d.name); f.g.setAttribute('transform', 'translate(0 60)'); f.g.setAttribute('opacity', 0); tl.to(f.g, {attr: {transform: 'translate(0 0)', opacity: 1}, duration: .7, ease: 'power3.out'}); }
+      else if (name === 'bind') { const f = frames[d.k]; if (!f) return; d.vars.forEach((v, i) => tl.call(() => { const c = setCard(f, v[0], v[1]); gsap.fromTo(c.g, {attr: {opacity: 0}}, {attr: {opacity: 1}, duration: .3}); }, null, i * .22)); tl.to({}, {duration: d.vars.length * .22 + .3}); }
+      else if (name === 'set') { const f = frames[d.k]; if (!f) return; tl.call(() => { const c = setCard(f, d.name, d.value); gsap.fromTo(c.g, {attr: {opacity: .2}}, {attr: {opacity: 1}, duration: .4}); }); tl.to({}, {duration: .55}); }
+      else if (name === 'test') { const f = frames[d.k]; const c = f && f.cards.get(d.name); if (c) { tl.to(c.r, {attr: {fill: d.ok ? '#6FD49B' : '#F0786A'}, duration: .2}).to(c.r, {attr: {fill: '#E0B840'}, duration: .2, delay: .4}); } else tl.to({}, {duration: .4}); }
+      else if (name === 'skip') { tl.to({}, {duration: .35}); }
+      else if (name === 'load') { tl.call(() => syncShelf(Object.assign({}, d.S, {list: d.list, showShelf: true}))); d.list.forEach((it, i) => tl.call(() => { const b = boxes.get(it.id); if (b) gsap.fromTo(b.g, {attr: {transform: 'translate(0 -80)'}}, {attr: {transform: 'translate(0 0)'}, duration: .45, ease: 'bounce.out'}); }, null, i * .12)); tl.to({}, {duration: d.list.length * .12 + .5}); }
+      else if (name === 'focus') { const b = d.item && boxes.get(d.item.id); if (b) tl.to(b.r, {attr: {fill: '#9a7a1a'}, duration: .25}).to(b.g, {attr: {transform: 'translate(0 -16)'}, duration: .25, yoyo: true, repeat: 1}, 0); else tl.to({}, {duration: .3}); }
+      else if (name === 'compare') { const a = boxes.get(d.a.id), b = boxes.get(d.b.id); if (a && b) [a, b].forEach(x => { tl.to(x.r, {attr: {fill: '#9a7a1a'}, duration: .25}, 0); tl.to(x.g, {attr: {transform: 'translate(0 -14)'}, duration: .25, yoyo: true, repeat: 1}, 0); }); tl.to({}, {duration: .25}); }
+      else if (name === 'swap') { const a = boxes.get(d.a.id), b = boxes.get(d.b.id); if (a && b) { const dx = +b.r.getAttribute('x') - +a.r.getAttribute('x'); tl.to(a.g, {attr: {transform: 'translate(0 -60)'}, duration: .25}, 0).to(a.g, {attr: {transform: 'translate(' + dx + ' -60)'}, duration: .4}, .25).to(a.g, {attr: {transform: 'translate(' + dx + ' 0)'}, duration: .3, ease: 'bounce.out'}, .65).to(b.g, {attr: {transform: 'translate(' + (-dx) + ' 0)'}, duration: .5}, .25); } else tl.to({}, {duration: .4}); }
+      else if (name === 'scan') { tl.call(() => { scanner.setAttribute('visibility', 'visible'); scanner.setAttribute('fill', '#9FE7FF'); scanner.setAttribute('stroke', '#9FE7FF'); }); tl.to(scanner, {attr: {x: X(L.slotX(d.i)) - 25}, duration: .45, ease: 'power2.inOut'}); if (d.hit) { tl.call(() => { scanner.setAttribute('fill', '#6FD49B'); scanner.setAttribute('stroke', '#6FD49B'); }); tl.to(scanner, {attr: {'fill-opacity': .5}, duration: .2, yoyo: true, repeat: 3}); } else tl.to({}, {duration: .2}); }
+      else if (name === 'scanOff') { tl.to(scanner, {attr: {x: X(L.slotX(d.n)) - 25}, duration: .5}); tl.call(() => { scanner.setAttribute('fill', '#F0786A'); scanner.setAttribute('stroke', '#F0786A'); }); tl.to(scanner, {attr: {'fill-opacity': .5}, duration: .2, yoyo: true, repeat: 3}); }
+      else if (name === 'return') { const f = frames[d.k]; if (!f) return; pill = el('g', {}); const px = X(L.frameX), py = Y(L.frameY(d.k)); const pr = el('rect', {x: px - 34, y: py - 11, width: 68, height: 22, rx: 5, fill: d.bad ? '#F0786A' : '#E0B840'}, pill); const pt = text(String(d.value), px, py + 1, {fill: '#06120f', 'font-size': 12}, pill);
+        const w = Math.max(40, pt.getComputedTextLength ? pt.getComputedTextLength() + 16 : 68); pr.setAttribute('width', w); pr.setAttribute('x', px - w / 2);
+        tl.to(pill, {attr: {transform: 'translate(' + (X(-1.2) - px) + ' ' + (Y(0) + 13 - py) + ')'}, duration: .9, ease: 'power2.inOut'}, 0).to(f.rect, {attr: {'fill-opacity': 0, 'stroke-opacity': 0}, duration: .6}, .3).to(f.g, {attr: {opacity: 0}, duration: .5}, .4)
+          .call(() => { resultT.textContent = 'result = ' + d.value; resultT.setAttribute('fill', d.bad ? '#F0786A' : '#9FE7FF'); if (pill) { pill.remove(); pill = null; } }, null, .95); tl.to({}, {duration: .2}); }
+      else if (name === 'error') { const f = frames[d.k]; if (!f) return; tl.call(() => { f.rect.setAttribute('stroke', '#F0786A'); f.rect.setAttribute('fill', '#F0786A'); scanner.setAttribute('fill', '#F0786A'); scanner.setAttribute('stroke', '#F0786A'); }); tl.to(f.g, {attr: {transform: 'translate(6 0)'}, duration: .06, yoyo: true, repeat: 7}); if (d.i !== undefined) tl.to(scanner, {attr: {x: X(L.slotX(d.i)) - 25}, duration: .4}, 0); }
+      else if (name === 'main') { tl.to(resultT, {attr: {'font-size': 15}, duration: .25, yoyo: true, repeat: 1}); }
+    },
+    zoom() {}, pan() {}, fit() {}, intro() {}
+  };
+  let vb = [50, 90, 740, 380]; const setVB = () => svg.setAttribute('viewBox', vb.join(' '));
+  api.zoom = f => { const w = Math.min(1600, Math.max(300, vb[2] * f)), h = w * 380 / 740; vb = [vb[0] + (vb[2] - w) / 2, vb[1] + (vb[3] - h) / 2, w, h]; setVB(); };
+  api.pan = (dx, dy) => { vb[0] += dx * 80; vb[1] -= dy * 80; setVB(); };
+  api.fit = () => { vb = [50, 90, 740, 380]; setVB(); };
+  svg.addEventListener('click', e => { const k = e.target.closest('[data-key]'); if (k && api.onPick && k.getAttribute('data-key') !== 'pkg') api.onPick(k.getAttribute('data-key')); });
+  return api;
+}
+function Scene(stage) {
+  if (hasTHREE && window.WebGLRenderingContext) { try { return Scene3D(stage); } catch (e) { console.error(e); stage.querySelectorAll('canvas').forEach(c => c.remove()); } }
+  return Scene2D(stage);
+}
+
+// ---- the steps for one call, generated from the function, the arguments, and the Copilot toggle ----
+const fresh = () => ({stack: [], result: null, resultBad: false, list: [], hi: null, scan: null, scanHit: false, passes: 0, comps: 0, swaps: 0, err: null, screen: '', phase: null, step: 0});
+let STEPS = [];
+function mk(phase, line, text, anim, commit) { return {phase, line, text, anim: anim || (t => t.to({}, {duration: .35})), commit: commit || (() => {})}; }
+function buildSteps(fn, A, copilot) {
+  const steps = [], off = PROG.off[fn], ln = k => off + k;
+  const callText = PROG.lines[PROG.callLine - 1].replace('result = ', '');
+  const pushCall = (list) => steps.push(mk('call', PROG.callLine, 'MAIN runs line ' + PROG.callLine + ': it calls ' + callText + '. A new frame rises on the tower for this call. Everything the function creates will live inside it.' + (list ? ' The list rides into the call on the shelf.' : ''),
+    (t, s) => { G.play('call', t, {k: 0, name: fn}); if (list) G.play('load', t, {list, S: s}); }, s => { s.stack.push({name: fn, vars: []}); if (list) s.list = list; }));
+  const pushBind = (vars, extra) => steps.push(mk('bind', ln(0), 'Line ' + ln(0) + ' binds the arguments to the parameters: ' + vars.map(v => v[0] + ' = ' + v[1]).join(', ') + '. A parameter is a name in the def line; an argument is the value in the call. Python matches them by position.' + (extra || ''),
+    t => G.play('bind', t, {k: 0, vars}), s => { s.stack[0].vars = vars.map(v => v.slice()); }));
+  const setVar = (s, name, value) => { const v = s.stack[0].vars.find(x => x[0] === name); if (v) v[1] = value; else s.stack[0].vars.push([name, value]); };
+  const pushReturn = (line, value, okValue, note) => { const bad = copilot && value !== okValue; steps.push(mk('return', line, 'Line ' + line + ' returns ' + value + ' to MAIN. The frame dissolves: its parameters and locals no longer exist. ' + (note || '') +
+    (bad ? ' This value is wrong (the correct version returns ' + okValue + '). The test that catches it: ' + FN[fn].test + '.' : copilot ? ' Copilot\'s version returned the same value as the correct one for these arguments, so this call does not expose the bug. The test that does: ' + FN[fn].test + '.' : ''),
+    t => G.play('return', t, {k: 0, value, bad}), s => { s.stack.pop(); s.result = value; s.resultBad = bad; s.hi = null; s.scan = null; })); };
+  const pushMain = (value, scopeNote) => steps.push(mk('main', PROG.printLine, 'Back in MAIN, result holds ' + value + ' and line ' + PROG.printLine + ' prints it. ' + (scopeNote || 'If MAIN tried to use a name from the frame now, Python would answer NameError: name \'p\' is not defined.'),
+    t => G.play('main', t, {}), s => { s.screen = String(value); }));
+  if (fn === 'price') {
+    const w = A.weight, m = A.miles, f = A.fragile; const p1 = 4.5 + 0.8 * w + 0.25 * m; const okVal = f ? p1 + 3 : p1; const val = copilot ? p1 : okVal;
+    pushCall(); pushBind([['weight', w], ['miles', m], ['fragile', pyBool(f)]]);
+    steps.push(mk('body', ln(1), 'Line ' + ln(1) + ' computes p = 4.50 + ' + pyFloat(0.8 * w) + ' + ' + pyFloat(0.25 * m) + ' = ' + pyFloat(p1) + ' (0.80 per pound and 0.25 per mile on top of the 4.50 base). p is a local variable: it exists only in this frame.', t => G.play('set', t, {k: 0, name: 'p', value: pyFloat(p1)}), s => setVar(s, 'p', pyFloat(p1))));
+    if (!copilot) {
+      steps.push(mk('body', ln(2), 'Line ' + ln(2) + ' tests fragile. It is ' + pyBool(f) + ', so the surcharge line ' + (f ? 'runs.' : 'is skipped.'), t => G.play('test', t, {k: 0, name: 'fragile', ok: f})));
+      if (f) steps.push(mk('body', ln(3), 'Line ' + ln(3) + ' adds the 3.00 fragile surcharge: p = ' + pyFloat(p1) + ' + 3.00 = ' + pyFloat(okVal) + '.', t => G.play('set', t, {k: 0, name: 'p', value: pyFloat(okVal)}), s => setVar(s, 'p', pyFloat(okVal))));
+      pushReturn(ln(4), pyFloat(okVal), pyFloat(okVal));
+    } else pushReturn(ln(2), pyFloat(val), pyFloat(okVal), f ? 'Nothing tested fragile: the surcharge was never added.' : '');
+    pushMain(pyFloat(val));
+  } else if (fn === 'zone') {
+    const c = A.city; const okZone = c === 'Doral' ? 'A' : (c === 'Hialeah' || c === 'Miami Gardens') ? 'B' : (c === 'Kendall' || c === 'Homestead') ? 'C' : 'Ask dispatch';
+    const cpZone = c === 'Doral' ? 'A' : (c === 'Hialeah' || c === 'Miami Gardens' || c === 'Kendall') ? 'B' : c === 'Homestead' ? 'C' : 'Ask dispatch';
+    const val = copilot ? cpZone : okZone;
+    const conds = copilot ? [[1, 'city == "Doral"', c === 'Doral'], [3, 'city == "Hialeah" or city == "Miami Gardens" or city == "Kendall"', c === 'Hialeah' || c === 'Miami Gardens' || c === 'Kendall'], [5, 'city == "Homestead"', c === 'Homestead']]
+      : [[1, 'city == "Doral"', c === 'Doral'], [3, 'city == "Hialeah" or city == "Miami Gardens"', c === 'Hialeah' || c === 'Miami Gardens'], [5, 'city == "Kendall" or city == "Homestead"', c === 'Kendall' || c === 'Homestead']];
+    pushCall(); pushBind([['city', pyStr(c)]], c === 'doral' ? ' Note the lower-case d: text comparison is exact, so "doral" is not "Doral".' : '');
+    let retLine = ln(8);
+    for (const [k, cond, res] of conds) {
+      steps.push(mk('body', ln(k), 'Line ' + ln(k) + ': ' + cond + ' is ' + pyBool(res) + (res ? '. This branch runs and the ones below it are never looked at.' : ', so Python moves to the next elif.'), t => G.play('test', t, {k: 0, name: 'city', ok: res})));
+      if (res) { retLine = ln(k + 1); break; }
+    }
+    if (retLine === ln(8)) steps.push(mk('body', ln(7), 'Line ' + ln(7) + ': no condition was True, so the else branch runs. Without an else, the function would end without a return and MAIN would get None.', t => G.play('skip', t)));
+    pushReturn(retLine, pyRepr(val), pyRepr(okZone), 'A return ends the function at once, even in the middle of the if chain.');
+    pushMain(val, 'print shows the text without quotes.');
+  } else if (fn === 'manifest_total') {
+    const ws = A.list; const list = ws.map((w, i) => ({id: 'm' + i, label: String(w), w})); const start = copilot ? 1 : 0; const okTotal = ws.reduce((a, b) => a + b, 0); const val = okTotal + start;
+    pushCall(list); pushBind([['weights', pyList(ws)]], ' The list is not copied: the parameter weights is another name for the same list MAIN built.');
+    steps.push(mk('body', ln(1), 'Line ' + ln(1) + ' creates the accumulator: total = ' + start + '.' + (copilot ? ' Starting at 1 adds a pound that no package weighs.' : ' An accumulator starts at 0 and grows on every pass.'), t => G.play('set', t, {k: 0, name: 'total', value: String(start)}), s => setVar(s, 'total', String(start))));
+    let tot = start;
+    ws.forEach((w, i) => {
+      steps.push(mk('body', ln(2), 'Line ' + ln(2) + ': the for loop takes the next item, w = ' + w + ' (item ' + (i + 1) + ' of ' + ws.length + ').', t => G.play('focus', t, {item: list[i]}), s => { setVar(s, 'w', String(w)); s.hi = [i, -1]; }));
+      const nt = tot + w; steps.push(mk('body', ln(3), 'Line ' + ln(3) + ': total = ' + tot + ' + ' + w + ' = ' + nt + '.', t => G.play('set', t, {k: 0, name: 'total', value: String(nt)}), s => setVar(s, 'total', String(nt)))); tot = nt;
+    });
+    steps.push(mk('body', ln(2), ws.length ? 'Line ' + ln(2) + ': the list has no more items, so the loop ends.' : 'Line ' + ln(2) + ': the list is empty, so the loop body never runs. total stays ' + start + '.', t => G.play('skip', t), s => { s.hi = null; }));
+    pushReturn(ln(4), String(val), String(okTotal));
+    pushMain(String(val));
+  } else if (fn === 'find_package') {
+    const tr = A.tracking; const list = PACKAGES.map((p, i) => ({id: 'p' + i, label: short(p), w: 20, t: p})); const idx = PACKAGES.indexOf(tr); const okVal = String(idx); const val = copilot && idx >= 0 ? pyRepr(tr) : okVal;
+    pushCall(list); pushBind([['tracking', pyStr(tr)], ['packages', '[5 items]']]);
+    const n = PACKAGES.length;
+    for (let i = 0; i < n; i++) {
+      const hit = PACKAGES[i] === tr;
+      steps.push(mk('body', ln(1), 'Line ' + ln(1) + ': i = ' + i + '. range(len(packages)) gives the indexes 0 to ' + (n - 1) + '. The scanner moves to packages[' + i + '].', t => G.play('scan', t, {i, hit: false}), s => { setVar(s, 'i', String(i)); s.scan = i; s.scanHit = false; }));
+      steps.push(mk('body', ln(2), 'Line ' + ln(2) + ': packages[' + i + '] is ' + pyStr(PACKAGES[i]) + '. Is it equal to ' + pyStr(tr) + '? ' + pyBool(hit) + '.' + (hit ? ' A match: the scanner turns green.' : ''), t => G.play('scan', t, {i, hit, item: list[i]}), s => { s.scanHit = hit; }));
+      if (hit) { pushReturn(ln(3), val, okVal, copilot ? 'Copilot returned the item, which MAIN already had. MAIN needed the position, 3, to look up the weight in a second list.' : 'The index ' + idx + ' tells MAIN where the package is. The loop stops here; the remaining packages are never checked.'); break; }
+      if (i === n - 1) steps.push(mk('body', ln(4), 'Line ' + ln(4) + ': the loop checked every package and found no match, so the scanner runs off the end of the shelf. return -1 is the agreed signal for "not found"; -1 can never be a real index.', t => G.play('scanOff', t, {n}), s => { s.scan = -1; }));
+    }
+    if (idx < 0) pushReturn(ln(4), '-1', '-1');
+    pushMain(copilot && idx >= 0 ? tr : val);
+  } else if (fn === 'sort_by_weight') {
+    const ws = A.list.slice(); const list = ws.map((w, i) => ({id: 's' + i, label: String(w), w})); const n = ws.length; const order = list.slice();
+    const okSorted = ws.slice().sort((a, b) => a - b);
+    pushCall(list); pushBind([['weights', pyList(ws)]], ' The parameter is the same list MAIN passed in, so the swaps will reorder MAIN\'s list too.');
+    steps.push(mk('body', ln(1), 'Line ' + ln(1) + ': n = len(weights) = ' + n + '. The list has indexes 0 to ' + (n - 1) + '.', t => G.play('set', t, {k: 0, name: 'n', value: String(n)}), s => setVar(s, 'n', String(n))));
+    let crashed = false; let comps = 0, swaps = 0;
+    for (let i = 0; i < n - 1 && !crashed; i++) {
+      const inner = copilot ? n - i : n - 1 - i;
+      steps.push(mk('body', ln(2), 'Line ' + ln(2) + ': pass ' + (i + 1) + ' of ' + (n - 1) + ' (i = ' + i + '). The inner loop will compare ' + inner + ' neighbor pairs' + (i > 0 ? '; the last ' + i + ' item' + (i > 1 ? 's are' : ' is') + ' already in place.' : '.'), t => G.play('skip', t), s => { setVar(s, 'i', String(i)); s.passes++; s.hi = null; }));
+      for (let j = 0; j < inner; j++) {
+        if (j + 1 >= n) {
+          const tb = 'Traceback (most recent call last):\n  File "toolkit.py", line ' + PROG.callLine + ', in <module>\n    result = sort_by_weight(' + pyList(ws) + ')\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "toolkit.py", line ' + ln(4) + ', in sort_by_weight\n    if weights[j] > weights[j + 1]:\n                    ~~~~~~~^^^^^^^\nIndexError: list index out of range';
+          steps.push(mk('body', ln(4), 'Line ' + ln(4) + ': j = ' + j + ', so Python needs weights[' + (j + 1) + ']. The list has only ' + n + ' items (indexes 0 to ' + (n - 1) + '). Python stops the whole program with IndexError: list index out of range. The frame turns coral and nothing returns to MAIN. The fix is range(n - 1 - i).',
+            t => G.play('error', t, {k: 0, i: j}), s => { setVar(s, 'j', String(j)); s.err = tb; s.screen = tb; s.scan = -1; })); crashed = true; break;
+        }
+        const a = order[j], b = order[j + 1]; const res = a.w > b.w; comps++;
+        steps.push(mk('body', ln(4), 'Line ' + ln(4) + ': j = ' + j + '. Compare weights[' + j + '] = ' + a.w + ' with weights[' + (j + 1) + '] = ' + b.w + ': ' + a.w + ' > ' + b.w + ' is ' + pyBool(res) + '. Comparison ' + comps + '.', t => G.play('compare', t, {a, b}), s => { setVar(s, 'j', String(j)); s.comps++; s.hi = [j, j + 1]; }));
+        if (res) { swaps++; order[j] = b; order[j + 1] = a; const snap = order.map(x => x.w); steps.push(mk('body', ln(5), 'Line ' + ln(5) + ': swap them. ' + b.w + ' moves left and ' + a.w + ' moves right. Swap ' + swaps + '. The list is now ' + pyList(snap) + '.', t => G.play('swap', t, {a, b}), s => { const t = s.list[j]; s.list[j] = s.list[j + 1]; s.list[j + 1] = t; s.swaps++; })); }
+      }
+    }
+    if (!crashed) { const finalList = order.map(x => x.w); pushReturn(ln(6), pyList(finalList), pyList(okSorted), 'Totals: ' + (n - 1) + ' passes, ' + comps + ' comparisons, ' + swaps + ' swaps.'); pushMain(pyList(finalList), 'MAIN\'s own list was sorted in place as well, because both names pointed at the same list.'); }
+  }
+  return steps;
+}
+
+// ---- read the pickers ----
+function parseList(s) { const a = String(s).split(/[\s,]+/).filter(Boolean).map(Number).filter(n => Number.isFinite(n) && n >= 0).map(n => Math.round(n)); return a.slice(0, 6); }
+function readArgs() {
+  const fn = $('#fnSel').value;
+  if (fn === 'price') { const w = Math.max(0, Math.min(999, Math.round(+$('#aW').value || 0))), m = Math.max(0, Math.min(999, Math.round(+$('#aM').value || 0))), f = $('#aF').checked; return {fn, A: {weight: w, miles: m, fragile: f}, call: 'price(' + w + ', ' + m + ', ' + pyBool(f) + ')'}; }
+  if (fn === 'zone') { const c = $('#aCity').value; return {fn, A: {city: c}, call: 'zone(' + pyStr(c) + ')'}; }
+  if (fn === 'manifest_total') { const l = parseList($('#aList').value); return {fn, A: {list: l}, call: 'manifest_total(' + pyList(l) + ')'}; }
+  if (fn === 'find_package') { const t = $('#aTrack').value; return {fn, A: {tracking: t}, call: 'find_package(' + pyStr(t) + ', packages)'}; }
+  let l = parseList($('#aSort').value); if (l.length < 2) l = [12, 3]; return {fn, A: {list: l}, call: 'sort_by_weight(' + pyList(l) + ')'};
+}
+function applyPick() {
+  const {fn, A, call} = readArgs(); CUR = fn; COPILOT = $('#copilot').checked; PROG = buildProgram(COPILOT, call); STEPS = buildSteps(fn, A, COPILOT);
+  document.querySelectorAll('.args').forEach(d => d.hidden = d.dataset.fn !== fn);
+  $('#cpWrap').classList.toggle('on', COPILOT);
+  $('#argNote').textContent = COPILOT ? 'Copilot\'s ' + fn + ': ' + FN[fn].bug + ' The coral mark in the code shows the line. Test that catches it: ' + FN[fn].test + '.' : 'MAIN will run: result = ' + call;
+  reset(true);
+}
+
+// ---- the step engine ----
+let S = fresh(), hist = [], tl = null, running = false, timer = null, speed = 1, G = null;
+const SPEEDS = [0.25, 0.5, 1, 2, 4];
+function setPhase(p) { document.querySelectorAll('.phases li').forEach(li => li.classList.toggle('on', li.dataset.p === p)); const li = document.querySelector('.phases li[data-p="' + p + '"]'); $('#phaseTag').textContent = li ? li.textContent : 'Ready'; $('#phaseTag').style.setProperty('--pc', li ? getComputedStyle(li).getPropertyValue('--c') : 'var(--silk-dim)'); }
+function render() {
+  $('#hudStep').textContent = S.step; $('#ctx').textContent = 'Step ' + S.step + ' of ' + STEPS.length; $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = S.step >= STEPS.length; $('#btnRun').textContent = running ? 'Pause' : 'Run';
+  $('#stackv').innerHTML = '<li class="main">MAIN</li>' + S.stack.map(f => '<li class="frame' + (S.err ? ' err' : '') + '">' + esc(f.name) + '()' + (S.err ? ' · IndexError' : '') + '</li>').join('');
+  const top = S.stack[S.stack.length - 1];
+  $('#locals').innerHTML = top ? top.vars.map(v => '<div class="reg kv"><span class="rn">' + esc(v[0]) + '</span><span class="rv">' + esc(v[1]) + '</span></div>').join('') : '';
+  $('#localsNote').textContent = top ? (top.vars.length ? 'These names exist only while ' + top.name + '() runs.' : 'The frame is up but empty until the parameters are bound.') : (S.result !== null ? 'The frame is gone. Its names are gone with it; only result remains, in MAIN.' : 'No frame yet. Only MAIN\'s names exist: packages, result.');
+  $('#v-result').textContent = S.result === null ? '?' : S.result; $('#v-result').classList.toggle('bad', S.resultBad); $('#s-result').textContent = S.resultBad ? 'wrong value' : '';
+  $('#screen').textContent = S.screen || '(nothing printed yet)'; $('#screen').classList.toggle('err', !!S.err);
+  $('#v-pass').textContent = S.passes; $('#v-comp').textContent = S.comps; $('#v-swap').textContent = S.swaps;
+  $('#listv').innerHTML = S.list.length ? S.list.map((it, i) => '<span class="' + (S.scan === i && S.scanHit ? 'hit' : S.hi && (S.hi[0] === i || S.hi[1] === i) ? 'hi' : '') + '">' + esc(it.t || it.label) + '</span>').join('') : '<em>No list in this call.</em>';
+  G && G.update(S);
+  renderCode(S.step > 0 && S.step <= STEPS.length ? STEPS[S.step - 1].line : 0);
+  const callText = PROG.lines[PROG.callLine - 1].replace('result = ', '');
+  guide(S.step === 0 ? (COPILOT ? 4 : 2) : S.step < STEPS.length ? 3 : COPILOT ? 5 : 4,
+    S.step === 0 ? 'Press <b>Step</b> to call ' + esc(callText) + ', or <b>Run</b> to play every step.'
+    : S.step < STEPS.length ? 'Read the narration, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + STEPS.length + '.'
+    : COPILOT ? 'Done. Try another function with <b>Copilot\'s refactor</b> on, or scroll to <b>Try it</b> and fix the code against the five tests.' : 'Done. Pick another function, turn on <b>Copilot\'s refactor</b>, or scroll to <b>Try it</b>.');
+}
+function finish(m) { tl = null; m.commit(S); S.step++; render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed); } }
+function stepFwd(animated) {
+  if (tl) { tl.progress(1); return; }
+  if (S.step >= STEPS.length) return;
+  hist.push(JSON.parse(JSON.stringify(S)));
+  const m = STEPS[S.step]; S.phase = m.phase; setPhase(m.phase); $('#narration').textContent = m.text; renderCode(m.line);
+  if (animated !== false && hasGSAP && G && !reduced) { tl = gsap.timeline({onComplete: () => finish(m)}); m.anim(tl, S); tl.timeScale(speed); }
+  else finish(m);
+}
+function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); setPhase(S.phase); $('#narration').textContent = 'Stepped back. Press Step to watch that step again.'; render(); }
+function run() { if (S.step >= STEPS.length) return; running = true; render(); stepFwd(); }
+function stop() { running = false; clearTimeout(timer); render(); }
+function reset(keepNarr) { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); hist = []; setPhase(null); $('#narration').textContent = 'Press Step to start, or Run to play every step.'; render(); }
+
+// ---- wire up ----
+G = Scene($('#stage'));
+const INFO = {
+  main: '<b>MAIN</b> is the floor: the code at the bottom of the file that is not inside any function. Its names (packages, result) live for the whole run. A function cannot see them unless they are passed in as arguments.',
+  frame: '<b>A frame</b> is the box Python builds for one call. It holds the parameters and every local variable. When the function returns, the frame is thrown away, so those names stop existing. That is what "scope" means.',
+  shelf: '<b>The shelf</b> is the list MAIN passes in (weights or packages). A list argument is not copied: the function works on the same list, so a sort inside the function reorders MAIN\'s list too.',
+  pkg: '<b>A package</b> is one item of the list, at an index that starts at 0. Its size shows the weight.',
+  scanner: '<b>The scanner</b> is the loop variable i of find_package: it visits one index per pass, stops green on a match, and runs off the end (coral) when nothing matches, which is when return -1 runs.'
+};
+G.onPick = (key, item) => { $('#info').innerHTML = INFO[key] ? (key === 'pkg' && item ? INFO.pkg + ' This one: ' + esc(item.t || item.label) + (item.t ? '' : ' lb') + ', at index ' + S.list.indexOf(item) + '.' : INFO[key]) : INFO.main; };
+$('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
+$('#btnRun').addEventListener('click', () => running ? stop() : run());
+$('#btnBack').addEventListener('click', back);
+$('#btnReset').addEventListener('click', () => reset());
+$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
+document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
+  if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click();
+  else if (overStage) { if (e.key === '+' || e.key === '=') G.zoom(0.8); else if (e.key === '-') G.zoom(1.25); else if (e.key === '0') G.fit(); else if (e.key.startsWith('Arrow')) { e.preventDefault(); const d = {ArrowLeft: [-0.5, 0], ArrowRight: [0.5, 0], ArrowUp: [0, 0.5], ArrowDown: [0, -0.5]}[e.key]; G.pan(d[0], d[1]); } } });
+let overStage = false; $('#stage').addEventListener('pointerenter', () => overStage = true); $('#stage').addEventListener('pointerleave', () => overStage = false);
+$('#zIn').addEventListener('click', () => G.zoom(0.8)); $('#zOut').addEventListener('click', () => G.zoom(1.25)); $('#zFit').addEventListener('click', () => G.fit());
+document.querySelectorAll('[data-pan]').forEach(b => b.addEventListener('click', () => { const d = {up: [0, 0.5], down: [0, -0.5], left: [-0.5, 0], right: [0.5, 0]}[b.dataset.pan]; G.pan(d[0], d[1]); }));
+['#fnSel', '#aW', '#aM', '#aF', '#aCity', '#aList', '#aTrack', '#aSort', '#copilot'].forEach(s => $(s).addEventListener('change', applyPick));
+const PRESETS = {p1: () => { $('#aW').value = 12; $('#aM').value = 8; $('#aF').checked = false; }, p2: () => { $('#aW').value = 3; $('#aM').value = 2; $('#aF').checked = true; }, p5: () => { $('#aW').value = 60; $('#aM').value = 14; $('#aF').checked = true; }, p4: () => { $('#aW').value = 20; $('#aM').value = 19; $('#aF').checked = false; },
+  van1: () => $('#aList').value = '12, 3, 20, 50, 45', empty: () => $('#aList').value = '', over: () => $('#aList').value = '400, 350, 300, 200', svan1: () => $('#aSort').value = '12, 3, 20, 50, 45', srev: () => $('#aSort').value = '50, 45, 20, 12, 3', ssorted: () => $('#aSort').value = '3, 12, 20, 45, 50'};
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => { PRESETS[b.dataset.preset](); applyPick(); }));
+window.__tower = {applyPick, get S() { return S; }, get STEPS() { return STEPS; }, stepFwd, back, reset};
+
+// ---- Try it: the whole toolkit on real Python ----
+const TOOLKIT = buildProgram(false, 'price(12, 8, False)').lines.slice(0, -2).join('\n') + '\nprint(price(12, 8, False))\nprint(zone("Kendall"))\nprint(manifest_total([12, 3, 20, 50, 45]))\nprint(find_package("PP-2026-0004", packages))\nprint(sort_by_weight([12, 3, 20, 50, 45]))\n';
+PySandbox($('#sandbox'), {code: TOOLKIT, inputs: '', tests: [
+  {expr: 'price(12, 8, False)', expect: '16.1'}, {expr: 'price(60, 14, True)', expect: '59.0'}, {expr: 'zone("Kendall")', expect: "'C'"},
+  {expr: 'find_package("PP-2026-0009", packages)', expect: '-1'}, {expr: 'sort_by_weight([12, 3, 20, 50, 45])', expect: '[3, 12, 20, 45, 50]'}]});
+
+applyPick();
+if (hasGSAP && !reduced) { G.intro(); gsap.timeline().from('#intro b', {y: 20, opacity: 0, duration: .7, ease: 'power3.out'}).from('#intro small', {opacity: 0, duration: .5}, '-=.3').to('#intro', {opacity: 0, duration: .6, delay: 1.1, onComplete: () => $('#intro').remove()}); }
+else $('#intro').remove();
+})();
+</script>
+</body>
+</html>

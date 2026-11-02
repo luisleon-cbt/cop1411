@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cover every branch</title>
+<meta name="description" content="COP1411 Week 2 interactive: Pick the fewest packages that light every line of the sorter, predict lanes and prices, and catch the case Copilot&#x27;s sorter gets wrong.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS below (sorting floor scene) */
+  .scene{position:relative;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  .scene canvas,.scene svg.flat{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .code .ln.lit{background:rgba(111,212,155,.16);box-shadow:inset 3px 0 0 var(--ok)}.code .ln.lit.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .code .ln.dark{color:#8b93b8}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
+  .cp{display:inline-block;margin-left:10px;padding:1px 7px;border-radius:999px;font:600 10.5px var(--font-mono);letter-spacing:.06em;vertical-align:1px;line-height:1.5}
+  .cp.t{background:rgba(111,212,155,.2);color:#6FD49B}.cp.f{background:rgba(240,120,106,.22);color:#F0786A}.cp.s{background:rgba(174,179,201,.14);color:#aeb3c9}.cp.q{background:rgba(174,179,201,.1);color:#6b7190}
+  .zoomctl{position:absolute;z-index:4;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .zoomctl button{width:38px;height:34px;border:0;border-radius:4px;background:transparent;color:var(--silk);font:600 18px/1 var(--font-mono);cursor:pointer;padding:0}
+  .zoomctl button.fit{font-size:10px;letter-spacing:.06em;height:28px}.zoomctl button:hover{background:var(--panel-2);color:var(--cbt-gold)}
+  .zoomctl button:focus-visible{outline:2px solid var(--cbt-gold);outline-offset:1px}
+  .zoomctl .pad{display:grid;grid-template-columns:repeat(3,26px);grid-template-rows:repeat(3,24px);gap:1px;margin:3px 0;padding-top:4px;border-top:1px solid var(--line)}
+  .zoomctl .pad button{width:26px;height:24px;font-size:12px}.zoomctl .pad .u{grid-area:1/2}.zoomctl .pad .l{grid-area:2/1}.zoomctl .pad .c{grid-area:2/2;font-size:9px}.zoomctl .pad .r{grid-area:2/3}.zoomctl .pad .d{grid-area:3/2}
+  @media(max-width:520px){.zoomctl{right:8px;padding:3px}.zoomctl button{width:30px;height:28px;font-size:16px}.zoomctl button.fit{height:24px;font-size:9px}.zoomctl .pad{grid-template-columns:repeat(3,22px);grid-template-rows:repeat(3,22px)}.zoomctl .pad button{width:22px;height:22px;font-size:10px}}
+  .card .zoomctl{right:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+  .chip{font:600 11.5px var(--font-mono);letter-spacing:.04em;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--silk-dim);background:var(--panel-2)}
+  .chip.lit{border-color:var(--ok);color:var(--ok);background:rgba(111,212,155,.12)}
+  .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+  .pcard{text-align:left;padding:9px 11px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 12.5px var(--font-body);cursor:pointer;display:grid;gap:2px;position:relative}
+  .pcard b{font:700 13px var(--font-mono);color:var(--cbt-gold)}.pcard.frag b{color:var(--cbt-sky)}
+  .pcard .fr{font:600 10.5px var(--font-mono);color:var(--cbt-sky);letter-spacing:.06em;text-transform:uppercase}
+  .pcard .res{font:600 11px var(--font-mono);color:var(--silk-dim);min-height:1.2em}
+  .pcard:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .pcard.used{border-color:var(--ok);background:rgba(111,212,155,.08);cursor:default}.pcard.used .res{color:var(--ok)}
+  .pcard.bug{border-color:var(--bad);background:rgba(240,120,106,.1)}.pcard.bug .res{color:var(--bad)}
+  .pcard.dud{opacity:.55;cursor:default}
+  .pcard:disabled{cursor:default}
+  .count{font:500 12.5px var(--font-mono);color:var(--silk-dim);margin-top:8px}
+  .count b{color:var(--silk)}
+  .code{margin-top:10px;font-size:12.5px}
+  .stepper{flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 2 · Interactive B</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero split reveal" style="--i:0">
+    <div><span class="eyebrow">COP1411 · Week 2 · Challenge</span><h1>Cover every branch</h1><p class="lede">Pick the fewest packages that light every line of the sorter, predict lanes and prices, and catch the case Copilot's sorter gets wrong.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit where fair</span></div><div><b>In order</b><span>cover, predict, then Copilot</span></div></div>
+  </section>
+  <aside class="card reveal" style="--i:1" data-ref="SCENE">
+    <h2>Watch it happen</h2>
+    <div class="scene stage wide" id="stage" aria-label="The sorting floor. Each package you pick rides the conveyor here."></div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">Pick a package card in the round below and watch it ride the floor. After you check an answer, press Play the explanation to see the key package again.</p></div>
+    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
+  </aside>
+  <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How this challenge works</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Read the round below. In a coverage round, <b>click package cards</b> one at a time: each one rides the floor above and lights the lines it runs in green. In the other rounds, <b>pick one answer</b>.</li>
+      <li data-h="2">Press <b>Check</b> (or <b>Check coverage</b>). You see your points and why the best answer is best.</li>
+      <li data-h="3">Press <b>Play the explanation</b> to watch the key package ride the floor again.</li>
+      <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> if you want a better score.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and click a package card.</span></div>
+      <ul class="tips"><li>Coverage rounds: full points for lighting every branch with the minimum number of packages, minus 2 per extra package, and zero when a branch stays dark.</li><li>Over the floor: + and - zoom, 0 fits, the arrow keys move the view.</li></ul>
+    </div>
+  </section>
+  <section class="card reveal" style="--i:3" data-ref="ROUND">
+    <div class="progress" id="prog"></div>
+    <h2 id="qTitle">Round 1</h2>
+    <p id="qText" style="margin:0 0 6px"></p>
+    <pre class="code" id="rcode" hidden></pre>
+    <div class="chips" id="chips" hidden></div>
+    <div class="shelf" id="shelf" hidden></div>
+    <p class="count" id="count" hidden></p>
+    <div class="opts" id="opts"></div>
+    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button><button class="btn" id="btnClear" type="button" hidden>Reset picks</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
+    <div id="fb"></div>
+  </section>
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="U3 · RESULTS">
+    <h2>Your results</h2>
+    <div class="scroll-x"><table class="data" id="resTable"></table></div>
+    <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
+  </section>
+</main>
+<footer class="foot">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+const hasTHREE = typeof window.THREE !== 'undefined';
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+// ---- the sorting floor: a conveyor, decision gates in a row, and a branch belt with bins off every gate.
+// Three.js when WebGL is there, otherwise an SVG top view of the same floor. Board units: the conveyor runs along x, belts branch toward +z.
+function FloorScene(stage, opts) {
+  opts = opts || {};
+  const LANE_COLORS = {FREIGHT: '#F0786A', FRAGILE: '#38B0E0', A: '#6FD49B', B: '#E0B840', C: '#A9B4FF', 'ASK DISPATCH': '#aeb3c9', VAN: '#6FD49B', SUR: '#38B0E0', NOSUR: '#6FD49B'};
+  const LAMP = {T: '#6FD49B', F: '#F0786A', E: '#E0B840', S: '#555d8a', off: '#3a4690'};
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let def = {gates: []}, geo = [], P = {x: -9.5, z: 0, y: 0, rot: 0}, pk = null, R = null;
+  const api = {onPick: null, def: () => def, geo: () => geo};
+  function layout(d) {
+    def = d; geo = [];
+    const n = d.gates.length, start = -5.5 + (3 - n) * 1.75;
+    d.gates.forEach((g, k) => {
+      const gx = start + k * 3.5, m = g.bins.length;
+      const bins = g.bins.map((b, j) => ({x: gx + (j - (m - 1) / 2) * 1.1, z: 4.4, id: b.id, label: b.label, color: b.color || LANE_COLORS[b.id] || '#aeb3c9'}));
+      geo.push({x: gx, label: g.label, bins: bins});
+    });
+  }
+  function gateX(k) { return geo[k] ? geo[k].x : 3.5; }
+  function apply() { if (R) R.place(P); }
+  function moveTo(tl, x, z, dur, rot) {
+    const t = {x: x, z: z}; if (rot !== undefined) t.rot = rot;
+    if (tl) tl.to(P, Object.assign({duration: dur, ease: 'power2.inOut', onUpdate: apply}, t)); else { Object.assign(P, t); apply(); }
+  }
+  // public animation primitives (each adds to a GSAP timeline, or applies at once when tl is null)
+  api.build = d => { layout(d); if (R) R.build(geo); api.reset(); };
+  api.setPackage = p => { pk = p; if (R) R.look(p); };
+  api.reset = () => { P = {x: -9.5, z: 0, y: 0, rot: 0}; apply(); if (R) { R.resetLamps(); R.hide(true); } };
+  api.enter = tl => { if (R) R.hide(false); P.x = -9.5; P.z = 0; P.y = 1.2; apply(); if (tl) tl.to(P, {y: 0, duration: .5, ease: 'bounce.out', onUpdate: apply}); else { P.y = 0; apply(); } };
+  api.rideTo = (k, tl) => { const x = gateX(k); moveTo(tl, x, 0, Math.max(.4, Math.abs(x - P.x) * .14)); };
+  api.lamp = (k, res, tl) => { const f = () => { if (R) R.lamp(k, res); }; if (tl) tl.call(f); else f(); };
+  api.divert = (k, j, tl) => { const b = geo[k].bins[j]; moveTo(tl, geo[k].x, .9, .45, 90); moveTo(tl, b.x, 3.4, .8); const f = () => { if (R) R.binGlow(k, j, true); }; if (tl) tl.call(f); else f(); };
+  api.pass = (k, tl) => { const nx = geo[k + 1] ? geo[k + 1].x - 1.6 : 3.4; moveTo(tl, nx, 0, .5); };
+  api.land = (k, j, tl) => { const b = geo[k].bins[j]; moveTo(tl, b.x, 4.4, .4); if (tl) tl.to(P, {y: .35, duration: .25, onUpdate: apply}).to(P, {y: 0, duration: .2, onUpdate: apply}); };
+  api.skip = (k, tl) => api.lamp(k, 'S', tl);
+  api.flash = tl => { const f = () => { if (R) R.flashPackage(); }; if (tl) tl.call(f); else f(); };
+  api.zoom = f => { if (R) R.zoom(f); }; api.pan = (dx, dz) => { if (R) R.pan(dx, dz); }; api.fit = () => { if (R) R.fit(); };
+  api.intro = () => { if (R && !reduced && hasGSAP) R.intro(); };
+  const MONO = '"Red Hat Mono", Consolas, monospace';
+
+  // ---------- Three.js renderer ----------
+  function three() {
+    const r = new THREE.WebGLRenderer({antialias: true, alpha: true}); r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    r.setSize(stage.clientWidth, stage.clientHeight); r.domElement.className = 'gl'; stage.appendChild(r.domElement);
+    const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0b0f2b, 26, 44);
+    const cam = new THREE.PerspectiveCamera(38, stage.clientWidth / stage.clientHeight, 0.1, 100);
+    const HOME = {pos: new THREE.Vector3(-2.5, 9, 11), tgt: new THREE.Vector3(-2.5, 0, 1.9)};
+    function homeFor() { // the floor is about 16 units wide and 9 deep: pick the distance that fits both into the view
+      const a = Math.max(.3, stage.clientWidth / Math.max(1, stage.clientHeight)), half = Math.tan(cam.fov * Math.PI / 360), narrow = a < 1.4;
+      const d = Math.max(8 / (half * a), 5 / half) * (narrow ? 1.02 : 1.08); const dir = new THREE.Vector3(0, .66, .75).normalize();
+      HOME.tgt.x = narrow ? -1.6 : -2.5; HOME.pos.copy(HOME.tgt).add(dir.multiplyScalar(d)); labelK = Math.min(1.8, Math.max(1, d / 13));
+    }
+    let labelK = 1, lastGeo = null, lastPk = null;
+    homeFor(); cam.position.copy(HOME.pos); cam.lookAt(HOME.tgt);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x1b2150, 1.05)); const sun = new THREE.DirectionalLight(0xffffff, .75); sun.position.set(-6, 12, 8); scene.add(sun);
+    const ctl = window.THREE.OrbitControls ? new THREE.OrbitControls(cam, r.domElement) : null;
+    if (ctl) { ctl.enableDamping = true; ctl.target.copy(HOME.tgt); ctl.minDistance = 5; ctl.maxDistance = 40; ctl.maxPolarAngle = Math.PI * .47; }
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(34, 20), new THREE.MeshStandardMaterial({color: 0x121a4a, roughness: .95})); floor.rotation.x = -Math.PI / 2; floor.position.set(-2, -.02, 2); scene.add(floor);
+    const grid = new THREE.GridHelper(34, 34, 0x2a3470, 0x1f2860); grid.position.set(-2, 0, 2); scene.add(grid);
+    const mat = (c, o) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: .6, metalness: .15}, o || {}));
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(13.5, .3, 1.4), mat(0x2b3566)); belt.position.set(-2.75, .15, 0); belt.userData.key = 'belt'; scene.add(belt);
+    for (let x = -9; x <= 3.5; x += .8) { const rl = new THREE.Mesh(new THREE.BoxGeometry(.08, .05, 1.3), mat(0x4a56a0)); rl.position.set(x, .33, 0); scene.add(rl); }
+    const stop = new THREE.Mesh(new THREE.BoxGeometry(.25, .7, 1.6), mat(0xF0786A)); stop.position.set(4.1, .35, 0); scene.add(stop);
+    const dyn = new THREE.Group(); scene.add(dyn);
+    const pickables = [];
+    function textSprite(text, color, h) {
+      const c = document.createElement('canvas'), x = c.getContext('2d'), px = 34; x.font = '600 ' + px + 'px ' + MONO;
+      const tw = Math.ceil(x.measureText(text).width); c.width = tw + 44; c.height = 60; const g = c.getContext('2d');
+      g.fillStyle = 'rgba(11,15,43,.88)'; g.strokeStyle = color; g.lineWidth = 3; g.beginPath(); if (g.roundRect) g.roundRect(2, 2, c.width - 4, c.height - 4, 10); else g.rect(2, 2, c.width - 4, c.height - 4); g.fill(); g.stroke();
+      g.font = '600 ' + px + 'px ' + MONO; g.fillStyle = color; g.textBaseline = 'middle'; g.fillText(text, 22, 31);
+      const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter; const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, depthTest: false, transparent: true}));
+      const hh = (h || .5) * labelK; sp.scale.set(hh * c.width / c.height, hh, 1); sp.renderOrder = 5; return sp;
+    }
+    let lamps = [], binMeshes = [], pkgMesh = null, pkgLabel = null;
+    function build(geo) {
+      lastGeo = geo; while (dyn.children.length) dyn.remove(dyn.children[0]); lamps = []; binMeshes = []; pickables.length = 0; if (pkgMesh) pickables.push(pkgMesh);
+      geo.forEach((g, k) => {
+        [-.95, .95].forEach(z => { const post = new THREE.Mesh(new THREE.BoxGeometry(.22, 1.7, .22), mat(0x4a56a0)); post.position.set(g.x, .85, z); dyn.add(post); });
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(.3, .22, 2.1), mat(0x4a56a0)); bar.position.set(g.x, 1.75, 0); bar.userData.key = 'gate:' + k; dyn.add(bar); pickables.push(bar);
+        const lamp = new THREE.Mesh(new THREE.SphereGeometry(.2, 18, 14), new THREE.MeshStandardMaterial({color: 0x3a4690, emissive: 0x3a4690, emissiveIntensity: .6})); lamp.position.set(g.x, 2.05, 0); lamp.userData.key = 'gate:' + k; dyn.add(lamp); lamps.push(lamp); pickables.push(lamp);
+        const gl = textSprite('GATE ' + (k + 1) + '  ' + g.label, '#eef1fa', .44); gl.position.set(g.x, k % 2 ? 3.3 : 2.7, 0); dyn.add(gl);
+        const bm = [];
+        g.bins.forEach((b, j) => {
+          const dx = b.x - g.x, L = Math.hypot(dx, 2.7); const bl = new THREE.Mesh(new THREE.BoxGeometry(g.bins.length > 1 ? .7 : 1, .22, L), mat(0x27305e)); bl.position.set(g.x + dx / 2, .11, 2.25); bl.rotation.y = -Math.atan2(dx, 2.7); dyn.add(bl);
+          const bin = new THREE.Mesh(new THREE.BoxGeometry(.95, .5, .95), mat(new THREE.Color(b.color).getHex(), {transparent: true, opacity: .85})); bin.position.set(b.x, .25, 4.4); bin.userData.key = 'lane:' + b.id; dyn.add(bin); pickables.push(bin); bm.push(bin);
+          const lb = textSprite(b.label, b.color, .42); lb.position.set(b.x, .18, j % 2 ? 5.75 : 5.15); dyn.add(lb);
+        });
+        binMeshes.push(bm);
+      });
+      const inL = textSprite('IN', '#aeb3c9', .4); inL.position.set(-9.3, 1.1, 0); dyn.add(inL);
+    }
+    function look(p) {
+      lastPk = p; if (pkgMesh) { scene.remove(pkgMesh); scene.remove(pkgLabel); const i = pickables.indexOf(pkgMesh); if (i >= 0) pickables.splice(i, 1); }
+      const s = .45 + .4 * Math.min(p.w, 80) / 80;
+      pkgMesh = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), mat(p.fr ? 0x38B0E0 : 0xE0B840, {roughness: .5})); pkgMesh.userData.key = 'pkg'; pkgMesh.userData.s = s; scene.add(pkgMesh); pickables.push(pkgMesh);
+      const tape = new THREE.Mesh(new THREE.BoxGeometry(s + .02, s * .18, s + .02), mat(p.fr ? 0x1B2150 : 0x8a6d1a)); pkgMesh.add(tape);
+      pkgLabel = textSprite(p.id.replace('PP-2026-', '#') + ' ' + p.w + ' lb' + (p.fr ? ' fragile' : ''), p.fr ? '#9FE7FF' : '#E0B840', .42); scene.add(pkgLabel);
+      place(P);
+    }
+    function place(P) { if (!pkgMesh) return; const s = pkgMesh.userData.s; pkgMesh.position.set(P.x, .3 + s / 2 + P.y, P.z); pkgMesh.rotation.y = P.rot * Math.PI / 180; pkgLabel.position.set(P.x, .3 + s + P.y + .55, P.z); }
+    function hide(h) { if (pkgMesh) { pkgMesh.visible = !h; pkgLabel.visible = !h; } }
+    function lamp(k, res) { const l = lamps[k]; if (!l) return; const c = new THREE.Color(LAMP[res] || LAMP.off); l.material.color.copy(c); l.material.emissive.copy(c); l.material.emissiveIntensity = res === 'S' || res === 'off' ? .4 : 1.2; }
+    function resetLamps() { lamps.forEach((l, k) => lamp(k, 'off')); binMeshes.forEach(bm => bm.forEach(b => { b.material.emissive.setHex(0); })); }
+    function binGlow(k, j, on) { const b = binMeshes[k] && binMeshes[k][j]; if (!b) return; if (on) { b.material.emissive.copy(b.material.color); b.material.emissiveIntensity = .35; } else b.material.emissive.setHex(0); }
+    function flashPackage() { if (!pkgMesh || !hasGSAP) return; const m = pkgMesh.material; m.emissive.set(0xF0786A); gsap.fromTo(m, {emissiveIntensity: 1}, {emissiveIntensity: 0, duration: 1.2}); }
+    function tgt() { return ctl ? ctl.target : HOME.tgt; }
+    function zoom(f) { const t = tgt(); const d = Math.min(40, Math.max(5, cam.position.distanceTo(t) * f)); const v = cam.position.clone().sub(t).normalize().multiplyScalar(d); cam.position.copy(t.clone().add(v)); }
+    function pan(dx, dz) { const t = tgt(); const v = new THREE.Vector3(dx * 1.2, 0, -dz * 1.2); t.add(v); cam.position.add(v); }
+    function fit() { if (hasGSAP && !reduced) { gsap.to(cam.position, {x: HOME.pos.x, y: HOME.pos.y, z: HOME.pos.z, duration: .6, ease: 'power2.inOut'}); if (ctl) gsap.to(ctl.target, {x: HOME.tgt.x, y: HOME.tgt.y, z: HOME.tgt.z, duration: .6}); } else { cam.position.copy(HOME.pos); if (ctl) ctl.target.copy(HOME.tgt); } }
+    function intro() { cam.position.copy(HOME.pos).multiplyScalar(1.8); gsap.to(cam.position, {x: HOME.pos.x, y: HOME.pos.y, z: HOME.pos.z, duration: 1.4, ease: 'power3.out'}); }
+    const ray = new THREE.Raycaster(), mv = new THREE.Vector2(); let down = null;
+    r.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+    r.domElement.addEventListener('pointerup', e => {
+      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6 || !api.onPick) return;
+      const b = r.domElement.getBoundingClientRect(); mv.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); ray.setFromCamera(mv, cam);
+      const hit = ray.intersectObjects(pickables.concat([belt]), false)[0]; api.onPick(hit ? hit.object.userData.key : null);
+    });
+    let lastW = 0;
+    const resize = () => { const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return; r.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); const k0 = labelK; homeFor(); if (w !== lastW) { lastW = w; cam.position.copy(HOME.pos); if (ctl) ctl.target.copy(HOME.tgt); if (labelK !== k0 && lastGeo) { const vis = pkgMesh && pkgMesh.visible; build(lastGeo); if (lastPk) { look(lastPk); hide(!vis); } } } };
+    new ResizeObserver(resize).observe(stage);
+    (function loop() { requestAnimationFrame(loop); if (ctl) ctl.update(); r.render(scene, cam); })();
+    return {build, look, place, hide, lamp, resetLamps, binGlow, flashPackage, zoom, pan, fit, intro};
+  }
+
+  // ---------- SVG renderer (top view) ----------
+  function flat() {
+    const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('class', 'flat'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Top view of the sorting floor');
+    stage.appendChild(svg);
+    const VB0 = {x: 0, y: 0, w: 640, h: 360}; let VB = Object.assign({}, VB0);
+    const setVB = () => svg.setAttribute('viewBox', VB.x + ' ' + VB.y + ' ' + VB.w + ' ' + VB.h); setVB();
+    const X = x => 330 + x * 32, Y = z => 70 + z * 50;
+    const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); (parent || svg).appendChild(n); return n; };
+    el('rect', {x: 4, y: 4, width: 632, height: 352, rx: 12, fill: '#121a4a', stroke: '#2a3470'});
+    for (let gx = 20; gx < 640; gx += 32) el('line', {x1: gx, y1: 4, x2: gx, y2: 356, stroke: '#1f2860', 'stroke-width': 1});
+    el('rect', {x: X(-9.5), y: Y(0) - 20, width: X(4) - X(-9.5), height: 40, rx: 4, fill: '#2b3566', stroke: '#3a4690', 'data-key': 'belt'});
+    for (let x = -9; x <= 3.5; x += .8) el('line', {x1: X(x), y1: Y(0) - 17, x2: X(x), y2: Y(0) + 17, stroke: '#4a56a0', 'stroke-width': 2});
+    el('rect', {x: X(4), y: Y(0) - 24, width: 6, height: 48, fill: '#F0786A'});
+    const t = el('text', {x: X(-9.4), y: Y(0) - 28, fill: '#aeb3c9', 'font-size': 11, 'font-family': MONO}); t.textContent = 'IN';
+    const dyn = el('g', {}); let lamps = [], binEls = [], pkgG = null, pkgRect = null, pkgText = null, pkgS = 20;
+    function build(geo) {
+      dyn.innerHTML = ''; lamps = []; binEls = [];
+      geo.forEach((g, k) => {
+        const gx = X(g.x); const bm = [];
+        g.bins.forEach((b, j) => {
+          const bx = X(b.x); el('line', {x1: gx, y1: Y(.9), x2: bx, y2: Y(3.6), stroke: '#27305e', 'stroke-width': g.bins.length > 1 ? 16 : 24, 'stroke-linecap': 'round'}, dyn);
+          const bin = el('rect', {x: bx - 15, y: Y(4.4) - 15, width: 30, height: 30, rx: 4, fill: b.color, 'fill-opacity': .85, stroke: b.color, 'data-key': 'lane:' + b.id}, dyn); bm.push(bin);
+          const tx = el('text', {x: bx, y: Y(4.4) + (j % 2 ? 42 : 30), fill: b.color, 'font-size': 10, 'text-anchor': 'middle', 'font-family': MONO, 'font-weight': 600}, dyn); tx.textContent = b.label;
+        });
+        binEls.push(bm);
+        const gg = el('g', {'data-key': 'gate:' + k}, dyn);
+        el('polygon', {points: [gx, Y(0) - 30, gx + 30, Y(0), gx, Y(0) + 30, gx - 30, Y(0)].join(','), fill: '#1a2257', stroke: '#4a56a0', 'stroke-width': 2}, gg);
+        lamps.push(el('circle', {cx: gx, cy: Y(0), r: 7, fill: LAMP.off}, gg));
+        const lt = el('text', {x: gx, y: Y(0) - (k % 2 ? 50 : 38), fill: '#eef1fa', 'font-size': 10.5, 'text-anchor': 'middle', 'font-family': MONO, 'font-weight': 600}, gg); lt.textContent = 'GATE ' + (k + 1) + ' ' + g.label;
+      });
+      if (pkgG) svg.appendChild(pkgG);
+    }
+    function look(p) {
+      if (pkgG) pkgG.remove();
+      pkgS = 14 + 12 * Math.min(p.w, 80) / 80;
+      pkgG = el('g', {'data-key': 'pkg'}); pkgRect = el('rect', {x: -pkgS / 2, y: -pkgS / 2, width: pkgS, height: pkgS, rx: 3, fill: p.fr ? '#38B0E0' : '#E0B840', stroke: p.fr ? '#1B2150' : '#8a6d1a', 'stroke-width': 2}, pkgG);
+      pkgText = el('text', {x: 0, y: -pkgS / 2 - 5, fill: p.fr ? '#9FE7FF' : '#E0B840', 'font-size': 10, 'text-anchor': 'middle', 'font-family': MONO, 'font-weight': 600}, pkgG);
+      pkgText.textContent = p.id.replace('PP-2026-', '#') + ' ' + p.w + ' lb' + (p.fr ? ' fragile' : ''); place(P);
+    }
+    function place(P) { if (!pkgG) return; pkgG.setAttribute('transform', 'translate(' + X(P.x) + ' ' + (Y(P.z) - P.y * 20) + ')'); pkgRect.setAttribute('transform', 'rotate(' + P.rot + ')'); }
+    function hide(h) { if (pkgG) pkgG.setAttribute('visibility', h ? 'hidden' : 'visible'); }
+    function lamp(k, res) { if (lamps[k]) lamps[k].setAttribute('fill', LAMP[res] || LAMP.off); }
+    function resetLamps() { lamps.forEach((l, k) => lamp(k, 'off')); binEls.forEach(bm => bm.forEach(b => b.setAttribute('stroke-width', 1))); }
+    function binGlow(k, j, on) { const b = binEls[k] && binEls[k][j]; if (b) b.setAttribute('stroke-width', on ? 4 : 1); }
+    function flashPackage() { if (!pkgRect) return; pkgRect.setAttribute('stroke', '#F0786A'); pkgRect.setAttribute('stroke-width', 4); setTimeout(() => { pkgRect.setAttribute('stroke-width', 2); }, 1200); }
+    function zoom(f) { const cx = VB.x + VB.w / 2, cy = VB.y + VB.h / 2; VB.w = Math.min(1280, Math.max(160, VB.w * f)); VB.h = VB.w * 360 / 640; VB.x = cx - VB.w / 2; VB.y = cy - VB.h / 2; setVB(); }
+    function pan(dx, dz) { VB.x += dx * 40; VB.y -= dz * 40; setVB(); }
+    function fit() { VB = Object.assign({}, VB0); setVB(); }
+    svg.addEventListener('click', e => { const g = e.target.closest('[data-key]'); if (api.onPick) api.onPick(g ? g.getAttribute('data-key') : null); });
+    return {build, look, place, hide, lamp, resetLamps, binGlow, flashPackage, zoom, pan, fit, intro() {}};
+  }
+
+  if (hasTHREE && window.WebGLRenderingContext) { try { R = three(); } catch (e) { console.error(e); R = null; } }
+  if (!R) { R = flat(); const n = document.createElement('div'); n.className = 'nogl'; n.textContent = 'Flat view: this browser has no WebGL, so the floor is drawn as a top view. Every step still works.'; stage.appendChild(n); }
+  // zoom buttons, pan pad, and keys (+ - 0, arrows while the pointer is over the floor)
+  (function zoomUI() {
+    const box = document.createElement('div'); box.className = 'zoomctl'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+    box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in" title="Zoom in (+)">+</button><button type="button" data-z="out" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>' +
+      '<div class="pad" role="group" aria-label="Move the view"><button type="button" class="u" data-p="u" aria-label="Move the view up" title="Move up (arrow up)">&#9650;</button><button type="button" class="l" data-p="l" aria-label="Move the view left" title="Move left (arrow left)">&#9664;</button>' +
+      '<button type="button" class="c" data-z="fit" aria-label="Center the floor" title="Center the floor (0)">&#9679;</button><button type="button" class="r" data-p="r" aria-label="Move the view right" title="Move right (arrow right)">&#9654;</button><button type="button" class="d" data-p="d" aria-label="Move the view down" title="Move down (arrow down)">&#9660;</button></div>' +
+      '<button type="button" class="fit" data-z="fit" aria-label="Show the whole floor" title="Show the whole floor (0)">FIT</button>';
+    stage.appendChild(box);
+    ['pointerdown', 'pointerup', 'wheel', 'click'].forEach(ev => box.addEventListener(ev, e => e.stopPropagation()));
+    box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const pd = {l: [-1, 0], r: [1, 0], u: [0, 1], d: [0, -1]}[b.dataset.p];
+      if (pd) api.pan(pd[0], pd[1]); else if (b.dataset.z === 'in') api.zoom(.8); else if (b.dataset.z === 'out') api.zoom(1.25); else api.fit(); });
+    let over = false; stage.addEventListener('pointerenter', () => { over = true; }); stage.addEventListener('pointerleave', () => { over = false; });
+    document.addEventListener('keydown', e => { const t = e.target, tag = t && t.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+      const ak = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1]}[e.key];
+      if (ak) { if (over || stage.contains(t)) { e.preventDefault(); api.pan(ak[0], ak[1]); } return; }
+      if (e.key === '+' || e.key === '=') api.zoom(.8); else if (e.key === '-' || e.key === '_') api.zoom(1.25); else if (e.key === '0') api.fit(); });
+  })();
+  return api;
+}
+
+// ---- reference packages (the course plan's table; prices verified with Python) plus 0009, a plain Doral package for lane A ----
+const PK8 = [
+  {id: 'PP-2026-0001', city: 'Hialeah', w: 12, mi: 8, fr: 'no'},
+  {id: 'PP-2026-0002', city: 'Doral', w: 3, mi: 2, fr: 'yes'},
+  {id: 'PP-2026-0003', city: 'Miami Gardens', w: 55, mi: 14, fr: 'no'},
+  {id: 'PP-2026-0004', city: 'Kendall', w: 20, mi: 19, fr: 'no'},
+  {id: 'PP-2026-0005', city: 'Miami Gardens', w: 60, mi: 14, fr: 'yes'},
+  {id: 'PP-2026-0006', city: 'Hialeah', w: 50, mi: 8, fr: 'no'},
+  {id: 'PP-2026-0007', city: 'Homestead', w: 45, mi: 30, fr: 'yes'},
+  {id: 'PP-2026-0008', city: 'Fort Lauderdale', w: 5, mi: 25, fr: 'no'}];
+const PK9 = PK8.concat([{id: 'PP-2026-0009', city: 'Doral', w: 10, mi: 2, fr: 'no'}]);
+const byId = id => PK9.find(p => p.id === id);
+const money = v => (Math.round(v * 100) / 100).toFixed(2);
+const price = p => 4.5 + .8 * p.w + .25 * p.mi + (p.fr === 'yes' ? 3 : 0);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const heavy = p => p.w > 50, frag = p => p.fr === 'yes', isDoral = p => p.city === 'Doral', isB = p => p.city === 'Hialeah' || p.city === 'Miami Gardens', isC = p => p.city === 'Kendall' || p.city === 'Homestead';
+const BIN = {FREIGHT: {id: 'FREIGHT', label: 'FREIGHT'}, FRAGILE: {id: 'FRAGILE', label: 'FRAGILE'}, A: {id: 'A', label: 'A'}, B: {id: 'B', label: 'B'}, C: {id: 'C', label: 'C'}, ASK: {id: 'ASK DISPATCH', label: 'ASK DISPATCH'}, VAN: {id: 'VAN', label: 'VAN'}, SUR: {id: 'SUR', label: '+3.00'}, NOSUR: {id: 'NOSUR', label: 'no surcharge'}};
+
+// ---- gate chains: each gate has conditions in order (test, bin, lines run when True, lines evaluated) and maybe an else ----
+const CITY_GATE = base => ({label: 'city', conds: [{t: isDoral, bin: BIN.A, lines: [base, base + 1], ev: [base]}, {t: isB, bin: BIN.B, lines: [base + 2, base + 3], ev: [base + 2]}, {t: isC, bin: BIN.C, lines: [base + 4, base + 5], ev: [base + 4]}], els: {bin: BIN.ASK, lines: [base + 6, base + 7]}});
+const C_FULL = [{label: 'weight > 50', conds: [{t: heavy, bin: BIN.FREIGHT, lines: [1, 2], ev: [1]}]}, {label: 'fragile == "yes"', conds: [{t: frag, bin: BIN.FRAGILE, lines: [3, 4], ev: [3]}]}, CITY_GATE(5)];
+const C_COP = [{label: 'fragile == "yes"', conds: [{t: frag, bin: BIN.FRAGILE, lines: [1, 2], ev: [1]}]}, {label: 'weight > 50', conds: [{t: heavy, bin: BIN.FREIGHT, lines: [3, 4], ev: [3]}]}, CITY_GATE(5)];
+const C_SUR = [{label: 'fragile == "yes"', conds: [{t: frag, bin: BIN.SUR, lines: [3, 4], ev: [1, 2]}], els: {bin: BIN.NOSUR, lines: [4]}}];
+const C_ZONE = [CITY_GATE(1)];
+const C_NEST = [{label: 'weight > 50', conds: [{t: heavy, bin: BIN.FREIGHT, lines: [1, 2], ev: [1]}]}, {label: 'fragile == "yes"', conds: [{t: frag, bin: BIN.FRAGILE, lines: [5], ev: [3, 4]}], els: {bin: BIN.VAN, lines: [6, 7]}}];
+const CODE_FULL = ['if weight > 50:', '    lane = "FREIGHT"', 'elif fragile == "yes":', '    lane = "FRAGILE"', 'elif city == "Doral":', '    lane = "A"', 'elif city == "Hialeah" or city == "Miami Gardens":', '    lane = "B"', 'elif city == "Kendall" or city == "Homestead":', '    lane = "C"', 'else:', '    lane = "ASK DISPATCH"'];
+const CODE_COP = ['if fragile == "yes":', '    lane = "FRAGILE"', 'elif weight > 50:', '    lane = "FREIGHT"'].concat(CODE_FULL.slice(4));
+const CODE_SUR = ['price = 4.50 + 0.80 * weight + 0.25 * miles', 'if fragile == "yes":', '    price = price + 3.00', 'print(f"Price: ${price:.2f}")'];
+const CODE_ZONE = CODE_FULL.slice(4).map((l, i) => i === 0 ? l.replace('elif', 'if') : l);
+const CODE_NEST = ['if weight > 50:', '    lane = "FREIGHT"', 'else:', '    if fragile == "yes":', '        lane = "FRAGILE"', '    else:', '        lane = "VAN"'];
+// walk a package through a chain: which gate took it, which bin, which lines ran
+function trace(chain, p) {
+  const steps = [], lit = new Set(); let gate = null, bin = null, branch = null;
+  chain.forEach((g, k) => {
+    if (branch) { steps.push({res: 'S'}); return; }
+    let hit = null, j = -1;
+    g.conds.forEach((c, i) => { if (hit) return; c.ev.forEach(l => lit.add(l)); if (c.t(p)) { hit = c; j = i; } });
+    if (hit) { hit.lines.forEach(l => lit.add(l)); steps.push({res: 'T', bin: j}); gate = k; bin = j; branch = hit.bin.id; }
+    else if (g.els) { g.els.lines.forEach(l => lit.add(l)); steps.push({res: 'E', bin: g.conds.length}); gate = k; bin = g.conds.length; branch = g.els.bin.id; }
+    else steps.push({res: 'F'});
+  });
+  return {steps: steps, gate: gate, bin: bin, branch: branch, lit: Array.from(lit)};
+}
+const sceneDef = chain => ({gates: chain.map(g => ({label: g.label, bins: g.conds.map(c => c.bin).concat(g.els ? [g.els.bin] : [])}))});
+const branchesOf = chain => chain.flatMap(g => g.conds.map(c => c.bin).concat(g.els ? [g.els.bin] : []));
+const chipLabel = {SUR: 'fragile yes: +3.00 runs', NOSUR: 'fragile no: line 3 skipped'};
+
+const P = id => byId(id);
+const ROUNDS = [
+  {kind: 'cover', title: "Dante's sorter", q: 'This is the sorter in the right order. Light all six lanes with the fewest packages. Minimum: 6. Dante added PP-2026-0009 (Doral, 10 lb, not fragile) to the shelf because none of the eight reference packages is a plain Doral package: PP-2026-0002 is from Doral but it is fragile, so it never reaches the city lines.', code: CODE_FULL, chain: C_FULL, min: 6, shelf: PK9},
+  {kind: 'cover', title: 'Only the surcharge', q: 'This program has one decision and no else. How many packages does it take to run both paths, the one where line 3 runs and the one where it is skipped? Minimum: 2.', code: CODE_SUR, chain: C_SUR, min: 2, shelf: PK9},
+  {kind: 'cover', title: 'Zones only', q: 'A sorter that only looks at the city. Light the four lanes with the fewest packages. Minimum: 4.', code: CODE_ZONE, chain: C_ZONE, min: 4, shelf: PK9},
+  {kind: 'cover', title: 'A nested if', q: 'Here the fragile check sits inside the else of the weight check (a nested decision). Light all three lanes. Minimum: 3.', code: CODE_NEST, chain: C_NEST, min: 3, shelf: PK9},
+  {kind: 'mc', title: 'Predict the lane and price', q: "PP-2026-0004: 20 lb, 19 miles, Kendall, not fragile. Dante's sorter prints:", code: CODE_FULL, play: {chain: C_FULL, p: P('PP-2026-0004')}, opts: [
+    ['Lane: C and Price: $25.25', 10, '4.50 + 16.00 + 4.75 = 25.25 with no surcharge, and Kendall is zone C.'],
+    ['Lane: C and Price: $28.25', 4, 'The lane is right, but 28.25 adds a surcharge to a package that is not fragile.'],
+    ['Lane: B and Price: $25.25', 0, 'The price is right, but Kendall is zone C, not B.'],
+    ['Lane: ASK DISPATCH and Price: $25.25', 0, 'Kendall matches the zone C line, so the else never runs.']]},
+  {kind: 'mc', title: 'The boundary', q: "PP-2026-0006: exactly 50 lb, 8 miles, Hialeah, not fragile. Dante's sorter prints:", code: CODE_FULL, play: {chain: C_FULL, p: P('PP-2026-0006')}, opts: [
+    ['Lane: B and Price: $46.50', 10, '50 > 50 is False, so the package stays in a van and lands in zone B. 4.50 + 40.00 + 2.00 = 46.50.'],
+    ['Lane: FREIGHT and Price: $46.50', 0, 'The price is right, but exactly 50 is not above 50. The comparison is >, not >=.'],
+    ['Lane: B and Price: $49.50', 4, 'The lane is right, but 49.50 includes a surcharge the package does not have.'],
+    ['Lane: FRAGILE and Price: $46.50', 0, 'fragile is "no", so the FRAGILE line is False.']]},
+  {kind: 'mc', title: 'Fragile and far', q: "PP-2026-0007: 45 lb, 30 miles, Homestead, fragile. Dante's sorter prints:", code: CODE_FULL, play: {chain: C_FULL, p: P('PP-2026-0007')}, opts: [
+    ['Lane: FRAGILE and Price: $51.00', 10, '45 is not above 50 and fragile is "yes", so the second line is True: FRAGILE. 4.50 + 36.00 + 7.50 + 3.00 = 51.00.'],
+    ['Lane: C and Price: $51.00', 0, 'Homestead is zone C, but the fragile line comes first and it is True, so the city lines never run.'],
+    ['Lane: FRAGILE and Price: $48.00', 4, 'The lane is right, but the 3.00 fragile surcharge is missing.'],
+    ['Lane: FREIGHT and Price: $51.00', 0, '45 > 50 is False, so the package stays in a van.']]},
+  {kind: 'mc', title: "Read Copilot's sorter", q: 'Microsoft Copilot wrote this sorter with the fragile check first. Read it with PP-2026-0005: 60 lb, 14 miles, Miami Gardens, fragile. What does this code print?', code: CODE_COP, play: {chain: C_COP, p: P('PP-2026-0005'), flash: true}, opts: [
+    ['Lane: FRAGILE and Price: $59.00', 10, 'The first line, fragile == "yes", is True, so lane = "FRAGILE" and every elif is skipped, including weight > 50. The price is 4.50 + 48.00 + 3.50 + 3.00 = 59.00.'],
+    ['Lane: FREIGHT and Price: $59.00', 4, 'FREIGHT is what the business rule wants, but the question asks what this code prints. Python runs the first True branch, and that is the fragile line.'],
+    ['Lane: B and Price: $59.00', 0, 'The city lines never run: an earlier line was already True.'],
+    ['It stops with an error because two conditions are True', 0, 'Two True conditions are not an error. Python takes the first one and skips the rest.']]},
+  {kind: 'pick', title: 'Catch the bug', q: "Same Copilot sorter. Seven of the eight reference packages land in the right lane anyway. Click the one package that lands in a different lane than Dante's rule says. That package is the test case your plan must contain.", code: CODE_COP, chain: C_COP, rule: C_FULL, shelf: PK8, target: 'PP-2026-0005', play: {chain: C_COP, p: P('PP-2026-0005'), flash: true}},
+  {kind: 'mc', title: 'Pick the fix', q: 'You showed Copilot the failing row. Which fix is right?', code: CODE_COP, play: {chain: C_FULL, p: P('PP-2026-0005')}, opts: [
+    ['Move the weight > 50 check above the fragile check: it becomes the if, and the fragile line becomes an elif', 10, 'Weight is the rule that beats every other rule, so it must be checked first. All eight packages now land as the table says.'],
+    ['Change the first line to: if fragile == "yes" and weight <= 50:', 6, 'It works for all eight packages, but the limit 50 now lives in two lines. Change one and forget the other, and the bug is back.'],
+    ['Change weight > 50 to weight >= 50', 0, 'That does not move the check, so 0005 still lands on FRAGILE, and now 0006 (exactly 50) goes to FREIGHT by mistake.'],
+    ['Delete the fragile check', 0, 'Then 0002 and 0007 lose their shelf. The fragile rule is right; only its position is wrong.']]}
+];
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+let r = 0, picked = null, total = 0, log = [], G = null, cur = null, builtChain = null, lastPlay = null;
+let picks = [], lit = new Set(), covered = new Set(), attempts = 0, solved = false;
+
+// ---- the scene: build the floor for a chain and run one package through it ----
+function buildFor(chain) { if (builtChain !== chain) { G.build(sceneDef(chain)); builtChain = chain; } }
+function playTrace(chain, p, flash) {
+  buildFor(chain); if (cur) { cur.kill(); cur = null; } G.reset(); G.setPackage({id: p.id, w: p.w, fr: p.fr === 'yes'});
+  const t = trace(chain, p), tl = hasGSAP ? gsap.timeline() : null;
+  G.enter(tl);
+  t.steps.forEach((s, k) => { if (s.res === 'S') { G.skip(k, tl); if (tl) tl.to({}, {duration: .3}); return; } G.rideTo(k, tl); G.lamp(k, s.res, tl); if (s.res === 'F') G.pass(k, tl); else G.divert(k, s.bin, tl); });
+  if (t.gate !== null) { G.land(t.gate, t.bin, tl); if (flash) G.flash(tl); }
+  cur = tl; lastPlay = {chain: chain, p: p, flash: flash};
+  $('#capT').textContent = p.id + ' rides the floor'; $('#capB').textContent = p.w + ' lb, ' + p.city + ', ' + (p.fr === 'yes' ? 'fragile' : 'not fragile') + '. Lands in ' + (t.branch === 'SUR' ? 'the +3.00 path' : t.branch === 'NOSUR' ? 'the no-surcharge path' : t.branch) + '.';
+  return t;
+}
+function renderCode(code, litSet, on) {
+  const el = $('#rcode'); if (!code) { el.hidden = true; return; } el.hidden = false;
+  el.innerHTML = code.map((l, i) => '<span class="ln' + (litSet && litSet.has(i + 1) ? ' lit' : '') + (on && on.has(i + 1) ? ' on' : '') + '"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' + (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
+}
+function renderChips(R) { const el = $('#chips'); if (R.kind !== 'cover') { el.hidden = true; return; } el.hidden = false; el.innerHTML = branchesOf(R.chain).map(b => '<span class="chip' + (covered.has(b.id) ? ' lit' : '') + '">' + esc(chipLabel[b.id] || b.label) + '</span>').join(''); }
+function renderShelf(R) {
+  const el = $('#shelf'); if (R.kind !== 'cover' && R.kind !== 'pick') { el.hidden = true; $('#count').hidden = true; return; } el.hidden = false;
+  el.innerHTML = R.shelf.map(p => '<button type="button" class="pcard' + (p.fr === 'yes' ? ' frag' : '') + '" data-id="' + p.id + '"><b>' + p.id.replace('PP-2026-', '#') + '</b><span>' + p.city + '</span><span>' + p.w + ' lb · ' + p.mi + ' mi</span><span class="fr">' + (p.fr === 'yes' ? 'fragile' : '&nbsp;') + '</span><span class="res"></span></button>').join('');
+  $('#count').hidden = R.kind !== 'cover'; $('#count').innerHTML = 'Packages used: <b>0</b> · minimum <b>' + R.min + '</b>';
+}
+function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+function showRound() {
+  const R = ROUNDS[r]; picked = null; picks = []; lit = new Set(); covered = new Set(); attempts = 0; solved = false;
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.title; $('#qText').textContent = R.q; $('#fb').innerHTML = '';
+  renderCode(R.code, lit, null); renderChips(R); renderShelf(R);
+  if (R.kind === 'mc') { R._opts = shuffle(R.opts); $('#opts').innerHTML = R._opts.map((o, i) => '<button type="button" data-i="' + i + '">' + esc(o[0]) + '</button>').join(''); } else $('#opts').innerHTML = '';
+  $('#btnCheck').hidden = R.kind === 'pick'; $('#btnCheck').disabled = false; $('#btnCheck').textContent = R.kind === 'cover' ? 'Check coverage' : 'Check';
+  $('#btnClear').hidden = R.kind !== 'cover'; $('#btnClear').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true;
+  buildFor(R.kind === 'mc' ? R.play.chain : R.chain); G.reset(); $('#capT').textContent = 'Ready'; $('#capB').textContent = R.kind === 'mc' ? 'Pick an answer, press Check, then press Play the explanation to watch the package ride the floor.' : 'Click a package card below and watch it ride the floor.';
+  guide(1, R.kind === 'cover' ? 'Round ' + (r + 1) + ': <b>click package cards</b> until every branch chip turns green, using as few as you can. Then press <b>Check coverage</b>.' : R.kind === 'pick' ? 'Round ' + (r + 1) + ': <b>click the one package</b> that Copilot\'s sorter sends to the wrong lane.' : 'Read round ' + (r + 1) + ' below and <b>pick one answer</b>.');
+  drawProgress();
+}
+// ---- hands-on rounds: picking a package runs it ----
+$('#shelf').addEventListener('click', e => {
+  const b = e.target.closest('.pcard'); if (!b || b.disabled || b.classList.contains('used') || b.classList.contains('dud')) return;
+  const R = ROUNDS[r], p = byId(b.dataset.id);
+  if (R.kind === 'cover') {
+    const t = playTrace(R.chain, p, false); picks.push(p.id); t.lit.forEach(l => lit.add(l)); const isNew = !covered.has(t.branch); covered.add(t.branch);
+    b.classList.add('used'); b.querySelector('.res').textContent = (t.branch === 'SUR' ? '+3.00' : t.branch === 'NOSUR' ? 'no surcharge' : t.branch) + (isNew ? '' : ' (already lit)');
+    renderCode(R.code, lit, new Set(t.lit)); renderChips(R); $('#count').innerHTML = 'Packages used: <b>' + picks.length + '</b> · minimum <b>' + R.min + '</b>';
+    const all = branchesOf(R.chain).every(x => covered.has(x.id));
+    guide(all ? 2 : 1, all ? 'Every branch is lit. Press <b>Check coverage</b>.' : (isNew ? 'New branch lit. ' : 'That package followed a path that was already lit. ') + 'Keep <b>clicking cards</b> until every chip is green, then press <b>Check coverage</b>.');
+    return;
+  }
+  if (R.kind === 'pick') {
+    if (solved) return;
+    attempts++; const tc = playTrace(R.chain, p, false), tr = trace(R.rule, p);
+    if (tc.branch !== tr.branch) {
+      solved = true; G.flash(cur); b.classList.add('bug'); b.querySelector('.res').textContent = 'code: ' + tc.branch + ', rule: ' + tr.branch;
+      const pts = attempts === 1 ? 10 : attempts === 2 ? 5 : 0; total += pts; log[r] = {q: R.title, a: p.id + ' after ' + attempts + ' pick' + (attempts > 1 ? 's' : ''), pts: pts, max: 10};
+      $('#fb').innerHTML = '<div class="feedback ' + (pts === 10 ? 'ok' : pts ? 'info' : 'bad') + '"><b>' + pts + ' of 10 points.</b> ' + p.id + ' is the only reference package where both of the first two conditions are True: 60 > 50 and fragile == "yes". Copilot\'s sorter runs the fragile line first and never reaches the weight line, so a 60 lb box lands on the FRAGILE shelf instead of FREIGHT. Every other package has at most one of those two conditions True, so the order does not change its lane.' + (attempts > 1 ? ' You needed ' + attempts + ' picks: a test plan lists this case before any code runs.' : '') + '</div>';
+      document.querySelectorAll('#shelf .pcard').forEach(x => { x.disabled = true; }); $('#score').textContent = total; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; drawProgress();
+      guide(3, 'Press <b>Play the explanation</b> to watch it again, then <b>Next round</b>.');
+    } else {
+      b.classList.add('dud'); b.querySelector('.res').textContent = tc.branch + ' in both';
+      guide(1, p.id + ' lands in ' + tc.branch + ' in both orders, so it proves nothing. <b>Click another package</b>: look for one where two conditions are True at once.');
+    }
+  }
+});
+$('#btnClear').addEventListener('click', () => { const R = ROUNDS[r]; picks = []; lit = new Set(); covered = new Set(); renderCode(R.code, lit, null); renderChips(R); renderShelf(R); G.reset(); guide(1, 'Picks cleared. <b>Click package cards</b> again.'); });
+$('#opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); guide(2, 'Press <b>Check</b> to see your points.'); });
+$('#btnCheck').addEventListener('click', () => {
+  const R = ROUNDS[r];
+  if (R.kind === 'cover') {
+    if (!picks.length) { guide(1, 'Click at least one package card first, then press <b>Check coverage</b>.'); return; }
+    const all = branchesOf(R.chain), dark = all.filter(b => !covered.has(b.id)), extra = picks.length - R.min;
+    const pts = dark.length ? 0 : Math.max(0, 10 - 2 * extra);
+    total += pts; log[r] = {q: R.title, a: picks.length + ' package' + (picks.length > 1 ? 's' : '') + (dark.length ? ', ' + dark.length + ' branch' + (dark.length > 1 ? 'es' : '') + ' dark' : ', every branch lit'), pts: pts, max: 10};
+    $('#fb').innerHTML = '<div class="feedback ' + (pts === 10 ? 'ok' : pts ? 'info' : 'bad') + '"><b>' + pts + ' of 10 points.</b> ' + (dark.length ? 'Still dark: ' + dark.map(b => chipLabel[b.id] || b.label).join(', ') + '. A test plan with a dark branch cannot catch a bug hiding there. Press <b>Reset picks</b> and try again next time; the best set lights every chip with ' + R.min + ' packages.'
+      : extra <= 0 ? 'Every branch lit with ' + picks.length + ' packages, the minimum. Each package took a path no earlier package had taken.' : 'Every branch lit, but ' + extra + ' package' + (extra > 1 ? 's' : '') + ' added nothing new (' + extra * 2 + ' points off). A package that follows a path already lit tells you nothing you did not know.') + '</div>';
+    document.querySelectorAll('#shelf .pcard').forEach(x => { x.disabled = true; }); $('#btnClear').disabled = true;
+  } else {
+    if (picked === null) { guide(1, 'Pick an answer first, then press <b>Check</b>.'); return; }
+    const o = R._opts[picked], max = Math.max(...R.opts.map(x => x[1])), best = R._opts.find(x => x[1] === max);
+    total += o[1]; log[r] = {q: R.title, a: o[0], pts: o[1], max: max};
+    document.querySelectorAll('#opts button').forEach((b, i) => { b.disabled = true; b.style.borderColor = ''; if (R._opts[i] === best) b.classList.add('right'); else if (i === picked) b.classList.add('wrong'); });
+    $('#fb').innerHTML = '<div class="feedback ' + (o[1] === max ? 'ok' : o[1] > 0 ? 'info' : 'bad') + '"><b>' + o[1] + ' of ' + max + ' points.</b> ' + esc(o[2]) + (o === best ? '' : ' The best answer: ' + esc(best[0]) + '. ' + esc(best[2])) + '</div>';
+  }
+  guide(3, 'Read the explanation. Press <b>Play the explanation</b> to see it on the floor, then <b>Next round</b>.');
+  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
+});
+$('#btnPlay').addEventListener('click', () => {
+  const R = ROUNDS[r];
+  if (R.play) { playTrace(R.play.chain, R.play.p, !!R.play.flash); const best = R.opts ? R._opts.find(x => x[1] === Math.max(...R.opts.map(y => y[1]))) : null; $('#capT').textContent = 'Explanation'; $('#capB').textContent = best ? best[2] : 'PP-2026-0005 in Copilot\'s order: the fragile gate takes it first, and the weight gate is skipped.'; }
+  else if (lastPlay) playTrace(lastPlay.chain, lastPlay.p, lastPlay.flash);
+  $('#stage').scrollIntoView({behavior: 'smooth', block: 'center'});
+});
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); $('#qTitle').scrollIntoView({behavior: 'smooth', block: 'start'}); } else finishAll(); });
+function finishAll() {
+  guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.'; $('#opts').innerHTML = ''; $('#rcode').hidden = true; $('#chips').hidden = true; $('#shelf').hidden = true; $('#count').hidden = true; $('#btnCheck').disabled = true; $('#btnNext').disabled = true; $('#btnClear').hidden = true;
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + ' · ' + esc(l.q) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
+  drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function start() { r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+$('#btnAgain').addEventListener('click', start);
+G = FloorScene($('#stage'));
+start(); G.intro();
+// test hooks
+window.__round = () => ({r: r, kind: ROUNDS[r].kind, total: total, log: log, picks: picks, covered: Array.from(covered)});
+window.__pickCard = id => { const b = document.querySelector('#shelf .pcard[data-id="' + id + '"]'); if (b) b.click(); };
+window.__choose = txt => { const i = ROUNDS[r]._opts.findIndex(o => o[0].startsWith(txt)); document.querySelector('#opts button[data-i="' + i + '"]').click(); };
+window.__trace = (which, id) => trace({full: C_FULL, cop: C_COP, sur: C_SUR, zone: C_ZONE, nest: C_NEST}[which], byId(id));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loading the van</title>
+<meta name="description" content="COP1411 Week 3 interactive: Watch a while loop load VAN-1 one package per pass: the trace table on the clipboard fills one row at a time, and the gauge tells you when the van is over capacity.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Flip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/MotionPathPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<!-- Remove the library tags this page does not use. Pyodide loads lazily from the PySandbox kit on the first Run. -->
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS (scene explorer: Loading the van) */
+  .scene{position:relative;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  .scene canvas,.scene svg.flat{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .scene canvas{touch-action:none}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9)}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
+  .zoomctl{position:absolute;z-index:4;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .zoomctl button{width:38px;height:34px;border:0;border-radius:4px;background:transparent;color:var(--silk);font:600 18px/1 var(--font-mono);cursor:pointer;padding:0}
+  .zoomctl button.fit{font-size:10px;letter-spacing:.06em;height:28px}.zoomctl button:hover{background:var(--panel-2);color:var(--cbt-gold)}
+  .zoomctl button:focus-visible{outline:2px solid var(--cbt-gold);outline-offset:1px}
+  .zoomctl .pad{display:grid;grid-template-columns:repeat(3,26px);grid-template-rows:repeat(3,24px);gap:1px;margin:3px 0;padding-top:4px;border-top:1px solid var(--line)}
+  .zoomctl .pad button{width:26px;height:24px;font-size:12px}.zoomctl .pad .u{grid-area:1/2}.zoomctl .pad .l{grid-area:2/1}.zoomctl .pad .c{grid-area:2/2;font-size:9px}.zoomctl .pad .r{grid-area:2/3}.zoomctl .pad .d{grid-area:3/2}
+  .seg{display:flex;flex-wrap:wrap;gap:6px}
+  .seg .btn[aria-pressed="true"]{background:var(--cbt-gold);border-color:var(--cbt-gold);color:#1a1205}
+  .manifest{display:grid;gap:8px}
+  .manifest label{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim);display:block;margin-bottom:3px}
+  .manifest input[type=text]{width:100%;box-sizing:border-box}
+  .manifest .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media(max-width:520px){.manifest .row{grid-template-columns:1fr}}
+  table.trace{font:500 12.5px var(--font-mono)}
+  table.trace th{white-space:nowrap}
+  table.trace td{white-space:nowrap}
+  table.trace tr.new td{background:rgba(224,184,64,.16)}
+  table.trace tr.exit td{color:var(--silk-dim);font-style:italic}
+  table.trace tr.exit td:first-child{color:var(--ctrl);font-style:normal}
+  .gauge{height:10px;border-radius:5px;background:#0b0f2b;border:1px solid var(--line);position:relative;overflow:hidden;margin-top:6px}
+  .gauge i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--alu);transition:width .4s,background .3s}
+  .gauge b{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--cbt-gold);left:80%}
+  .gauge.warn i{background:var(--ctrl)}.gauge.near i{background:var(--cbt-gold)}
+  .sent{display:grid;gap:8px}
+  .sent .s{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--panel)}
+  .sent .s p{margin:0;font-size:14.5px}
+  .sent .s .tf{display:flex;gap:4px}
+  .sent .s .tf .btn[aria-pressed="true"]{background:var(--cbt-sky);border-color:var(--cbt-sky);color:#06120f}
+  .sent .s .v{grid-column:1/-1;font-size:13px;color:var(--silk-dim);margin:0}
+  .sent .s.ok{border-color:var(--alu)}.sent .s.bad{border-color:var(--ctrl)}
+  .sent .s.ok .v b{color:var(--alu)}.sent .s.bad .v b{color:var(--ctrl)}
+  @media(max-width:520px){.sent .s{grid-template-columns:1fr}}
+  .tape span.on{border-color:var(--cbt-gold);color:var(--cbt-gold)}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 3 · Interactive A</div>
+  </div>
+</header>
+
+<div class="app">
+  <header class="lab-head">
+    <p class="eyebrow">COP1411 · Week 3 · Explorer</p>
+    <h1>Loading the van</h1>
+    <p class="lede">Watch a while loop load VAN-1 one package per pass: the trace table on the clipboard fills one row at a time, and the gauge tells you when the van is over capacity.</p>
+  </header>
+  <section class="stage scene" id="stage" aria-label="Scene: the Palmetto Parcel dock and VAN-1. Use the controls under it to run the program step by step.">
+    <div class="hud hud-top">
+      <ol class="phases" aria-label="Phase">
+        <li data-p="setup" style="--c:var(--cbt-gold)">Setup</li>
+        <li data-p="read" style="--c:var(--cbt-sky)">Read</li>
+        <li data-p="check" style="--c:var(--oper)">Check</li>
+        <li data-p="body" style="--c:var(--alu)">Body</li>
+        <li data-p="report" style="--c:var(--ctrl)">Report</li>
+      </ol>
+      <div class="ticks">step <b id="hudStep">0</b> · pass <b id="hudPass">0</b></div>
+    </div>
+    <div class="hud hud-bottom">
+      <div class="legend" aria-label="Colors">
+        <span style="--c:var(--cbt-gold)"><i></i>executing line, value just set</span>
+        <span style="--c:var(--cbt-sky)"><i></i>package being read or moved</span>
+        <span style="--c:var(--alu)"><i></i>within capacity</span>
+        <span style="--c:var(--ctrl)"><i></i>over 1,200 lb</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How to use this lab</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Pick a manifest in <b>Manifest</b> below: press <b>VAN-1 manifest</b>, <b>Overload manifest</b>, or type your own weights and press <b>Use these weights</b>.</li>
+      <li data-h="2">Press <b>Step</b> to run one line. Watch the lit line in the code, the package that moves on the dock above, and the new row in the trace table.</li>
+      <li data-h="3">Press <b>Step back</b> to see a pass again, or <b>Run</b> to play the whole loop. Then press <b>For version</b> and <b>Index version</b> and run the same manifest again.</li>
+      <li data-h="4">Scroll to <b>Check Copilot's explanation</b>, mark each sentence <b>True</b> or <b>False</b> using the trace table, and press <b>Check sentences</b>.</li>
+      <li data-h="5">Scroll to <b>Try it</b>, change the code or the inputs, and press <b>Run</b> there to run real Python.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Press <b>Step</b> to run the first line of manifest.py.</span></div>
+      <ul class="tips"><li>Keyboard: Space steps, B steps back, R runs or pauses. Over the scene: + and - zoom, 0 fits, arrow keys move the view. Drag to orbit.</li><li>Click the van, a package, the gauge, or the clipboard to read what it is.</li></ul>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <section class="narr" aria-live="polite">
+      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 0</span></div>
+      <p id="narration">Press Step to start, or Run to play every step.</p>
+    </section>
+    <div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="btnRun">Run</button>
+        <button type="button" class="btn" id="btnStep">Step</button>
+        <button type="button" class="btn" id="btnBack">Step back</button>
+        <button type="button" class="btn" id="btnReset">Reset</button>
+      </div>
+      <div class="speed" style="margin-top:12px"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="4" step="1" value="2"><output id="speedOut">1×</output></div>
+    </div>
+    <section>
+      <h2>Manifest</h2>
+      <div class="manifest">
+        <div class="seg" role="group" aria-label="Manifest">
+          <button type="button" class="btn" data-m="van1" aria-pressed="true">VAN-1 manifest</button>
+          <button type="button" class="btn" data-m="over" aria-pressed="false">Overload manifest</button>
+        </div>
+        <div class="row">
+          <div><label for="inWeights">Your weights (lb, separated by commas)</label><input type="text" id="inWeights" value="12, 3, 20, 50, 45" inputmode="numeric" aria-describedby="mHint"></div>
+          <div><label for="inFragile">Fragile? (yes or no per package, in order)</label><input type="text" id="inFragile" value="no, yes, no, no, yes"></div>
+        </div>
+        <div class="seg"><button type="button" class="btn" id="btnUse">Use these weights</button><span class="hint" id="mHint" style="align-self:center">Whole numbers above 0. Leave the box empty for an empty manifest (the -1 comes first).</span></div>
+      </div>
+    </section>
+    <section>
+      <h2>Loop version</h2>
+      <div class="seg" role="group" aria-label="Loop version">
+        <button type="button" class="btn" data-v="while" aria-pressed="true">While version</button>
+        <button type="button" class="btn" data-v="for" aria-pressed="false">For version</button>
+        <button type="button" class="btn" data-v="index" aria-pressed="false">Index version</button>
+      </div>
+      <p class="hint" id="verHint" style="margin-top:8px">The while loop reads weights until the sentinel -1 and builds the list as it goes.</p>
+    </section>
+    <section>
+      <h2>The program: <span class="mono" id="progName">manifest.py</span></h2>
+      <pre class="code" id="code"></pre>
+    </section>
+    <section>
+      <h2>Live state</h2>
+      <div class="regs">
+        <div class="reg kv" id="r-weight"><span class="rn">weight</span><span class="rv" id="v-weight">-</span><span class="rf">the value just read</span><span class="rs" id="s-weight"></span></div>
+        <div class="reg kv" id="r-total"><span class="rn">total</span><span class="rv" id="v-total">0</span><span class="rf">accumulator: adds every weight</span><span class="rs" id="s-total"></span></div>
+        <div class="reg kv" id="r-count"><span class="rn" id="n-count">count</span><span class="rv" id="v-count">0</span><span class="rf" id="f-count">counter: adds 1 per package</span><span class="rs" id="s-count"></span></div>
+        <div class="reg kv" id="r-heaviest"><span class="rn">heaviest</span><span class="rv" id="v-heaviest">0</span><span class="rf">maximum so far</span><span class="rs" id="s-heaviest"></span></div>
+        <div class="reg wide" id="r-list"><div class="n"><span>weights (the list)</span><b id="v-len">len 0</b></div><div class="tape" id="rack"><em>empty</em></div></div>
+        <div class="reg wide" id="r-gauge"><div class="n"><span>VAN-1 gauge</span><b id="v-gauge">0 of 1,200 lb</b></div><div class="gauge" id="gauge"><i></i><b title="1,200 lb capacity"></b></div><div class="rf" id="gaugeNote">The gold line is the 1,200 lb capacity.</div></div>
+      </div>
+    </section>
+    <section class="span-all">
+      <h2>Trace table <small>(the dispatcher's clipboard: one row per pass)</small></h2>
+      <div class="scroll-x"><table class="data trace" id="trace"></table></div>
+      <p class="hint" style="margin-top:8px" id="traceHint">Row 0 is the state before the loop. Each pass adds one row when its body finishes. The exit row shows the test that ended the loop.</p>
+    </section>
+    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any part of the scene to learn what it does.</div>
+    <section class="span-all">
+      <h2>Check Copilot's explanation</h2>
+      <p class="hint" style="margin-bottom:10px">A student asked Microsoft Copilot to explain the while version line by line. Six of its sentences are below. Run the VAN-1 manifest and the overload manifest first, then mark each sentence True or False using the trace tables, and press Check sentences. A sentence that sounds right is not proof; a row is.</p>
+      <div class="sent" id="sent"></div>
+      <div class="stepper"><button type="button" class="btn primary" id="btnCheck">Check sentences</button><button type="button" class="btn" id="btnClearSent">Clear marks</button><span class="score" style="margin-left:auto"><span class="big" id="sentScore">-</span><span>of 6</span></span></div>
+      <div id="sentFb"></div>
+    </section>
+    <section class="span-all">
+      <h2>Try it: edit and run the Python</h2>
+      <p class="hint" style="margin-bottom:10px">This is the while version with a small helper for the tests (functions come in week 4; you only need to edit the loop). Change the inputs on the right (one weight per line, -1 last), or change the code, and press Run. Try an empty manifest (-1 alone), one package, and weights that add to exactly 1,200.</p>
+      <div id="sandbox"></div>
+    </section>
+    <section>
+      <h2>Things to notice</h2>
+      <ul class="notice">
+        <li>The sentinel -1 is read like any other value, but the condition on line 6 is False for it, so it is never appended, added, or counted. The exit row proves it: same total and count as the last pass.</li>
+        <li>heaviest only changes when the test on line 10 is True. For the VAN-1 manifest that happens on passes 1, 3, and 4, so line 11 runs 3 times in 5 passes.</li>
+        <li>The for version has no sentinel and no read inside the loop: the list is full before the loop starts, and the loop stops when the items run out.</li>
+        <li>The index version walks i from 0 to len(weights) - 1. weights[i] and fragile[i] describe the same package, which is how two lists travel together.</li>
+        <li>Exactly 1,200 lb is not above 1,200, so the warning does not print. One more pound and it does.</li>
+      </ul>
+    </section>
+    <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+  </aside>
+</div>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+const hasTHREE = typeof window.THREE !== 'undefined';
+if (hasGSAP && window.MotionPathPlugin) gsap.registerPlugin(MotionPathPlugin);
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const fmt = n => n.toLocaleString('en-US');
+// PYSANDBOX START
+// CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
+// Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
+//   const sb = PySandbox(hostEl, {title, code, inputs, tests: [{expr, expect}], timeout: 15000, onRun(result), onTests(passed, total)});
+//   sb.run(); sb.setCode(s); sb.getCode(); sb.setInputs(s); sb.reset(); sb.output()
+// result: {ok, out, err, tests: [{expr, expect, got, pass}]}. Without the CDN the box shows a plain fallback message.
+function PySandbox(host, opts) {
+  'use strict';
+  const O = Object.assign({title: 'Try it: edit and run the Python', code: 'print("hello")', inputs: '', tests: [], timeout: 15000,
+    pyodideUrl: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', runLabel: 'Run', resetLabel: 'Reset code'}, opts || {});
+  if (!document.getElementById('pysandbox-css')) {
+    const st = document.createElement('style'); st.id = 'pysandbox-css';
+    st.textContent = '.pysb{border:1px solid var(--line,#2a3270);border-radius:8px;background:rgba(11,15,43,.6);overflow:hidden;font-family:Figtree,system-ui,sans-serif}' +
+      '.pysb-head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line,#2a3270);font-size:13px}' +
+      '.pysb-head b{font-family:Archivo,sans-serif;font-weight:700}.pysb-status{margin-left:auto;font:500 11px "Red Hat Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-grid{display:grid;grid-template-columns:1fr 200px;gap:0}@media(max-width:700px){.pysb-grid{grid-template-columns:1fr}}' +
+      '.pysb textarea{width:100%;box-sizing:border-box;border:0;background:#0b0f2b;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;padding:10px 12px;resize:vertical;min-height:160px;outline:none;tab-size:4}' +
+      '.pysb textarea:focus{box-shadow:inset 0 0 0 2px var(--cbt-gold,#E0B840)}' +
+      '.pysb-in{border-left:1px solid var(--line,#2a3270)}@media(max-width:700px){.pysb-in{border-left:0;border-top:1px solid var(--line,#2a3270)}}' +
+      '.pysb-in label,.pysb-out label{display:block;padding:6px 12px 0;font:500 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-in textarea{min-height:60px}' +
+      '.pysb-bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line,#2a3270);flex-wrap:wrap}' +
+      '.pysb-bar button{font:600 13px Figtree,sans-serif;padding:7px 14px;border-radius:6px;border:1px solid var(--line,#2a3270);background:#1b2140;color:#eef1fa;cursor:pointer}' +
+      '.pysb-bar button.primary{background:var(--cbt-gold,#E0B840);color:#1a1205;border-color:transparent}.pysb-bar button:disabled{opacity:.5;cursor:default}' +
+      '.pysb-bar .hint{font-size:12px;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-prog{height:3px;background:transparent;position:relative;overflow:hidden}.pysb-prog i{position:absolute;left:-40%;top:0;bottom:0;width:40%;background:var(--cbt-sky,#38B0E0);animation:pysbp 1.2s linear infinite}@keyframes pysbp{to{left:100%}}' +
+      '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
+      '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
+      '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}';
+    document.head.appendChild(st);
+  }
+  host.classList.add('pysb');
+  host.innerHTML = '<div class="pysb-head"><b></b><span class="pysb-status">Python not loaded yet</span></div><div class="pysb-prog"></div>' +
+    '<div class="pysb-grid"><div><textarea class="pysb-code" spellcheck="false" aria-label="Python code"></textarea></div>' +
+    '<div class="pysb-in"><label>Inputs (one per input() call)</label><textarea class="pysb-inputs" spellcheck="false" aria-label="Inputs, one per line"></textarea></div></div>' +
+    '<div class="pysb-bar"><button type="button" class="primary pysb-run"></button><button type="button" class="pysb-reset"></button><span class="hint">Ctrl+Enter runs. The first run downloads Python (about 10 MB) once.</span></div>' +
+    '<div class="pysb-out"><label>Output</label><pre class="pysb-pre">Nothing run yet.</pre><ul class="pysb-tests" hidden></ul></div>';
+  const q = s => host.querySelector(s);
+  q('.pysb-head b').textContent = O.title; q('.pysb-run').textContent = O.runLabel; q('.pysb-reset').textContent = O.resetLabel;
+  const code = q('.pysb-code'), inputs = q('.pysb-inputs'), pre = q('.pysb-pre'), status = q('.pysb-status'), prog = q('.pysb-prog'), tests = q('.pysb-tests'), btnRun = q('.pysb-run');
+  code.value = O.code; inputs.value = O.inputs;
+  let worker = null, ready = false, loading = false, timer = null, last = null, failed = false;
+  const WORKER_SRC = [
+    'var py = null, url = "' + O.pyodideUrl + '";',
+    'self.onmessage = async function (e) {',
+    '  var m = e.data;',
+    '  try {',
+    '    if (!py) { importScripts(url + "pyodide.js"); py = await loadPyodide({indexURL: url}); postMessage({type: "ready", version: py.version}); }',
+    '    if (m.type !== "run") return;',
+    '    var lines = m.inputs.split(/\\r?\\n/); var out = [];',
+    '    py.setStdout({batched: function (s) { out.push(s); }}); py.setStderr({batched: function (s) { out.push(s); }});',
+    '    py.setStdin({stdin: function () { var l = lines.length ? lines.shift() : ""; return l + "\\n"; }, isatty: false});',
+    '    var ns = py.globals.get("dict")(); var result = {type: "done", ok: true, out: "", err: "", tests: []};',
+    '    try { await py.runPythonAsync(m.code, {globals: ns}); }',
+    '    catch (err) { result.ok = false; result.err = String(err.message || err); }',
+    '    result.out = out.join("\\n");',
+    '    for (var i = 0; i < m.tests.length; i++) { var t = m.tests[i], got;',
+    '      try { got = py.runPython("repr(" + t.expr + ")", {globals: ns}); } catch (e2) { got = "error: " + String(e2.message || e2).trim().split("\\n").pop(); }',
+    '      result.tests.push({expr: t.expr, expect: t.expect, got: got, pass: got === t.expect}); }',
+    '    ns.destroy(); postMessage(result);',
+    '  } catch (err) { postMessage({type: "fatal", err: String(err.message || err)}); }',
+    '};'].join('\n');
+  function spawn() {
+    const blob = new Blob([WORKER_SRC], {type: 'application/javascript'});
+    worker = new Worker(URL.createObjectURL(blob)); ready = false;
+    worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') { ready = true; loading = false; prog.innerHTML = ''; status.textContent = 'Python ' + m.version + ' ready'; return; }
+      if (m.type === 'fatal') { fail(m.err); return; }
+      if (m.type === 'done') { clearTimeout(timer); btnRun.disabled = false; show(m); }
+    };
+    worker.onerror = e => { fail(e.message || 'worker error'); };
+  }
+  function fail(msg) {
+    clearTimeout(timer); loading = false; ready = false; failed = true; btnRun.disabled = false; prog.innerHTML = '';
+    status.textContent = 'Python could not load';
+    pre.className = 'pysb-pre err'; pre.textContent = 'Python could not load here (the network may block cdn.jsdelivr.net). Copy the code into IDLE on the lab PC and run it there.' + (msg ? '\nDetails: ' + msg : '');
+    if (worker) { worker.terminate(); worker = null; }
+  }
+  function trimTrace(err) {
+    // keep from the first line that mentions the student's code; Pyodide adds its own frames above it
+    const i = err.indexOf('File "<exec>"'); if (i < 0) return err.trim();
+    const head = err.slice(0, i).split('\n').filter(l => /^Traceback/.test(l)).join('\n');
+    return (head ? head + '\n  ' : '') + err.slice(i).trim();
+  }
+  function show(m) {
+    last = m; const err = m.err ? trimTrace(m.err) : '';
+    pre.className = 'pysb-pre' + (m.ok ? '' : ' err');
+    pre.textContent = (m.out ? m.out + (m.out.endsWith('\n') ? '' : '\n') : '') + (err ? err : '') || '(no output)';
+    if (O.tests && O.tests.length) {
+      tests.hidden = false; tests.innerHTML = m.tests.map(t => '<li class="' + (t.pass ? 'pass' : 'fail') + '"><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">got ' + esc(t.got) + '</span></li>').join('');
+      const passed = m.tests.filter(t => t.pass).length; status.textContent = passed + ' of ' + m.tests.length + ' tests pass';
+      if (O.onTests) O.onTests(passed, m.tests.length, m);
+    } else status.textContent = m.ok ? 'Ran without errors' : 'Stopped with an error';
+    if (O.onRun) O.onRun(m);
+  }
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  function run() {
+    if (failed) { failed = false; }
+    if (!worker) spawn();
+    btnRun.disabled = true; tests.hidden = true; pre.className = 'pysb-pre'; pre.textContent = ready ? 'Running...' : 'Loading Python (about 10 MB, once)...';
+    if (!ready) { loading = true; status.textContent = 'Loading Python...'; prog.innerHTML = '<i></i>'; }
+    worker.postMessage({type: 'run', code: code.value, inputs: inputs.value, tests: O.tests || []});
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ready && loading) return; // still downloading; the fatal handler covers real failures
+      worker.terminate(); worker = null; ready = false; btnRun.disabled = false;
+      pre.className = 'pysb-pre err'; pre.textContent = 'Stopped after ' + Math.round(O.timeout / 1000) + ' seconds: the program never finished. Look for a loop whose condition never becomes False.';
+      status.textContent = 'Stopped (infinite loop?)'; if (O.onRun) O.onRun({ok: false, out: '', err: 'timeout', tests: []});
+    }, O.timeout + (ready ? 0 : 60000));
+  }
+  btnRun.addEventListener('click', run);
+  q('.pysb-reset').addEventListener('click', () => { code.value = O.code; inputs.value = O.inputs; pre.className = 'pysb-pre'; pre.textContent = 'Code reset. Press Run.'; tests.hidden = true; });
+  code.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if (e.key === 'Tab') { e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '    ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 4; } });
+  const api = {run: run, setCode: s => { code.value = s; }, getCode: () => code.value, setInputs: s => { inputs.value = s; }, setTests: t => { O.tests = t; },
+    reset: () => q('.pysb-reset').click(), output: () => pre.textContent, last: () => last, isReady: () => ready, el: host};
+  window.__pysandboxes = window.__pysandboxes || []; window.__pysandboxes.push(api);
+  return api;
+}
+// PYSANDBOX END
+
+// ---- the manifests and the three programs ----
+const CAP = 1200;
+const MANIFESTS = {
+  van1: {name: 'VAN-1 manifest', weights: [12, 3, 20, 50, 45], fragile: ['no', 'yes', 'no', 'no', 'yes']},
+  over: {name: 'Overload manifest', weights: [400, 350, 300, 200], fragile: ['no', 'no', 'yes', 'no']}
+};
+const PROGRAMS = {
+  while: {file: 'manifest.py', hint: 'The while loop reads weights until the sentinel -1 and builds the list as it goes.', lines: [
+    'weights = []',
+    'total = 0',
+    'count = 0',
+    'heaviest = 0',
+    'weight = int(input("Weight in lb (-1 to stop): "))',
+    'while weight != -1:',
+    '    weights.append(weight)',
+    '    total = total + weight',
+    '    count = count + 1',
+    '    if weight > heaviest:',
+    '        heaviest = weight',
+    '    weight = int(input("Weight in lb (-1 to stop): "))',
+    'print(f"{count} packages, {total} lb, heaviest {heaviest} lb")',
+    'if total > 1200:',
+    '    print("WARNING: over capacity")']},
+  for: {file: 'manifest_for.py', hint: 'The for loop walks a list that is already full. No sentinel, no read inside the loop.', lines: [
+    'weights = [12, 3, 20, 50, 45]',
+    'total = 0',
+    'count = 0',
+    'heaviest = 0',
+    'for weight in weights:',
+    '    total = total + weight',
+    '    count = count + 1',
+    '    if weight > heaviest:',
+    '        heaviest = weight',
+    'print(f"{count} packages, {total} lb, heaviest {heaviest} lb")',
+    'if total > 1200:',
+    '    print("WARNING: over capacity")']},
+  index: {file: 'manifest_index.py', hint: 'The index version counts i from 0 to len(weights) - 1 so two lists, weights and fragile, can be read together.', lines: [
+    'weights = [12, 3, 20, 50, 45]',
+    'fragile = ["no", "yes", "no", "no", "yes"]',
+    'total = 0',
+    'fragile_count = 0',
+    'heaviest = 0',
+    'for i in range(len(weights)):',
+    '    total = total + weights[i]',
+    '    if fragile[i] == "yes":',
+    '        fragile_count = fragile_count + 1',
+    '    if weights[i] > heaviest:',
+    '        heaviest = weights[i]',
+    'print(f"{len(weights)} packages, {total} lb, {fragile_count} fragile, heaviest {heaviest} lb")',
+    'if total > 1200:',
+    '    print("WARNING: over capacity")']}
+};
+const pyList = a => '[' + a.join(', ') + ']';
+const pyStrList = a => '[' + a.map(x => '"' + x + '"').join(', ') + ']';
+let CFG = {version: 'while', name: MANIFESTS.van1.name, weights: MANIFESTS.van1.weights.slice(), fragile: MANIFESTS.van1.fragile.slice()};
+function programLines() {
+  const L = PROGRAMS[CFG.version].lines.slice();
+  if (CFG.version !== 'while') L[0] = 'weights = ' + pyList(CFG.weights);
+  if (CFG.version === 'index') L[1] = 'fragile = ' + pyStrList(CFG.fragile);
+  return L;
+}
+function renderCode(active) {
+  const act = Array.isArray(active) ? active : [active];
+  const L = programLines();
+  $('#code').innerHTML = L.map((l, i) => '<span class="ln' + (act.includes(i + 1) ? ' on' : '') + '"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' +
+    (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
+}
+
+// ---- the scene: the dock, the packages, VAN-1 with open doors, the gauge, the clipboard ----
+const pkgSize = w => 0.4 + 0.6 * Math.sqrt(Math.min(Math.max(w, 1), 400) / 400);
+function Scene(stage) {
+  const api = {onPick: null, update(S, animating) {}, play(name, tl, S, arg) {}, rebuild(cfg) {}, intro() {}};
+  if (hasTHREE && window.WebGLRenderingContext) {
+    try {
+      const r = new THREE.WebGLRenderer({antialias: true, alpha: true}); r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      r.setSize(stage.clientWidth, stage.clientHeight); stage.appendChild(r.domElement);
+      const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0b0f2b, 22, 48);
+      const cam = new THREE.PerspectiveCamera(42, stage.clientWidth / stage.clientHeight, 0.1, 120);
+      const HOME = {pos: new THREE.Vector3(-0.5, 6.8, 13.5), tgt: new THREE.Vector3(1.0, 1.2, 0)};
+      cam.position.copy(HOME.pos); cam.lookAt(HOME.tgt);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x223366, 1.0)); const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(5, 10, 7); scene.add(sun);
+      const mat = (c, o) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: .7, metalness: .1}, o || {}));
+      const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); scene.add(b); return b; };
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(44, 30), mat(0x141a45)); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+      const grid = new THREE.GridHelper(44, 44, 0x2a3470, 0x1b2258); grid.position.y = 0.01; scene.add(grid);
+      const pick = [];
+      const dock = box(5.6, 0.6, 4.6, mat(0x2a3470), -3.8, 0.3, 0.2); dock.userData.key = 'dock'; pick.push(dock);
+      box(0.12, 0.62, 4.6, mat(0xE0B840), -1.02, 0.31, 0.2);
+      // sprites for text (canvas textures)
+      function sprite(text, color, w, h) {
+        const c = document.createElement('canvas'); c.width = 256; c.height = 96; const ctx = c.getContext('2d');
+        const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false})); sp.scale.set(w || 1.7, h || 0.64, 1);
+        sp.userData.set = (t, col) => { ctx.clearRect(0, 0, 256, 96); ctx.fillStyle = 'rgba(11,15,43,.82)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(8, 14, 240, 68, 14) : ctx.rect(8, 14, 240, 68); ctx.fill();
+          ctx.fillStyle = col || color || '#eef1fa'; ctx.font = '600 38px "Red Hat Mono", Consolas, monospace'; if (ctx.measureText(t).width > 226) ctx.font = '600 ' + Math.floor(38 * 226 / ctx.measureText(t).width) + 'px "Red Hat Mono", Consolas, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, 128, 50); tex.needsUpdate = true; };
+        sp.userData.set(text); scene.add(sp); return sp;
+      }
+      // the van: cargo floor, glass sides and roof, front wall, cab, wheels, two doors on the back edge
+      const van = new THREE.Group(); scene.add(van);
+      const vb = (w, h, d, m, x, y, z, key) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); van.add(b); if (key) { b.userData.key = key; pick.push(b); } return b; };
+      const glass = mat(0x38B0E0, {transparent: true, opacity: .2, side: THREE.DoubleSide});
+      vb(5, 0.14, 2.5, mat(0x1B2150), 4, 0.77, 0, 'van');
+      vb(5, 2.2, 0.05, glass, 4, 1.95, 1.25, 'van'); vb(5, 2.2, 0.05, glass, 4, 1.95, -1.25, 'van'); vb(5, 0.05, 2.5, glass, 4, 3.05, 0, 'van');
+      vb(0.1, 2.3, 2.5, mat(0x283068), 6.5, 1.95, 0, 'van');
+      vb(1.7, 1.7, 2.4, mat(0x283068), 7.4, 1.55, 0, 'cab'); vb(0.1, 0.75, 2.0, mat(0x9FE7FF, {emissive: 0x1a4a60}), 8.25, 1.95, 0, 'cab');
+      const wheelG = new THREE.CylinderGeometry(0.44, 0.44, 0.32, 24); [[2.4, 1.3], [2.4, -1.3], [6.9, 1.3], [6.9, -1.3]].forEach(p => { const w = new THREE.Mesh(wheelG, mat(0x0d1026)); w.rotation.x = Math.PI / 2; w.position.set(p[0], 0.44, p[1]); van.add(w); });
+      const vanTag = sprite('VAN-1 · 1,200 lb', '#E0B840', 2.6, 0.7); vanTag.position.set(4, 3.75, 0);
+      const doors = [1, -1].map(side => { const g = new THREE.Group(); g.position.set(1.5, 1.95, side * 1.25); const d = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.2, 1.25), mat(0x283068)); d.position.set(0, 0, -side * 0.625); d.userData.key = 'doors'; pick.push(d); g.add(d); van.add(g); g.userData.open = side * 1.95; g.rotation.y = g.userData.open; return g; });
+      // the gauge on the near wall, with the 1,200 lb line
+      vb(0.16, 1.95, 0.56, mat(0x0b0f2b), 4.0, 1.95, 1.32, 'gauge');
+      const fillG = new THREE.BoxGeometry(0.18, 1, 0.4); fillG.translate(0, 0.5, 0);
+      const fill = new THREE.Mesh(fillG, mat(0x6FD49B, {emissive: 0x1f5a3a})); fill.position.set(4.0, 1.02, 1.34); fill.scale.y = 0.001; fill.userData.key = 'gauge'; pick.push(fill); van.add(fill);
+      const capLine = vb(0.24, 0.035, 0.6, mat(0xE0B840, {emissive: 0x6a5410}), 4.0, 1.02 + 1.85 * (CAP / 1500), 1.34, 'gauge');
+      const gaugeTag = sprite('0 lb', '#6FD49B', 1.5, 0.56); gaugeTag.position.set(4.0, 3.45, 1.5);
+      // the clipboard at the dock front
+      const clip = new THREE.Group(); clip.position.set(-5.4, 1.35, 2.25); clip.rotation.set(-0.25, 0.55, 0); scene.add(clip);
+      const cb = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.3, 0.06), mat(0xE0B840)); cb.userData.key = 'clip'; pick.push(cb); clip.add(cb);
+      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.86, 1.1, 0.03), mat(0xf4f5fa)); paper.position.set(0, -0.05, 0.04); paper.userData.key = 'clip'; pick.push(paper); clip.add(paper);
+      const clipTag = sprite('trace: 0 rows', '#eef1fa', 1.7, 0.56); clipTag.position.set(-5.4, 2.45, 2.25);
+      let pk = [];
+      const dockPos = k => ({x: -5.7 + (k % 6) * 0.9, z: 1.35 - Math.floor(k / 6) * 1.1});
+      const vanPos = k => ({x: 2.2 + (k % 5) * 0.86, z: -0.62 + (Math.floor(k / 5) % 2) * 1.0, lift: Math.floor(k / 10)});
+      function place(p, k, inVan) { const s = p.userData.s; const a = inVan ? vanPos(k) : dockPos(k); const y = inVan ? 0.84 + s / 2 + a.lift * s : 0.6 + s / 2; p.position.set(a.x, y, a.z); p.rotation.set(0, 0, 0); }
+      api.rebuild = cfg => {
+        pk.forEach(p => { scene.remove(p); const i = pick.indexOf(p); if (i >= 0) pick.splice(i, 1); }); pk = [];
+        cfg.weights.forEach((w, k) => { const s = pkgSize(w); const m = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), mat(0xC8A165, {emissive: 0x000000})); m.userData = {key: 'pkg', k: k, s: s, w: w};
+          const edge = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({color: 0x5a4320})); m.add(edge);
+          const tape = new THREE.Mesh(new THREE.BoxGeometry(s * 1.02, s * 0.18, s * 1.02), mat(0xb08a4a)); m.add(tape);
+          const tag = sprite(w + ' lb', '#eef1fa', 1.1, 0.42); scene.remove(tag); tag.position.set(0, s / 2 + 0.32, 0); m.add(tag); m.userData.tag = tag;
+          place(m, k, false); scene.add(m); pk.push(m); pick.push(m); });
+      };
+      function gaugeTo(total, instant) {
+        const frac = Math.max(0.001, Math.min(1, total / 1500)); const col = total > CAP ? 0xF0786A : total > CAP - 100 ? 0xE0B840 : 0x6FD49B;
+        fill.material.color.set(col); fill.material.emissive.set(total > CAP ? 0x6a2a22 : total > CAP - 100 ? 0x6a5410 : 0x1f5a3a);
+        gaugeTag.userData.set(fmt(total) + ' lb', total > CAP ? '#F0786A' : total > CAP - 100 ? '#E0B840' : '#6FD49B');
+        if (instant || !hasGSAP) { fill.scale.y = frac; return null; } return gsap.to(fill.scale, {y: frac, duration: .5, ease: 'power2.out'});
+      }
+      api.update = (S, animating) => {
+        if (animating) return;
+        pk.forEach((p, k) => { place(p, k, k < S.loaded); p.material.emissive.set(0x000000); p.material.color.set(0xC8A165); });
+        if (S.reading !== null && S.reading < pk.length && S.reading >= S.loaded) pk[S.reading].material.emissive.set(0x1d6f90);
+        gaugeTo(S.total, true);
+        doors.forEach(g => { g.rotation.y = S.doors === 'open' ? g.userData.open : 0; });
+        clipTag.userData.set('trace: ' + Math.max(0, S.rows.length - 1) + (S.rows.length === 2 ? ' row' : ' rows'));
+        van.position.y = 0;
+      };
+      api.play = (name, tl, S, k) => {
+        if (name === 'read' && pk[k]) { tl.to(pk[k].material.emissive, {r: 0.11, g: 0.43, b: 0.56, duration: .35, yoyo: true, repeat: 1}); tl.to(pk[k].position, {y: '+=0.25', duration: .3, yoyo: true, repeat: 1}, '<'); }
+        else if (name === 'read') tl.to(clip.rotation, {z: 0.15, duration: .3, yoyo: true, repeat: 1});
+        else if (name === 'check' && pk[k]) tl.to(pk[k].material.emissive, {r: 0.55, g: 0.45, b: 0.16, duration: .3, yoyo: true, repeat: 1});
+        else if (name === 'load' && pk[k]) {
+          const p = pk[k], a = vanPos(k), s = p.userData.s, y1 = 0.84 + s / 2 + a.lift * s;
+          const from = {x: p.position.x, y: p.position.y, z: p.position.z};
+          tl.to(p.material.emissive, {r: 0.11, g: 0.43, b: 0.56, duration: .2});
+          tl.to(p.position, {motionPath: {path: [from, {x: (from.x + a.x) / 2 - 0.5, y: 3.9, z: (from.z + a.z) / 2 + 0.6}, {x: a.x, y: y1, z: a.z}], curviness: 1.4}, duration: 1.1, ease: 'power1.inOut'}, '<');
+          tl.to(p.rotation, {y: Math.PI * 2, duration: 1.1, ease: 'power1.inOut'}, '<');
+          tl.to(p.material.emissive, {r: 0, g: 0, b: 0, duration: .25});
+          tl.set(p.rotation, {y: 0});
+        }
+        else if (name === 'gauge') { const t = gaugeTo(S.total + k, false); if (t) tl.add(t); }
+        else if (name === 'close') tl.to(doors.map(g => g.rotation), {y: 0, duration: .9, ease: 'power2.inOut'});
+        else if (name === 'warn') { tl.to(fill.scale, {x: 1.6, z: 1.5, duration: .18, yoyo: true, repeat: 3}); tl.to(van.position, {y: 0.08, duration: .12, yoyo: true, repeat: 5}, '<'); }
+        else if (name === 'ok') tl.to(van.position, {y: 0.12, duration: .25, yoyo: true, repeat: 1, ease: 'power1.inOut'});
+        else if (name === 'row') tl.to(clip.rotation, {y: 0.75, duration: .25, yoyo: true, repeat: 1});
+        else tl.to({}, {duration: .35});
+      };
+      // camera: orbit, zoom buttons, pan pad, keys, and the intro
+      const ctl = window.THREE.OrbitControls ? new THREE.OrbitControls(cam, r.domElement) : null;
+      if (ctl) { ctl.enableDamping = true; ctl.target.copy(HOME.tgt); ctl.minDistance = 4; ctl.maxDistance = 40; ctl.maxPolarAngle = 1.5; ctl.enablePan = true; }
+      const tgt = () => ctl ? ctl.target : HOME.tgt;
+      function zoom(f) { const t = tgt(); const v = cam.position.clone().sub(t).multiplyScalar(f); const d = v.length(); if (d < 4 || d > 40) return; cam.position.copy(t).add(v); }
+      function pan(dx, dy) { const right = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0); cam.getWorldDirection(right); right.cross(up).normalize(); const mv = right.multiplyScalar(dx * 1.2).add(up.multiplyScalar(dy * 1.2)); cam.position.add(mv); tgt().add(mv); }
+      function fit() { if (hasGSAP && !REDUCED) { gsap.to(cam.position, {x: HOME.pos.x, y: HOME.pos.y, z: HOME.pos.z, duration: .7, ease: 'power2.inOut'}); gsap.to(tgt(), {x: HOME.tgt.x, y: HOME.tgt.y, z: HOME.tgt.z, duration: .7, ease: 'power2.inOut'}); } else { cam.position.copy(HOME.pos); tgt().copy(HOME.tgt); } }
+      const zc = document.createElement('div'); zc.className = 'zoomctl'; zc.setAttribute('role', 'group'); zc.setAttribute('aria-label', 'Zoom and move the view');
+      zc.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in" title="Zoom in (+)">+</button><button type="button" data-z="out" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>' +
+        '<div class="pad" role="group" aria-label="Move the view"><button type="button" class="u" data-p="u" aria-label="Move the view up">&#9650;</button><button type="button" class="l" data-p="l" aria-label="Move the view left">&#9664;</button><button type="button" class="c" data-z="fit" aria-label="Center the scene">&#9679;</button><button type="button" class="r" data-p="r" aria-label="Move the view right">&#9654;</button><button type="button" class="d" data-p="d" aria-label="Move the view down">&#9660;</button></div>' +
+        '<button type="button" class="fit" data-z="fit" aria-label="Show the whole scene" title="Show the whole scene (0)">FIT</button>';
+      stage.appendChild(zc); ['pointerdown', 'pointerup', 'wheel'].forEach(ev => zc.addEventListener(ev, e => e.stopPropagation()));
+      zc.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const pd = {l: [-1, 0], r: [1, 0], u: [0, 1], d: [0, -1]}[b.dataset.p]; if (pd) pan(pd[0], pd[1]); else if (b.dataset.z === 'in') zoom(0.78); else if (b.dataset.z === 'out') zoom(1.28); else fit(); });
+      let hover = false; stage.addEventListener('pointerenter', () => { hover = true; }); stage.addEventListener('pointerleave', () => { hover = false; });
+      document.addEventListener('keydown', e => { if (!hover) return; const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'TEXTAREA') return;
+        const k = e.key; if (k === '+' || k === '=') zoom(0.78); else if (k === '-') zoom(1.28); else if (k === '0') fit(); else if (k === 'ArrowLeft') pan(-1, 0); else if (k === 'ArrowRight') pan(1, 0); else if (k === 'ArrowUp') pan(0, 1); else if (k === 'ArrowDown') pan(0, -1); else return; e.preventDefault(); });
+      // click to explain (a short press, not a drag)
+      const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
+      r.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+      r.domElement.addEventListener('pointerup', e => { if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) { down = null; return; } down = null;
+        const b = r.domElement.getBoundingClientRect(); ptr.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); ray.setFromCamera(ptr, cam);
+        const hit = ray.intersectObjects(pick, false)[0]; if (hit && api.onPick) api.onPick(hit.object.userData.key, hit.object.userData); });
+      api.intro = () => { if (!hasGSAP || REDUCED) return; cam.position.set(-9, 13, 24); gsap.to(cam.position, {x: HOME.pos.x, y: HOME.pos.y, z: HOME.pos.z, duration: 1.6, ease: 'power2.out'}); };
+      const tick = () => { if (ctl) ctl.update(); else cam.lookAt(HOME.tgt); r.render(scene, cam); requestAnimationFrame(tick); }; tick();
+      const resize = () => { r.setSize(stage.clientWidth, stage.clientHeight); cam.aspect = stage.clientWidth / stage.clientHeight; cam.updateProjectionMatrix(); };
+      if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+      return api;
+    } catch (e) { console.warn('3D scene unavailable, using the flat view', e); }
+  }
+  // ---- flat SVG version of the same scene ----
+  const note = document.createElement('div'); note.className = 'nogl'; note.textContent = 'Flat view: 3D is not available on this device. Every step still works.'; stage.appendChild(note);
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 800 450'); svg.setAttribute('class', 'flat'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet'); stage.appendChild(svg);
+  const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const a in attrs) n.setAttribute(a, attrs[a]); (parent || svg).appendChild(n); return n; };
+  const txt = (x, y, s, attrs, parent) => { const t = el('text', Object.assign({x: x, y: y, 'font-family': 'Red Hat Mono, Consolas, monospace', 'font-size': 13, fill: '#eef1fa', 'text-anchor': 'middle'}, attrs || {}), parent); t.textContent = s; return t; };
+  el('rect', {x: 0, y: 0, width: 800, height: 450, fill: '#141a45'});
+  el('line', {x1: 0, y1: 345, x2: 800, y2: 345, stroke: '#2a3470', 'stroke-width': 2});
+  const dockG = el('g', {'data-key': 'dock'}); el('rect', {x: 20, y: 300, width: 280, height: 45, rx: 4, fill: '#2a3470'}, dockG); el('rect', {x: 296, y: 298, width: 6, height: 47, fill: '#E0B840'}, dockG); txt(160, 332, 'DOCK', {fill: '#aeb3c9', 'font-size': 11, 'letter-spacing': 3}, dockG);
+  const vanG = el('g', {'data-key': 'van'});
+  el('rect', {x: 440, y: 160, width: 260, height: 160, rx: 6, fill: '#283068', 'fill-opacity': .45, stroke: '#38B0E0', 'stroke-width': 2}, vanG);
+  el('rect', {x: 700, y: 205, width: 80, height: 115, rx: 8, fill: '#283068', stroke: '#3a4690', 'data-key': 'cab'}, vanG); el('rect', {x: 740, y: 215, width: 36, height: 38, rx: 4, fill: '#9FE7FF', 'data-key': 'cab'}, vanG);
+  el('circle', {cx: 490, cy: 330, r: 22, fill: '#0d1026', stroke: '#3a4690'}, vanG); el('circle', {cx: 730, cy: 330, r: 22, fill: '#0d1026', stroke: '#3a4690'}, vanG);
+  txt(570, 150, 'VAN-1 · 1,200 lb', {fill: '#E0B840', 'font-size': 14, 'font-weight': 600}, vanG);
+  const door1 = el('g', {'data-key': 'doors'}); const door2 = el('g', {'data-key': 'doors'});
+  el('rect', {x: 436, y: 160, width: 8, height: 80, fill: '#283068', stroke: '#38B0E0'}, door1); el('rect', {x: 436, y: 240, width: 8, height: 80, fill: '#283068', stroke: '#38B0E0'}, door2);
+  const openDoors = o => { door1.setAttribute('transform', o ? 'rotate(-110 440 160)' : ''); door2.setAttribute('transform', o ? 'rotate(110 440 320)' : ''); };
+  openDoors(true);
+  el('rect', {x: 648, y: 170, width: 24, height: 140, rx: 3, fill: '#0b0f2b', stroke: '#3a4690', 'data-key': 'gauge'});
+  const fill = el('rect', {x: 651, y: 307, width: 18, height: 0, fill: '#6FD49B', 'data-key': 'gauge'});
+  el('rect', {x: 644, y: 310 - 136 * (CAP / 1500), width: 32, height: 3, fill: '#E0B840', 'data-key': 'gauge'});
+  const gaugeT = txt(660, 165 - 4, '0 lb', {fill: '#6FD49B', 'font-weight': 600}); txt(660, 325, 'gauge', {fill: '#aeb3c9', 'font-size': 10});
+  const clipG = el('g', {'data-key': 'clip', transform: 'translate(40 190)'}); el('rect', {x: 0, y: 0, width: 70, height: 96, rx: 4, fill: '#E0B840'}, clipG); el('rect', {x: 6, y: 10, width: 58, height: 80, fill: '#f4f5fa'}, clipG); el('rect', {x: 24, y: -4, width: 22, height: 10, rx: 3, fill: '#283068'}, clipG);
+  const clipT = txt(75, 182, 'trace: 0 rows', {'font-size': 11});
+  for (let i = 0; i < 6; i++) el('line', {x1: 12, y1: 24 + i * 11, x2: 58, y2: 24 + i * 11, stroke: '#DADDEA', 'stroke-width': 1.5}, clipG);
+  const pkG = el('g'); let pk = [];
+  const dockPos = k => ({x: 50 + (k % 6) * 42, y: 300 - Math.floor(k / 6) * 48});
+  const vanPos = k => ({x: 470 + (k % 5) * 46, y: 318 - Math.floor(k / 5) * 44});
+  const setXY = (g, p) => { if (hasGSAP) gsap.set(g, {x: p.x, y: p.y}); else g.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ')'); };
+  api.rebuild = cfg => { pkG.innerHTML = ''; pk = cfg.weights.map((w, k) => { const s = Math.round(pkgSize(w) * 40); const g = el('g', {'data-key': 'pkg', 'data-k': k}, pkG);
+    el('rect', {x: -s / 2, y: -s, width: s, height: s, rx: 3, fill: '#C8A165', stroke: '#5a4320'}, g); el('rect', {x: -s / 2, y: -s / 2 - 3, width: s, height: 6, fill: '#b08a4a'}, g); txt(0, -s - 6, w + ' lb', {'font-size': 11}, g); setXY(g, dockPos(k)); return g; }); };
+  const gaugeTo = (total, tl) => { const h = Math.min(1, total / 1500) * 136; const col = total > CAP ? '#F0786A' : total > CAP - 100 ? '#E0B840' : '#6FD49B'; fill.setAttribute('fill', col); gaugeT.setAttribute('fill', col); gaugeT.textContent = fmt(total) + ' lb';
+    if (tl) tl.to(fill, {attr: {y: 307 - h, height: h}, duration: .5}); else { fill.setAttribute('y', 307 - h); fill.setAttribute('height', h); } };
+  api.update = (S, animating) => { if (animating) return; pk.forEach((g, k) => { setXY(g, k < S.loaded ? vanPos(k) : dockPos(k)); g.firstChild.setAttribute('stroke', S.reading === k && k >= S.loaded ? '#38B0E0' : '#5a4320'); g.firstChild.setAttribute('stroke-width', S.reading === k && k >= S.loaded ? 3 : 1); });
+    gaugeTo(S.total); openDoors(S.doors === 'open'); clipT.textContent = 'trace: ' + Math.max(0, S.rows.length - 1) + (S.rows.length === 2 ? ' row' : ' rows'); };
+  api.play = (name, tl, S, k) => {
+    if (name === 'read' && pk[k]) tl.to(pk[k], {y: '-=14', duration: .3, yoyo: true, repeat: 1});
+    else if (name === 'check' && pk[k]) tl.to(pk[k].firstChild, {attr: {stroke: '#E0B840', 'stroke-width': 3}, duration: .3, yoyo: true, repeat: 1});
+    else if (name === 'load' && pk[k]) { const a = vanPos(k), d = dockPos(k); tl.to(pk[k], {motionPath: {path: [{x: d.x, y: d.y}, {x: (d.x + a.x) / 2, y: 90}, {x: a.x, y: a.y}], curviness: 1.3}, duration: 1.1, ease: 'power1.inOut'}); }
+    else if (name === 'gauge') gaugeTo(S.total + k, tl);
+    else if (name === 'close') { tl.to(door1, {attr: {transform: 'rotate(0 440 160)'}, duration: .8}); tl.to(door2, {attr: {transform: 'rotate(0 440 320)'}, duration: .8}, '<'); }
+    else if (name === 'warn') tl.to(vanG, {x: 4, duration: .08, yoyo: true, repeat: 7});
+    else if (name === 'ok') tl.to(vanG, {y: -8, duration: .25, yoyo: true, repeat: 1});
+    else if (name === 'row') tl.to(clipG, {x: 6, duration: .2, yoyo: true, repeat: 1});
+    else tl.to({}, {duration: .35});
+  };
+  svg.addEventListener('click', e => { const t = e.target.closest('[data-key]'); if (t && api.onPick) api.onPick(t.dataset.key, {k: +t.dataset.k, w: CFG.weights[+t.dataset.k]}); });
+  return api;
+}
+
+// ---- the explanation as micro-steps, built from the manifest and the loop version ----
+function fresh() { return {phase: null, step: 0, weight: null, total: 0, count: 0, fragileCount: 0, heaviest: 0, list: [], rows: [], loaded: 0, reading: null, doors: 'open', i: null, printed: '', warn: null, pass: 0}; }
+const COLS = {while: ['Pass', 'weight', 'weight != -1', 'total', 'count', 'heaviest'], for: ['Pass', 'weight', 'total', 'count', 'heaviest'], index: ['Pass', 'i', 'weights[i]', 'fragile[i]', 'total', 'fragile_count', 'heaviest']};
+function buildSteps(cfg) {
+  const W = cfg.weights, F = cfg.fragile, n = W.length, v = cfg.version, steps = [];
+  const wait = (t, d) => t.to({}, {duration: d || .35});
+  const add = o => { steps.push(o); return o; };
+  const row = (s, label, cls) => { const r = v === 'while' ? [label, s.weight, s.weight !== -1 ? 'True' : 'False', s.total, s.count, s.heaviest] : v === 'for' ? [label, s.weight, s.total, s.count, s.heaviest] : [label, s.i, s.weight, F[s.i] || 'no', s.total, s.fragileCount, s.heaviest]; return {cells: r, cls: cls || ''}; };
+  const startRow = () => v === 'while' ? {cells: ['0', '-', '-', 0, 0, 0], cls: ''} : v === 'for' ? {cells: ['0', '-', 0, 0, 0], cls: ''} : {cells: ['0', '-', '-', '-', 0, 0, 0], cls: ''};
+  const report = (printLine, ifLine, warnLine) => {
+    add({phase: 'report', line: printLine, text: s => 'Line ' + printLine + ' prints the report: "' + (v === 'index' ? n + ' packages, ' + s.total + ' lb, ' + s.fragileCount + ' fragile, heaviest ' + s.heaviest + ' lb' : s.count + ' packages, ' + s.total + ' lb, heaviest ' + s.heaviest + ' lb') + '".', anim: (t, s) => G.play('ok', t, s), commit: s => { s.printed = v === 'index' ? n + ' packages, ' + s.total + ' lb, ' + s.fragileCount + ' fragile, heaviest ' + s.heaviest + ' lb' : s.count + ' packages, ' + s.total + ' lb, heaviest ' + s.heaviest + ' lb'; }});
+    add({phase: 'report', line: ifLine, text: s => 'Line ' + ifLine + ' asks: is total > 1200? ' + s.total + ' > 1200 is ' + (s.total > CAP ? 'True. The van is over capacity by ' + fmt(s.total - CAP) + ' lb, so the warning line runs.' : 'False. The van has ' + fmt(CAP - s.total) + ' lb to spare' + (s.total === CAP ? ' (exactly at capacity is not above it)' : '') + ', so the warning line is skipped.'), anim: (t, s) => { if (s.total > CAP) G.play('warn', t, s); else wait(t); }, commit: s => { s.warn = s.total > CAP; }});
+    add({phase: 'report', line: warnLine, text: s => s.warn ? 'Line ' + warnLine + ' prints "WARNING: over capacity". The gauge is coral: the dispatcher must move ' + fmt(s.total - CAP) + ' lb to VAN-2.' : 'Line ' + warnLine + ' does not run: the test on line ' + ifLine + ' was False. The program ends here.', anim: (t, s) => { if (s.warn) G.play('warn', t, s); else wait(t); }, commit: s => { if (s.warn) s.printed += '\nWARNING: over capacity'; }});
+    add({phase: 'report', line: 0, text: s => 'Done: ' + (v === 'while' ? 'the while loop ran ' + s.count + (s.count === 1 ? ' pass' : ' passes') + ' and read ' + (s.count + 1) + ' values (the last one was the sentinel).' : 'the for loop ran ' + n + (n === 1 ? ' pass' : ' passes') + ', one per item in the list.') + ' Press Step back to review a pass, change the manifest or the loop version, or scroll to Try it.', anim: t => wait(t, .3), commit: s => {}});
+  };
+  if (v === 'while') {
+    add({phase: 'setup', line: 1, text: () => 'Line 1 makes weights, an empty list. A list holds many values under one name, and this one grows as packages are read.', anim: t => wait(t), commit: s => { s.list = []; }});
+    add({phase: 'setup', line: [2, 3, 4], text: () => 'Lines 2 to 4 set the starting values: total 0 (an accumulator, it adds up weights), count 0 (a counter, it adds 1 per package), heaviest 0 (the maximum so far). Row 0 of the trace table records them.', anim: (t, s) => G.play('row', t, s), commit: s => { s.rows.push(startRow()); }});
+    add({phase: 'read', line: 5, text: () => 'Line 5 asks for the first weight and the dispatcher types ' + (n ? W[0] : -1) + '. int() turns the typed text into a number.' + (n ? '' : ' That is the sentinel: the manifest is empty.'), anim: (t, s) => G.play('read', t, s, 0), commit: s => { s.weight = n ? W[0] : -1; s.reading = n ? 0 : null; }});
+    W.forEach((w, k) => {
+      const next = k + 1 < n ? W[k + 1] : -1;
+      add({phase: 'check', line: 6, text: s => 'Line 6 tests weight != -1: ' + w + ' != -1 is True, so the body runs. This is pass ' + (k + 1) + '.', anim: (t, s) => G.play('check', t, s, k), commit: s => { s.pass = k + 1; }});
+      add({phase: 'body', line: 7, text: s => 'Line 7 appends ' + w + ' to the list: weights is now ' + pyList(s.list.concat([w])) + '. The package goes into the van.', anim: (t, s) => G.play('load', t, s, k), commit: s => { s.list.push(w); s.loaded = k + 1; s.reading = null; }});
+      add({phase: 'body', line: 8, text: s => 'Line 8 adds the weight to total: ' + s.total + ' + ' + w + ' = ' + (s.total + w) + '. The gauge rises.', anim: (t, s) => G.play('gauge', t, s, w), commit: s => { s.total += w; }});
+      add({phase: 'body', line: 9, text: s => 'Line 9 adds 1 to count: ' + s.count + ' + 1 = ' + (s.count + 1) + '. count counts packages, total adds weights: two different jobs.', anim: t => wait(t), commit: s => { s.count += 1; }});
+      add({phase: 'body', line: 10, text: s => 'Line 10 asks: is weight > heaviest? ' + w + ' > ' + s.heaviest + ' is ' + (w > s.heaviest ? 'True, so line 11 runs.' : 'False, so line 11 is skipped and heaviest stays ' + s.heaviest + '.'), anim: t => wait(t), commit: s => {}});
+      add({phase: 'body', line: 11, text: s => w > s.heaviest ? 'Line 11 stores ' + w + ' in heaviest: a new heaviest package so far.' : 'Line 11 is skipped on this pass: ' + w + ' is not above ' + s.heaviest + '. The value stays.', anim: (t, s) => wait(t, w > s.heaviest ? .4 : .25), commit: s => { if (w > s.heaviest) s.heaviest = w; }});
+      add({phase: 'read', line: 12, text: s => 'Line 12 reads the next weight: ' + next + '. ' + (next === -1 ? '-1 is the sentinel, a value that means "no more packages". ' : 'Back to line 6 to test it. ') + 'Pass ' + (k + 1) + ' is complete, so row ' + (k + 1) + ' goes on the clipboard.', anim: (t, s) => { G.play('row', t, s); G.play('read', t, s, k + 1); }, commit: s => { s.rows.push(row(s, String(k + 1), 'new')); s.weight = next; s.reading = next === -1 ? null : k + 1; }});
+    });
+    add({phase: 'check', line: 6, text: s => 'Line 6 tests weight != -1: -1 != -1 is False, so the loop ends' + (n ? ' after ' + n + (n === 1 ? ' pass' : ' passes') : ' before any pass') + '. The sentinel was read but never appended, added, or counted: the exit row shows the same total and count as the last pass. The doors close.', anim: (t, s) => G.play('close', t, s), commit: s => { s.rows.push(row(s, 'exit', 'exit')); s.doors = 'closed'; }});
+    report(13, 14, 15);
+  } else if (v === 'for') {
+    add({phase: 'setup', line: 1, text: () => 'Line 1 makes the list with all ' + n + ' weights already in it: ' + pyList(W) + '. The packages are on the dock before the loop starts.', anim: t => wait(t), commit: s => { s.list = W.slice(); }});
+    add({phase: 'setup', line: [2, 3, 4], text: () => 'Lines 2 to 4 set the starting values: total 0, count 0, heaviest 0. Row 0 of the trace table records them.', anim: (t, s) => G.play('row', t, s), commit: s => { s.rows.push(startRow()); }});
+    W.forEach((w, k) => {
+      add({phase: 'read', line: 5, text: s => 'Line 5: the for loop takes the next item of weights and calls it weight. Pass ' + (k + 1) + ': weight = ' + w + '. No sentinel and no input: the list itself says when to stop.', anim: (t, s) => G.play('load', t, s, k), commit: s => { s.weight = w; s.loaded = k + 1; s.pass = k + 1; s.i = k; }});
+      add({phase: 'body', line: 6, text: s => 'Line 6 adds the weight to total: ' + s.total + ' + ' + w + ' = ' + (s.total + w) + '.', anim: (t, s) => G.play('gauge', t, s, w), commit: s => { s.total += w; }});
+      add({phase: 'body', line: 7, text: s => 'Line 7 adds 1 to count: ' + s.count + ' + 1 = ' + (s.count + 1) + '.', anim: t => wait(t), commit: s => { s.count += 1; }});
+      add({phase: 'body', line: 8, text: s => 'Line 8 asks: is ' + w + ' > ' + s.heaviest + '? ' + (w > s.heaviest ? 'True, so line 9 runs.' : 'False, so line 9 is skipped.'), anim: t => wait(t), commit: s => {}});
+      add({phase: 'body', line: 9, text: s => (w > s.heaviest ? 'Line 9 stores ' + w + ' in heaviest.' : 'Line 9 is skipped: heaviest stays ' + s.heaviest + '.') + ' Pass ' + (k + 1) + ' is complete: row ' + (k + 1) + ' goes on the clipboard.', anim: (t, s) => G.play('row', t, s), commit: s => { if (w > s.heaviest) s.heaviest = w; s.rows.push(row(s, String(k + 1), 'new')); }});
+    });
+    add({phase: 'check', line: 5, text: s => 'Line 5: ' + (n ? 'no items are left in weights, so the loop ends after ' + n + (n === 1 ? ' pass' : ' passes') + '.' : 'weights is empty, so the body never runs.') + ' The doors close.', anim: (t, s) => G.play('close', t, s), commit: s => { s.doors = 'closed'; s.weight = null; }});
+    report(10, 11, 12);
+  } else {
+    add({phase: 'setup', line: 1, text: () => 'Line 1 makes the list of weights: ' + pyList(W) + '.', anim: t => wait(t), commit: s => { s.list = W.slice(); }});
+    add({phase: 'setup', line: 2, text: () => 'Line 2 makes a second list, fragile, with the same length: ' + pyStrList(F) + '. fragile[i] describes the same package as weights[i].', anim: t => wait(t), commit: s => {}});
+    add({phase: 'setup', line: [3, 4, 5], text: () => 'Lines 3 to 5 set total 0, fragile_count 0, heaviest 0. Row 0 records them.', anim: (t, s) => G.play('row', t, s), commit: s => { s.rows.push(startRow()); }});
+    W.forEach((w, k) => {
+      const f = F[k] || 'no';
+      add({phase: 'read', line: 6, text: s => 'Line 6: range(len(weights)) is range(' + n + '), the numbers 0 to ' + (n - 1) + '. Pass ' + (k + 1) + ': i = ' + k + ', so weights[i] is ' + w + ' and fragile[i] is "' + f + '".', anim: (t, s) => G.play('load', t, s, k), commit: s => { s.i = k; s.weight = w; s.loaded = k + 1; s.pass = k + 1; }});
+      add({phase: 'body', line: 7, text: s => 'Line 7 adds weights[' + k + '] to total: ' + s.total + ' + ' + w + ' = ' + (s.total + w) + '.', anim: (t, s) => G.play('gauge', t, s, w), commit: s => { s.total += w; }});
+      add({phase: 'body', line: 8, text: s => 'Line 8 asks: is fragile[' + k + '] == "yes"? "' + f + '" == "yes" is ' + (f === 'yes' ? 'True, so line 9 runs.' : 'False, so line 9 is skipped.'), anim: t => wait(t), commit: s => {}});
+      add({phase: 'body', line: 9, text: s => f === 'yes' ? 'Line 9 adds 1 to fragile_count: ' + s.fragileCount + ' + 1 = ' + (s.fragileCount + 1) + '.' : 'Line 9 is skipped: fragile_count stays ' + s.fragileCount + '.', anim: t => wait(t, .3), commit: s => { if (f === 'yes') s.fragileCount += 1; }});
+      add({phase: 'body', line: 10, text: s => 'Line 10 asks: is weights[' + k + '] > heaviest? ' + w + ' > ' + s.heaviest + ' is ' + (w > s.heaviest ? 'True, so line 11 runs.' : 'False, so line 11 is skipped.'), anim: t => wait(t), commit: s => {}});
+      add({phase: 'body', line: 11, text: s => (w > s.heaviest ? 'Line 11 stores ' + w + ' in heaviest.' : 'Line 11 is skipped: heaviest stays ' + s.heaviest + '.') + ' Pass ' + (k + 1) + ' is complete: row ' + (k + 1) + ' goes on the clipboard.', anim: (t, s) => G.play('row', t, s), commit: s => { if (w > s.heaviest) s.heaviest = w; s.rows.push(row(s, String(k + 1), 'new')); }});
+    });
+    add({phase: 'check', line: 6, text: s => 'Line 6: ' + (n ? 'i reached ' + (n - 1) + ', the last valid index (len(weights) - 1 = ' + (n - 1) + '). range(' + n + ') has no more numbers, so the loop ends after ' + n + (n === 1 ? ' pass' : ' passes') + '.' : 'range(0) is empty, so the body never runs.') + ' The doors close.', anim: (t, s) => G.play('close', t, s), commit: s => { s.doors = 'closed'; s.i = null; s.weight = null; }});
+    report(12, 13, 14);
+  }
+  return steps;
+}
+
+let STEPS = [], S = fresh(), hist = [], tl = null, running = false, timer = null, speed = 1, G = null;
+const SPEEDS = [0.25, 0.5, 1, 2, 4];
+function setPhase(p) { document.querySelectorAll('.phases li').forEach(li => li.classList.toggle('on', li.dataset.p === p)); const li = document.querySelector('.phases li[data-p="' + p + '"]'); $('#phaseTag').textContent = li ? li.textContent : 'Ready'; $('#phaseTag').style.setProperty('--pc', li ? getComputedStyle(li).getPropertyValue('--c') : 'var(--silk-dim)'); }
+function flash(id, on) { const e = $('#' + id); if (e) e.classList.toggle('on', !!on); }
+function renderTrace() {
+  const cols = COLS[CFG.version];
+  const rows = S.rows.length ? S.rows : [];
+  $('#trace').innerHTML = '<tr>' + cols.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr>' +
+    rows.map((r, i) => '<tr class="' + (i === rows.length - 1 && r.cls === 'new' ? 'new' : r.cls === 'exit' ? 'exit' : '') + '">' + r.cells.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>').join('') +
+    (rows.length ? '' : '<tr><td colspan="' + cols.length + '" style="color:var(--silk-dim)">No rows yet. Press Step.</td></tr>');
+}
+function render() {
+  const idx = CFG.version === 'index';
+  $('#v-weight').textContent = S.weight === null ? '-' : S.weight; $('#s-weight').textContent = S.i !== null && CFG.version !== 'while' ? (idx ? 'i = ' + S.i : 'item ' + (S.i + 1)) : (S.weight === -1 ? 'sentinel' : '');
+  $('#v-total').textContent = S.total; $('#n-count').textContent = idx ? 'fragile_count' : 'count'; $('#f-count').textContent = idx ? 'counter: adds 1 per fragile package' : 'counter: adds 1 per package';
+  $('#v-count').textContent = idx ? S.fragileCount : S.count; $('#v-heaviest').textContent = S.heaviest;
+  $('#v-len').textContent = 'len ' + S.list.length; $('#rack').innerHTML = S.list.length ? S.list.map((w, i) => '<span class="' + (S.i === i && CFG.version !== 'while' ? 'on' : '') + '">[' + i + '] ' + w + '</span>').join('') : '<em>empty</em>';
+  $('#v-gauge').textContent = fmt(S.total) + ' of 1,200 lb' + (S.total > CAP ? ' · OVER by ' + fmt(S.total - CAP) : S.total === CAP ? ' · exactly at capacity' : '');
+  const g = $('#gauge'); g.querySelector('i').style.width = Math.min(100, S.total / 1500 * 100) + '%'; g.classList.toggle('warn', S.total > CAP); g.classList.toggle('near', S.total <= CAP && S.total > CAP - 100);
+  $('#gaugeNote').textContent = S.printed ? 'Printed: ' + S.printed.replace('\n', ' / ') : 'The gold line is the 1,200 lb capacity.';
+  const m = S.step > 0 ? STEPS[S.step - 1] : null; const ln = m ? (Array.isArray(m.line) ? m.line : [m.line]) : [];
+  const v = CFG.version; flash('r-weight', ln.some(l => (v === 'while' && (l === 5 || l === 12)) || (v !== 'while' && (l === 5 || l === 6) && m.phase === 'read')));
+  flash('r-total', ln.includes(v === 'while' ? 8 : v === 'for' ? 6 : 7)); flash('r-count', ln.includes(v === 'while' ? 9 : v === 'for' ? 7 : 9)); flash('r-heaviest', ln.includes(v === 'while' ? 11 : v === 'for' ? 9 : 11)); flash('r-list', ln.includes(v === 'while' ? 7 : 1));
+  $('#hudStep').textContent = S.step; $('#hudPass').textContent = S.pass; $('#ctx').textContent = 'Step ' + S.step + ' of ' + STEPS.length;
+  $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = S.step >= STEPS.length; $('#btnRun').textContent = running ? 'Pause' : 'Run';
+  renderTrace(); G && G.update(S, !!tl);
+  renderCode(m ? m.line : 0);
+  guide(S.step === 0 ? 2 : S.step < STEPS.length ? 3 : 4,
+    S.step === 0 ? 'Press <b>Step</b> to run the first line of ' + PROGRAMS[CFG.version].file + ', or <b>Run</b> to play every step.'
+    : S.step < STEPS.length ? 'Read the explanation, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + STEPS.length + ' (pass ' + S.pass + ').'
+    : 'Done. Press <b>For version</b> or <b>Index version</b> and run again, or scroll to <b>Check Copilot\'s explanation</b>.');
+}
+function finish(m) { tl = null; m.commit(S); S.step++; render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 300 / speed); } }
+function stepFwd(animated) {
+  if (tl) { tl.progress(1); return; }
+  if (S.step >= STEPS.length) return;
+  hist.push(JSON.parse(JSON.stringify(S)));
+  const m = STEPS[S.step]; S.phase = m.phase; setPhase(m.phase); $('#narration').textContent = m.text(S); renderCode(m.line);
+  if (animated !== false && hasGSAP && G && !REDUCED) { tl = gsap.timeline({onComplete: () => finish(m)}); m.anim(tl, S); tl.timeScale(speed); if (!tl.duration()) finish(m); }
+  else finish(m);
+}
+function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); setPhase(S.phase); $('#narration').textContent = 'Stepped back. Press Step to watch that step again.'; render(); }
+function run() { if (S.step >= STEPS.length) return; running = true; render(); stepFwd(); }
+function stop() { running = false; clearTimeout(timer); render(); }
+function reset() { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); hist = []; STEPS = buildSteps(CFG); setPhase(null); $('#narration').textContent = 'Press Step to start, or Run to play every step. Manifest: ' + CFG.name + ' (' + (CFG.weights.length ? CFG.weights.join(', ') + ' lb' : 'empty') + '), ' + CFG.version + ' version.'; render(); }
+function applyConfig(part) {
+  Object.assign(CFG, part); G.rebuild(CFG);
+  document.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === CFG.version));
+  document.querySelectorAll('[data-m]').forEach(b => b.setAttribute('aria-pressed', MANIFESTS[b.dataset.m].name === CFG.name));
+  $('#verHint').textContent = PROGRAMS[CFG.version].hint; $('#progName').textContent = PROGRAMS[CFG.version].file;
+  $('#traceHint').textContent = CFG.version === 'while' ? 'Row 0 is the state before the loop. Each pass adds one row when its body finishes. The exit row shows the test that ended the loop: the sentinel -1 changes nothing.'
+    : CFG.version === 'for' ? 'Row 0 is the state before the loop. One row per item in the list; the loop ends when the items run out, so there is no sentinel row.'
+    : 'Row 0 is the state before the loop. i runs from 0 to len(weights) - 1, and weights[i] and fragile[i] are read together on every pass.';
+  reset();
+}
+
+// ---- click to explain ----
+const INFO = {
+  van: () => 'VAN-1, capacity 1,200 lb. The glass sides let you see the packages the loop has processed so far: ' + S.loaded + ' of ' + CFG.weights.length + '.',
+  cab: () => 'The cab. Yusniel Castro drives VAN-1 today. He leaves when the loop ends and the doors close.',
+  doors: () => 'The back doors stay open while the loop runs. They close on the step where the condition becomes False' + (CFG.version === 'while' ? ' (the sentinel -1).' : ' (no items left).'),
+  gauge: () => 'The weight gauge shows total, the accumulator. It is green within capacity, gold in the last 100 lb, and coral above the 1,200 lb line. Right now: ' + fmt(S.total) + ' lb.',
+  dock: () => 'The dock holds the packages the loop has not reached yet. In the while version they arrive one input at a time; in the for versions the whole list is on the dock from line 1.',
+  clip: () => 'The dispatcher\'s clipboard is the trace table: one row per pass, written when the pass finishes. Scroll down to read it. Rows so far: ' + Math.max(0, S.rows.length - 1) + '.',
+  pkg: d => 'Package ' + (d.k + 1) + ': ' + d.w + ' lb' + (CFG.version === 'index' ? ', fragile: ' + (CFG.fragile[d.k] || 'no') : '') + '. Its size follows its weight. ' + (d.k < S.loaded ? 'It is in the van: weights[' + d.k + '] holds its weight.' : 'It is still on the dock: the loop has not reached it.')
+};
+
+// ---- the Copilot explanation checker ----
+const SENTENCES = [
+  {t: 'The loop keeps running as long as the weight that was just read is not -1.', truth: true, proof: 'True. Every row with True in the weight != -1 column ran the body; the exit row, where it is False, did not.'},
+  {t: 'count starts at 1, so after the first package count is 2.', truth: false, proof: 'False. VAN-1 row 0 shows count 0 before the loop and row 1 shows count 1 after the first package (12 lb).'},
+  {t: 'total is an accumulator: each pass adds the weight that was just read to it.', truth: true, proof: 'True. VAN-1 rows 1 to 5 show total going 12, 15, 35, 85, 130: each row adds that row\'s weight.'},
+  {t: 'The loop also stops as soon as total goes above 1,200.', truth: false, proof: 'False. Overload row 4 shows total 1,250 and the loop still read the next value; only the sentinel -1 ended it (the exit row). The capacity is checked once, after the loop.'},
+  {t: 'heaviest changes only when the weight just read is bigger than the heaviest so far.', truth: true, proof: 'True. VAN-1 rows 1, 3, and 4 change heaviest (12, 20, 50); rows 2 and 5 leave it (3 and 45 are not bigger).'},
+  {t: 'For the VAN-1 manifest the body runs 6 times, once for each value typed, including the -1.', truth: false, proof: 'False. VAN-1 has 5 numbered rows, one per pass. The exit row shows -1 was read, failed the test on line 6, and never ran the body: count stays 5.'}
+];
+const marks = SENTENCES.map(() => null);
+function renderSent(results) {
+  $('#sent').innerHTML = SENTENCES.map((s, i) => { const r = results ? results[i] : null; return '<div class="s' + (r ? (r.ok ? ' ok' : ' bad') : '') + '"><p><b>' + (i + 1) + '.</b> ' + esc(s.t) + '</p><div class="tf" role="group" aria-label="Sentence ' + (i + 1) + '">' +
+    '<button type="button" class="btn" data-s="' + i + '" data-tf="true" aria-pressed="' + (marks[i] === true) + '">True</button><button type="button" class="btn" data-s="' + i + '" data-tf="false" aria-pressed="' + (marks[i] === false) + '">False</button></div>' +
+    (r ? '<p class="v"><b>' + (r.ok ? 'Correct.' : 'Not quite.') + '</b> ' + esc(s.proof) + '</p>' : '') + '</div>'; }).join('');
+}
+$('#sent').addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (!b) return; marks[+b.dataset.s] = b.dataset.tf === 'true'; renderSent(null); $('#sentFb').innerHTML = ''; $('#sentScore').textContent = '-'; guide(4, marks.every(m => m !== null) ? 'Press <b>Check sentences</b>.' : 'Mark every sentence <b>True</b> or <b>False</b>, then press <b>Check sentences</b>.'); });
+$('#btnCheck').addEventListener('click', () => {
+  if (marks.some(m => m === null)) { $('#sentFb').innerHTML = '<div class="feedback info">Mark every sentence True or False first. Use the trace tables of the VAN-1 and the overload manifests as your proof.</div>'; return; }
+  const results = SENTENCES.map((s, i) => ({ok: marks[i] === s.truth})); const n = results.filter(r => r.ok).length;
+  renderSent(results); $('#sentScore').textContent = n;
+  $('#sentFb').innerHTML = '<div class="feedback ' + (n === 6 ? 'ok' : n >= 4 ? 'info' : 'bad') + '"><b>' + n + ' of 6 correct.</b> ' + (n === 6 ? 'Three of Copilot\'s six sentences were false, and a trace table row disproves each one. That is the skill of this week: an explanation is a claim, a row is the proof.' : 'Read the row cited under each sentence you missed, then press Clear marks and try again. Sentences 2, 4, and 6 are the false ones.') + '</div>';
+  guide(5, 'Scroll to <b>Try it</b>, change the inputs or the code, and press <b>Run</b> there.');
+});
+$('#btnClearSent').addEventListener('click', () => { marks.fill(null); renderSent(null); $('#sentFb').innerHTML = ''; $('#sentScore').textContent = '-'; });
+
+// ---- wiring ----
+G = Scene($('#stage'));
+G.onPick = (key, d) => { const f = INFO[key]; if (f) $('#info').innerHTML = '<b style="color:var(--cbt-gold)">' + esc(key === 'pkg' ? 'Package' : key === 'clip' ? 'Clipboard' : key.charAt(0).toUpperCase() + key.slice(1)) + '</b> · ' + esc(f(d || {})); };
+$('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
+$('#btnRun').addEventListener('click', () => running ? stop() : run());
+$('#btnBack').addEventListener('click', back);
+$('#btnReset').addEventListener('click', reset);
+$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
+document.querySelectorAll('[data-v]').forEach(b => b.addEventListener('click', () => applyConfig({version: b.dataset.v})));
+document.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { const m = MANIFESTS[b.dataset.m]; $('#inWeights').value = m.weights.join(', '); $('#inFragile').value = m.fragile.join(', '); applyConfig({name: m.name, weights: m.weights.slice(), fragile: m.fragile.slice()}); }));
+$('#btnUse').addEventListener('click', () => {
+  const raw = $('#inWeights').value.split(/[,\s]+/).filter(Boolean); const ws = raw.map(Number);
+  if (ws.some(w => !Number.isInteger(w) || w <= 0) || ws.length > 12) { $('#mHint').textContent = 'Use whole numbers above 0, separated by commas, up to 12 packages. Example: 300, 450, 500.'; $('#mHint').style.color = 'var(--ctrl)'; return; }
+  $('#mHint').style.color = ''; $('#mHint').textContent = ws.length ? ws.length + ' packages, ' + fmt(ws.reduce((a, b) => a + b, 0)) + ' lb in all.' : 'Empty manifest: the first value read is -1.';
+  const fr = $('#inFragile').value.toLowerCase().split(/[,\s]+/).filter(Boolean).map(x => x === 'yes' || x === 'y' ? 'yes' : 'no'); while (fr.length < ws.length) fr.push('no');
+  applyConfig({name: 'Your manifest', weights: ws, fragile: fr.slice(0, ws.length)});
+});
+document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
+  if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click(); });
+PySandbox($('#sandbox'), {code: PROGRAMS.while.lines.join('\n') + '\n\n# Helper for the tests below (functions come in week 4; you do not need to change it).\ndef manifest_total(weights):\n    total = 0\n    for weight in weights:\n        total = total + weight\n    return total\n', inputs: '12\n3\n20\n50\n45\n-1',
+  tests: [{expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}]});
+renderSent(null);
+applyConfig({});
+G.intro();
+window.__van = {state: () => S, steps: () => STEPS.length, cfg: () => CFG, marks: marks};
+})();
+</script>
+</body>
+</html>

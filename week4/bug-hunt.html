@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bug hunt</title>
+<meta name="description" content="COP1411 Week 4 interactive: Ten Copilot-style functions, one bug each. Read the symptom, fix the code, and run real Python until every test passes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS (scene challenge: bug hunt) */
+  .scene{position:relative;width:100%;aspect-ratio:16/9;min-height:240px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  @media(max-width:640px){.scene{aspect-ratio:4/3}}
+  .scene canvas,.scene svg.flat{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .scene .credit{position:absolute;left:14px;top:10px;z-index:3;margin:0;pointer-events:none}
+  .card .scene.wide{aspect-ratio:21/9;min-height:300px}
+  @media(max-width:860px){.card .scene.wide{aspect-ratio:4/3;min-height:0}}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .code button.ln{width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;white-space:pre}
+  .code button.ln:hover{background:rgba(56,176,224,.14)}.code button.ln[aria-pressed=true]{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .code button.ln.right{background:rgba(111,212,155,.18);box-shadow:inset 3px 0 0 var(--ok)}.code button.ln.wrong{background:rgba(240,120,106,.18);box-shadow:inset 3px 0 0 var(--bad)}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
+  .symptom{margin:8px 0 0;padding:10px 12px;background:#060917;border:1px solid var(--line);border-radius:6px;font:13px/1.5 var(--font-mono);white-space:pre-wrap;word-break:break-word;color:var(--out)}
+  .symptom.err{color:var(--bad)}
+  .lab{display:block;font:600 10.5px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cbt-sky);margin:14px 0 4px}
+  .tests{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:4px;font:12.5px var(--font-mono);color:var(--silk-dim)}
+  .tests li::before{content:"\25CB";color:var(--cbt-gold);margin-right:8px}
+  .pysb .pysb-reset{display:none}
+  .rbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .mode{font-size:12.5px;color:var(--silk-dim);margin:8px 0 0}
+  .mode button{background:none;border:0;color:var(--cbt-sky);text-decoration:underline;cursor:pointer;padding:0;font:inherit}
+  .fixes{display:grid;gap:8px;margin-top:8px}
+  .fixes button{text-align:left;padding:10px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14px var(--font-body);cursor:pointer}
+  .fixes button code{font-size:.92em}
+  .fixes button[aria-pressed=true]{border-color:var(--cbt-sky)}.fixes button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}.fixes button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  .fixes button:disabled{cursor:default}
+  .pts{display:inline-block;font:600 11px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;border:1px solid var(--line);color:var(--silk-dim);margin-left:6px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 4 · Interactive B</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero split reveal" style="--i:0">
+    <div><span class="eyebrow">COP1411 · Week 4 · Challenge</span><h1>Bug hunt</h1><p class="lede">Ten Copilot-style functions, one bug each. Read the symptom, fix the code, and run real Python until every test passes. Dante Reyes, the Palmetto Parcel dispatcher, asked Microsoft Copilot for these functions; your job is the part Copilot cannot do: prove they work.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>10 · 6 · 3</b><span>first run · later run · shown fix</span></div><div><b>Real</b><span>Python 3.12 in the browser</span></div></div>
+  </section>
+  <aside class="card reveal" style="--i:1" data-ref="SCENE">
+    <h2>Watch it happen</h2>
+    <div class="scene wide" id="stage"></div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">When your tests pass, the fixed call plays here: the frame rises, the right value flies back to MAIN.</p></div>
+    <div class="stepper"><span class="score"><span class="big" id="score">0</span><span>points so far</span></span></div>
+  </aside>
+  <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How this challenge works</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Read the <b>symptom</b>: the real output or error the function produced. Then read the code and find the one line that causes it.</li>
+      <li data-h="2">Edit the code in the box and press <b>Run</b>. Real Python runs your version and the tests under it. All tests pass on your first Run: 10 points. On a later Run: 6 points.</li>
+      <li data-h="3">Stuck? Press <b>Show the fix</b>, read why, and Run it: 3 points.</li>
+      <li data-h="4">Press <b>Next round</b>. After round 10, review your results. 90 or more earns confetti.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read the symptom in round 1 below.</span></div>
+      <ul class="tips"><li>Rounds are shuffled every attempt. The first Run downloads Python (about 10 MB) once. Ctrl+Enter in the code box also runs.</li></ul>
+    </div>
+  </section>
+  <section class="card reveal" style="--i:3" data-ref="ROUND">
+    <div class="progress" id="prog"></div>
+    <h2 id="qTitle">Round 1</h2>
+    <p id="qText" style="margin:0 0 6px"></p>
+    <span class="lab">The symptom (Python 3.12)</span>
+    <pre class="symptom" id="symptom"></pre>
+    <div id="sbWrap">
+      <span class="lab">Fix the code, then Run</span>
+      <div id="sandbox"></div>
+      <p class="mode" id="modeNote">Python will not load here? <button type="button" id="toPick">Switch this round to pick-the-line mode</button> (same points).</p>
+    </div>
+    <div id="pickWrap" hidden>
+      <span class="lab">Pick the line that causes the symptom</span>
+      <pre class="code" id="pickCode"></pre>
+      <span class="lab">Pick the fix</span>
+      <div class="fixes" id="fixes"></div>
+      <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button></div>
+    </div>
+    <div class="rbar">
+      <button class="btn" id="btnFix" type="button">Show the fix</button>
+      <button class="btn" id="btnResetCode" type="button">Reset this round's code</button>
+      <button class="btn primary" id="btnNext" type="button" disabled>Next round</button>
+    </div>
+    <div id="fb"></div>
+  </section>
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
+    <h2>Your results</h2>
+    <div class="scroll-x"><table class="data" id="resTable"></table></div>
+    <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
+  </section>
+</main>
+<footer class="foot">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+const hasTHREE = typeof window.THREE !== 'undefined';
+const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const hl = l => window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l);
+// PYSANDBOX START
+// CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
+// Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
+//   const sb = PySandbox(hostEl, {title, code, inputs, tests: [{expr, expect}], timeout: 15000, onRun(result), onTests(passed, total)});
+//   sb.run(); sb.setCode(s); sb.getCode(); sb.setInputs(s); sb.reset(); sb.output()
+// result: {ok, out, err, tests: [{expr, expect, got, pass}]}. Without the CDN the box shows a plain fallback message.
+function PySandbox(host, opts) {
+  'use strict';
+  const O = Object.assign({title: 'Try it: edit and run the Python', code: 'print("hello")', inputs: '', tests: [], timeout: 15000,
+    pyodideUrl: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', runLabel: 'Run', resetLabel: 'Reset code'}, opts || {});
+  if (!document.getElementById('pysandbox-css')) {
+    const st = document.createElement('style'); st.id = 'pysandbox-css';
+    st.textContent = '.pysb{border:1px solid var(--line,#2a3270);border-radius:8px;background:rgba(11,15,43,.6);overflow:hidden;font-family:Figtree,system-ui,sans-serif}' +
+      '.pysb-head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line,#2a3270);font-size:13px}' +
+      '.pysb-head b{font-family:Archivo,sans-serif;font-weight:700}.pysb-status{margin-left:auto;font:500 11px "Red Hat Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-grid{display:grid;grid-template-columns:1fr 200px;gap:0}@media(max-width:700px){.pysb-grid{grid-template-columns:1fr}}' +
+      '.pysb textarea{width:100%;box-sizing:border-box;border:0;background:#0b0f2b;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;padding:10px 12px;resize:vertical;min-height:160px;outline:none;tab-size:4}' +
+      '.pysb textarea:focus{box-shadow:inset 0 0 0 2px var(--cbt-gold,#E0B840)}' +
+      '.pysb-in{border-left:1px solid var(--line,#2a3270)}@media(max-width:700px){.pysb-in{border-left:0;border-top:1px solid var(--line,#2a3270)}}' +
+      '.pysb-in label,.pysb-out label{display:block;padding:6px 12px 0;font:500 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-in textarea{min-height:60px}' +
+      '.pysb-bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line,#2a3270);flex-wrap:wrap}' +
+      '.pysb-bar button{font:600 13px Figtree,sans-serif;padding:7px 14px;border-radius:6px;border:1px solid var(--line,#2a3270);background:#1b2140;color:#eef1fa;cursor:pointer}' +
+      '.pysb-bar button.primary{background:var(--cbt-gold,#E0B840);color:#1a1205;border-color:transparent}.pysb-bar button:disabled{opacity:.5;cursor:default}' +
+      '.pysb-bar .hint{font-size:12px;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-prog{height:3px;background:transparent;position:relative;overflow:hidden}.pysb-prog i{position:absolute;left:-40%;top:0;bottom:0;width:40%;background:var(--cbt-sky,#38B0E0);animation:pysbp 1.2s linear infinite}@keyframes pysbp{to{left:100%}}' +
+      '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
+      '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
+      '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}';
+    document.head.appendChild(st);
+  }
+  host.classList.add('pysb');
+  host.innerHTML = '<div class="pysb-head"><b></b><span class="pysb-status">Python not loaded yet</span></div><div class="pysb-prog"></div>' +
+    '<div class="pysb-grid"><div><textarea class="pysb-code" spellcheck="false" aria-label="Python code"></textarea></div>' +
+    '<div class="pysb-in"><label>Inputs (one per input() call)</label><textarea class="pysb-inputs" spellcheck="false" aria-label="Inputs, one per line"></textarea></div></div>' +
+    '<div class="pysb-bar"><button type="button" class="primary pysb-run"></button><button type="button" class="pysb-reset"></button><span class="hint">Ctrl+Enter runs. The first run downloads Python (about 10 MB) once.</span></div>' +
+    '<div class="pysb-out"><label>Output</label><pre class="pysb-pre">Nothing run yet.</pre><ul class="pysb-tests" hidden></ul></div>';
+  const q = s => host.querySelector(s);
+  q('.pysb-head b').textContent = O.title; q('.pysb-run').textContent = O.runLabel; q('.pysb-reset').textContent = O.resetLabel;
+  const code = q('.pysb-code'), inputs = q('.pysb-inputs'), pre = q('.pysb-pre'), status = q('.pysb-status'), prog = q('.pysb-prog'), tests = q('.pysb-tests'), btnRun = q('.pysb-run');
+  code.value = O.code; inputs.value = O.inputs;
+  let worker = null, ready = false, loading = false, timer = null, last = null, failed = false;
+  const WORKER_SRC = [
+    'var py = null, url = "' + O.pyodideUrl + '";',
+    'self.onmessage = async function (e) {',
+    '  var m = e.data;',
+    '  try {',
+    '    if (!py) { importScripts(url + "pyodide.js"); py = await loadPyodide({indexURL: url}); postMessage({type: "ready", version: py.version}); }',
+    '    if (m.type !== "run") return;',
+    '    var lines = m.inputs.split(/\\r?\\n/); var out = [];',
+    '    py.setStdout({batched: function (s) { out.push(s); }}); py.setStderr({batched: function (s) { out.push(s); }});',
+    '    py.setStdin({stdin: function () { var l = lines.length ? lines.shift() : ""; return l + "\\n"; }, isatty: false});',
+    '    var ns = py.globals.get("dict")(); var result = {type: "done", ok: true, out: "", err: "", tests: []};',
+    '    try { await py.runPythonAsync(m.code, {globals: ns}); }',
+    '    catch (err) { result.ok = false; result.err = String(err.message || err); }',
+    '    result.out = out.join("\\n");',
+    '    for (var i = 0; i < m.tests.length; i++) { var t = m.tests[i], got;',
+    '      try { got = py.runPython("repr(" + t.expr + ")", {globals: ns}); } catch (e2) { got = "error: " + String(e2.message || e2).trim().split("\\n").pop(); }',
+    '      result.tests.push({expr: t.expr, expect: t.expect, got: got, pass: got === t.expect}); }',
+    '    ns.destroy(); postMessage(result);',
+    '  } catch (err) { postMessage({type: "fatal", err: String(err.message || err)}); }',
+    '};'].join('\n');
+  function spawn() {
+    const blob = new Blob([WORKER_SRC], {type: 'application/javascript'});
+    worker = new Worker(URL.createObjectURL(blob)); ready = false;
+    worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') { ready = true; loading = false; prog.innerHTML = ''; status.textContent = 'Python ' + m.version + ' ready'; return; }
+      if (m.type === 'fatal') { fail(m.err); return; }
+      if (m.type === 'done') { clearTimeout(timer); btnRun.disabled = false; show(m); }
+    };
+    worker.onerror = e => { fail(e.message || 'worker error'); };
+  }
+  function fail(msg) {
+    clearTimeout(timer); loading = false; ready = false; failed = true; btnRun.disabled = false; prog.innerHTML = '';
+    status.textContent = 'Python could not load';
+    pre.className = 'pysb-pre err'; pre.textContent = 'Python could not load here (the network may block cdn.jsdelivr.net). Copy the code into IDLE on the lab PC and run it there.' + (msg ? '\nDetails: ' + msg : '');
+    if (worker) { worker.terminate(); worker = null; }
+  }
+  function trimTrace(err) {
+    // keep from the first line that mentions the student's code; Pyodide adds its own frames above it
+    const i = err.indexOf('File "<exec>"'); if (i < 0) return err.trim();
+    const head = err.slice(0, i).split('\n').filter(l => /^Traceback/.test(l)).join('\n');
+    return (head ? head + '\n  ' : '') + err.slice(i).trim();
+  }
+  function show(m) {
+    last = m; const err = m.err ? trimTrace(m.err) : '';
+    pre.className = 'pysb-pre' + (m.ok ? '' : ' err');
+    pre.textContent = (m.out ? m.out + (m.out.endsWith('\n') ? '' : '\n') : '') + (err ? err : '') || '(no output)';
+    if (O.tests && O.tests.length) {
+      tests.hidden = false; tests.innerHTML = m.tests.map(t => '<li class="' + (t.pass ? 'pass' : 'fail') + '"><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">got ' + esc(t.got) + '</span></li>').join('');
+      const passed = m.tests.filter(t => t.pass).length; status.textContent = passed + ' of ' + m.tests.length + ' tests pass';
+      if (O.onTests) O.onTests(passed, m.tests.length, m);
+    } else status.textContent = m.ok ? 'Ran without errors' : 'Stopped with an error';
+    if (O.onRun) O.onRun(m);
+  }
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  function run() {
+    if (failed) { failed = false; }
+    if (!worker) spawn();
+    btnRun.disabled = true; tests.hidden = true; pre.className = 'pysb-pre'; pre.textContent = ready ? 'Running...' : 'Loading Python (about 10 MB, once)...';
+    if (!ready) { loading = true; status.textContent = 'Loading Python...'; prog.innerHTML = '<i></i>'; }
+    worker.postMessage({type: 'run', code: code.value, inputs: inputs.value, tests: O.tests || []});
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ready && loading) return; // still downloading; the fatal handler covers real failures
+      worker.terminate(); worker = null; ready = false; btnRun.disabled = false;
+      pre.className = 'pysb-pre err'; pre.textContent = 'Stopped after ' + Math.round(O.timeout / 1000) + ' seconds: the program never finished. Look for a loop whose condition never becomes False.';
+      status.textContent = 'Stopped (infinite loop?)'; if (O.onRun) O.onRun({ok: false, out: '', err: 'timeout', tests: []});
+    }, O.timeout + (ready ? 0 : 60000));
+  }
+  btnRun.addEventListener('click', run);
+  q('.pysb-reset').addEventListener('click', () => { code.value = O.code; inputs.value = O.inputs; pre.className = 'pysb-pre'; pre.textContent = 'Code reset. Press Run.'; tests.hidden = true; });
+  code.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if (e.key === 'Tab') { e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '    ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 4; } });
+  const api = {run: run, setCode: s => { code.value = s; }, getCode: () => code.value, setInputs: s => { inputs.value = s; }, setTests: t => { O.tests = t; },
+    reset: () => q('.pysb-reset').click(), output: () => pre.textContent, last: () => last, isReady: () => ready, el: host};
+  window.__pysandboxes = window.__pysandboxes || []; window.__pysandboxes.push(api);
+  return api;
+}
+// PYSANDBOX END
+
+
+// ---- the ten rounds: buggy code, the real symptom (Python 3.12), tests, the bad line, four fixes ----
+const ROUNDS = [
+  {title: 'The surcharge that never happens', fn: 'price', value: '10.4',
+    q: 'price(weight, miles, fragile) must return 4.50 + 0.80 per pound + 0.25 per mile, plus 3.00 when fragile is True. Package 0002 (3 lb, 2 miles, fragile) should cost 10.40.',
+    code: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    return p\n    if fragile:\n        p = p + 3.00\n\nprint(f"{price(3, 2, True):.2f}")\n',
+    fixed: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n        p = p + 3.00\n    return p\n\nprint(f"{price(3, 2, True):.2f}")\n',
+    symptom: '7.40', err: false, tests: [{expr: 'price(3, 2, True)', expect: '10.4'}, {expr: 'price(12, 8, False)', expect: '16.1'}, {expr: 'price(60, 14, True)', expect: '59.0'}],
+    bad: [3], fixes: [['Move <code>return p</code> to the end of the function, after the if block.', true], ['Change <code>if fragile:</code> to <code>if fragile == True:</code>.', false], ['Change <code>return p</code> to <code>return p + 3.00</code>.', false], ['Add <code>print(p)</code> before the return.', false]],
+    why: 'return ends the function at once. Lines after it never run, so the if block was dead code. The return must be the last line.'},
+  {title: 'Kendall on the wrong shelf', fn: 'zone', value: "'C'",
+    q: 'zone(city) returns "A" for Doral, "B" for Hialeah and Miami Gardens, "C" for Kendall and Homestead, and "Ask dispatch" for any other city.',
+    code: 'def zone(city):\n    if city == "Doral":\n        return "A"\n    elif city == "Hialeah" or city == "Miami Gardens" or city == "Kendall":\n        return "B"\n    elif city == "Homestead":\n        return "C"\n    else:\n        return "Ask dispatch"\n\nprint(zone("Kendall"))\n',
+    fixed: 'def zone(city):\n    if city == "Doral":\n        return "A"\n    elif city == "Hialeah" or city == "Miami Gardens":\n        return "B"\n    elif city == "Kendall" or city == "Homestead":\n        return "C"\n    else:\n        return "Ask dispatch"\n\nprint(zone("Kendall"))\n',
+    symptom: 'B', err: false, tests: [{expr: 'zone("Kendall")', expect: "'C'"}, {expr: 'zone("Hialeah")', expect: "'B'"}, {expr: 'zone("Homestead")', expect: "'C'"}],
+    bad: [4], fixes: [['Remove Kendall from the zone B line and add it to the Homestead line: <code>elif city == "Kendall" or city == "Homestead":</code>', true], ['Change the zone B line to <code>return "C"</code>.', false], ['Move the Homestead elif above the Hialeah elif.', false], ['Add <code>return "C"</code> after the else block.', false]],
+    why: 'Kendall was listed with the zone B cities, so the chain returned "B" before it ever reached the zone C line. The condition that mentions a city decides its zone.'},
+  {title: 'One pound from nowhere', fn: 'manifest_total', value: '130',
+    q: 'manifest_total(weights) adds up a list of weights. The VAN-1 manifest 12, 3, 20, 50, 45 totals 130 lb, and an empty list totals 0.',
+    code: 'def manifest_total(weights):\n    total = 1\n    for w in weights:\n        total = total + w\n    return total\n\nprint(manifest_total([12, 3, 20, 50, 45]))\n',
+    fixed: 'def manifest_total(weights):\n    total = 0\n    for w in weights:\n        total = total + w\n    return total\n\nprint(manifest_total([12, 3, 20, 50, 45]))\n',
+    symptom: '131', err: false, tests: [{expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}],
+    bad: [2], fixes: [['Start the accumulator at zero: <code>total = 0</code>.', true], ['Change the loop line to <code>total = total + w - 1</code>.', false], ['Change the last line to <code>return total - 1</code>.', false], ['Skip the first weight in the loop.', false]],
+    why: 'An accumulator starts at 0. Starting at 1 adds a pound no package weighs, and an empty manifest would report 1 lb.'},
+  {title: 'Found, but where?', fn: 'find_package', value: '3',
+    q: 'find_package(tracking, packages) returns the index (position, starting at 0) where the tracking number sits in the list, or -1 when it is not there. PP-2026-0004 is at index 3.',
+    code: 'packages = ["PP-2026-0001", "PP-2026-0002", "PP-2026-0003", "PP-2026-0004", "PP-2026-0005"]\n\ndef find_package(tracking, packages):\n    for i in range(len(packages)):\n        if packages[i] == tracking:\n            return packages[i]\n    return -1\n\nprint(find_package("PP-2026-0004", packages))\n',
+    fixed: 'packages = ["PP-2026-0001", "PP-2026-0002", "PP-2026-0003", "PP-2026-0004", "PP-2026-0005"]\n\ndef find_package(tracking, packages):\n    for i in range(len(packages)):\n        if packages[i] == tracking:\n            return i\n    return -1\n\nprint(find_package("PP-2026-0004", packages))\n',
+    symptom: 'PP-2026-0004', err: false, tests: [{expr: 'find_package("PP-2026-0004", packages)', expect: '3'}, {expr: 'find_package("PP-2026-0009", packages)', expect: '-1'}, {expr: 'find_package("PP-2026-0001", packages)', expect: '0'}],
+    bad: [6], fixes: [['Return the index: <code>return i</code>.', true], ['Return the whole list: <code>return packages</code>.', false], ['Return the tracking number: <code>return tracking</code>.', false], ['Return <code>i + 1</code> so the count starts at 1.', false]],
+    why: 'The caller already has the tracking number; it needs the position so it can look up the weight in a second list. i is the index; packages[i] is the item.'},
+  {title: 'One step too far', fn: 'sort_by_weight', value: '[3, 12, 20, 45, 50]',
+    q: 'sort_by_weight(weights) is a bubble sort, lightest first. It compares neighbors weights[j] and weights[j + 1] and swaps them when the left one is heavier.',
+    code: 'def sort_by_weight(weights):\n    n = len(weights)\n    for i in range(n - 1):\n        for j in range(n - i):\n            if weights[j] > weights[j + 1]:\n                weights[j], weights[j + 1] = weights[j + 1], weights[j]\n    return weights\n\nprint(sort_by_weight([12, 3, 20, 50, 45]))\n',
+    fixed: 'def sort_by_weight(weights):\n    n = len(weights)\n    for i in range(n - 1):\n        for j in range(n - 1 - i):\n            if weights[j] > weights[j + 1]:\n                weights[j], weights[j + 1] = weights[j + 1], weights[j]\n    return weights\n\nprint(sort_by_weight([12, 3, 20, 50, 45]))\n',
+    symptom: 'Traceback (most recent call last):\n  File "sort.py", line 9, in <module>\n    print(sort_by_weight([12, 3, 20, 50, 45]))\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "sort.py", line 5, in sort_by_weight\n    if weights[j] > weights[j + 1]:\n                    ~~~~~~~^^^^^^^\nIndexError: list index out of range', err: true,
+    tests: [{expr: 'sort_by_weight([12, 3, 20, 50, 45])', expect: '[3, 12, 20, 45, 50]'}, {expr: 'sort_by_weight([50, 45, 20, 12, 3])', expect: '[3, 12, 20, 45, 50]'}, {expr: 'sort_by_weight([7])', expect: '[7]'}],
+    bad: [4], fixes: [['Shorten the inner loop by one: <code>for j in range(n - 1 - i):</code>', true], ['Change the outer loop to <code>for i in range(n):</code>.', false], ['Compare with the left neighbor instead: <code>if weights[j] > weights[j - 1]:</code>', false], ['Set <code>n = len(weights) - 1</code> and keep <code>range(n - i)</code>.', false]],
+    why: 'With five items the indexes run 0 to 4. When j is 4, weights[j + 1] is weights[5], which does not exist. The inner loop must stop one earlier: range(n - 1 - i).'},
+  {title: 'The total that vanished', fn: 'manifest_total', value: '130',
+    q: 'MAIN needs the total back so it can print it with units. A function hands a value back with return, not print.',
+    code: 'def manifest_total(weights):\n    total = 0\n    for w in weights:\n        total = total + w\n    print(total)\n\ntotal = manifest_total([12, 3, 20, 50, 45])\nprint(f"Total: {total} lb")\n',
+    fixed: 'def manifest_total(weights):\n    total = 0\n    for w in weights:\n        total = total + w\n    return total\n\ntotal = manifest_total([12, 3, 20, 50, 45])\nprint(f"Total: {total} lb")\n',
+    symptom: '130\nTotal: None lb', err: false, tests: [{expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}, {expr: 'total', expect: '130'}],
+    bad: [5], fixes: [['Replace <code>print(total)</code> with <code>return total</code>.', true], ['Print the units inside the function: <code>print(f"Total: {total} lb")</code>.', false], ['Call it without parentheses: <code>total = manifest_total</code>.', false], ['Add <code>global total</code> at the top of the function.', false]],
+    why: 'A function without a return gives back None. The 130 on the screen came from the print inside the function; MAIN received nothing. return total sends the value where MAIN can use it.'},
+  {title: 'Right numbers, wrong order', fn: 'price', value: '16.1',
+    q: 'Package 0001 is 12 lb and 8 miles, so its label should read $16.10. The function is correct; look at how MAIN calls it.',
+    code: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n        p = p + 3.00\n    return p\n\nweight = 12\nmiles = 8\nlabel = price(miles, weight, False)\nprint(f"Package price: ${label:.2f}")\n',
+    fixed: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n        p = p + 3.00\n    return p\n\nweight = 12\nmiles = 8\nlabel = price(weight, miles, False)\nprint(f"Package price: ${label:.2f}")\n',
+    symptom: 'Package price: $13.90', err: false, tests: [{expr: 'label', expect: '16.1'}, {expr: 'price(12, 8, False)', expect: '16.1'}],
+    bad: [9], fixes: [['Pass the arguments in the order of the parameters: <code>label = price(weight, miles, False)</code>', true], ['Swap the parameters in the def line: <code>def price(miles, weight, fragile):</code>', false], ['Swap the two assignment lines <code>weight = 12</code> and <code>miles = 8</code>.', false], ['Drop the third argument: <code>label = price(12, 8)</code>', false]],
+    why: 'Python matches arguments to parameters by position. The call sent 8 as the weight and 12 as the miles, so the price was 4.50 + 6.40 + 3.00 = 13.90. Swapping the def would break every other call that already uses the right order.'},
+  {title: 'The count that never ends', fn: 'count_fragile', value: '2',
+    q: 'count_fragile(flags) counts how many items of a list of True and False values are True. The sandbox stops any program after 15 seconds.',
+    code: 'def count_fragile(flags):\n    count = 0\n    i = 0\n    while i < len(flags):\n        if flags[i]:\n            count = count + 1\n    return count\n\nprint(count_fragile([False, True, False, False, True]))\n',
+    fixed: 'def count_fragile(flags):\n    count = 0\n    i = 0\n    while i < len(flags):\n        if flags[i]:\n            count = count + 1\n        i = i + 1\n    return count\n\nprint(count_fragile([False, True, False, False, True]))\n',
+    symptom: '(nothing is printed; the program keeps running)\nStopped after 15 seconds: the program never finished. Look for a loop whose condition never becomes False.', err: true,
+    tests: [{expr: 'count_fragile([False, True, False, False, True])', expect: '2'}, {expr: 'count_fragile([])', expect: '0'}, {expr: 'count_fragile([True])', expect: '1'}],
+    bad: [4, 6], fixes: [['Add <code>i = i + 1</code> as the last line of the loop body, outside the if.', true], ['Add <code>i = i + 1</code> inside the if block only.', false], ['Change <code>while</code> to <code>if</code>.', false], ['Change the condition to <code>i <= len(flags)</code>.', false]],
+    why: 'The condition i < len(flags) can only become False if i grows. Nothing in the loop changed i, so the same item was checked forever. The increment must run on every pass, not only when the item is True.'},
+  {title: 'The lane that is not there', fn: 'zone', value: "'Ask dispatch'",
+    q: 'zone(city) must return "Ask dispatch" for a city that is not in any zone, such as Fort Lauderdale. Blue Heron Clinic\'s package came out with no lane at all.',
+    code: 'def zone(city):\n    if city == "Doral":\n        return "A"\n    elif city == "Hialeah" or city == "Miami Gardens":\n        return "B"\n    elif city == "Kendall" or city == "Homestead":\n        return "C"\n\nprint("Lane:", zone("Fort Lauderdale"))\n',
+    fixed: 'def zone(city):\n    if city == "Doral":\n        return "A"\n    elif city == "Hialeah" or city == "Miami Gardens":\n        return "B"\n    elif city == "Kendall" or city == "Homestead":\n        return "C"\n    else:\n        return "Ask dispatch"\n\nprint("Lane:", zone("Fort Lauderdale"))\n',
+    symptom: 'Lane: None', err: false, tests: [{expr: 'zone("Fort Lauderdale")', expect: "'Ask dispatch'"}, {expr: 'zone("Doral")', expect: "'A'"}, {expr: 'zone("Homestead")', expect: "'C'"}],
+    bad: [6, 7], fixes: [['Add <code>else:</code> with <code>return "Ask dispatch"</code> at the end of the chain.', true], ['Add <code>print("Ask dispatch")</code> after the chain.', false], ['Change the last <code>elif</code> to <code>else</code>.', false], ['Put <code>return "Ask dispatch"</code> as the first line of the function.', false]],
+    why: 'No condition was True, so the function reached its end without a return, and Python returns None. Every path through a function must return something; the else is the path for everything that did not match.'},
+  {title: 'Four spaces short', fn: 'price', value: '10.4',
+    q: 'The body of an if must be indented under it. Python refuses to run the file at all, which is why the error names the line before anything prints.',
+    code: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n    p = p + 3.00\n    return p\n\nprint(f"{price(3, 2, True):.2f}")\n',
+    fixed: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n        p = p + 3.00\n    return p\n\nprint(f"{price(3, 2, True):.2f}")\n',
+    symptom: '  File "price.py", line 4\n    p = p + 3.00\n    ^\nIndentationError: expected an indented block after \'if\' statement on line 3', err: true,
+    tests: [{expr: 'price(3, 2, True)', expect: '10.4'}, {expr: 'price(12, 8, False)', expect: '16.1'}],
+    bad: [4], fixes: [['Indent <code>p = p + 3.00</code> four more spaces so it sits under the if.', true], ['Remove the colon after <code>if fragile</code>.', false], ['Delete the if line.', false], ['Indent <code>return p</code> under the if as well.', false]],
+    why: 'Indentation is how Python knows which lines belong to the if. The line after if fragile: had the same indentation as the if, so there was no body. Four more spaces make it the body; return p stays at the function level so it runs for every package.'}
+];
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+let order = [], r = 0, total = 0, log = [], G = null, FALLBACK = false, st = null;
+
+// ---- the scene: a small call stack tower (Three.js when available, otherwise SVG) ----
+function Scene3D(stage) {
+  const r3 = new THREE.WebGLRenderer({antialias: true, alpha: true}); r3.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r3.setSize(stage.clientWidth, stage.clientHeight); r3.domElement.setAttribute('aria-hidden', 'true'); stage.appendChild(r3.domElement);
+  const scene = new THREE.Scene(); const cam = new THREE.PerspectiveCamera(36, stage.clientWidth / stage.clientHeight, 0.1, 100); const fitCam = () => { const k = Math.max(1, 1.6 / Math.max(0.3, stage.clientWidth / stage.clientHeight)); cam.position.set(0.3, 1.0 + 2.3 * k, 6.2 * k); cam.lookAt(0, 1.0, 0); }; fitCam();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x223366, 1.05)); const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(4, 9, 6); scene.add(sun);
+  function textSprite(text, o) { o = Object.assign({size: 30, color: '#eef1fa', bg: null, h: 0.34, pad: 14}, o || {}); const c = document.createElement('canvas'), ctx = c.getContext('2d'); const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false})); sp.renderOrder = 10;
+    sp.userData.set = (t, color, bg) => { if (color) o.color = color; if (bg !== undefined) o.bg = bg; const font = '600 ' + o.size + 'px "Red Hat Mono", Consolas, monospace'; ctx.font = font; const w = Math.ceil(ctx.measureText(t).width) + o.pad * 2, h = Math.round(o.size * 1.6); c.width = w; c.height = h; ctx.font = font; ctx.textBaseline = 'middle';
+      if (o.bg) { ctx.fillStyle = o.bg; ctx.beginPath(); ctx.roundRect(1, 1, w - 2, h - 2, 8); ctx.fill(); } ctx.fillStyle = o.color; ctx.fillText(t, o.pad, h / 2); tex.needsUpdate = true; sp.scale.set(o.h * w / h, o.h, 1); };
+    sp.userData.set(text); return sp; }
+  const mat = (color, o) => new THREE.MeshStandardMaterial(Object.assign({color, roughness: .55, metalness: .1}, o || {}));
+  const edges = (geo, color) => new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color, transparent: true, opacity: .9}));
+  const floorGeo = new THREE.BoxGeometry(6, 0.3, 3.2); const floor = new THREE.Mesh(floorGeo, mat(0x1B2150)); floor.position.set(0, -0.15, 0); floor.add(edges(floorGeo, 0xE0B840)); scene.add(floor);
+  const mainLab = textSprite('MAIN', {size: 34, color: '#E0B840', h: 0.42}); mainLab.position.set(-2.4, 0.22, 1.3); scene.add(mainLab);
+  const res = textSprite('result = ?', {size: 26, color: '#9FE7FF', bg: 'rgba(6,9,23,.85)', h: 0.3}); res.position.set(1.6, 0.32, 1.1); scene.add(res);
+  const fgeo = new THREE.BoxGeometry(2.4, 1.2, 1.6); const fbox = new THREE.Mesh(fgeo, new THREE.MeshPhysicalMaterial({color: 0x38B0E0, transparent: true, opacity: 0, roughness: .2, side: THREE.DoubleSide})); const fed = edges(fgeo, 0x38B0E0); fed.material.opacity = 0;
+  const frame = new THREE.Group(); frame.add(fbox); frame.add(fed); frame.position.set(-0.6, 0.65, 0); frame.scale.set(1, 0.05, 1); scene.add(frame);
+  const flab = textSprite('price()', {size: 30, color: '#9FE7FF', h: 0.36}); flab.position.set(0, 0.85, 0); flab.visible = false; frame.add(flab);
+  const card = textSprite('p = ?', {size: 26, color: '#1a1205', bg: '#E0B840', h: 0.28}); card.position.set(0, 0.1, 0.4); card.visible = false; frame.add(card);
+  let pill = null, lastTl = null;
+  const api = {
+    set(v) { res.userData.set('result = ' + v, '#9FE7FF'); },
+    explain(R, ok, got) {
+      if (lastTl) { lastTl.kill(); lastTl = null; }
+      if (pill) { scene.remove(pill); pill = null; }
+      const col = ok ? 0x6FD49B : 0xF0786A; fbox.material.color.set(col); fed.material.color.set(col); flab.userData.set(R.fn + '()'); card.userData.set(ok ? 'tests: all pass' : 'tests: a fail', '#1a1205', ok ? '#6FD49B' : '#F0786A');
+      frame.scale.set(1, 0.05, 1); frame.position.y = -0.3; fbox.material.opacity = 0; fed.material.opacity = 0; flab.visible = false; card.visible = false; res.userData.set('result = ?', '#9FE7FF');
+      if (!hasGSAP || reduced) { frame.scale.set(1, 1, 1); frame.position.y = 0.65; fbox.material.opacity = .16; fed.material.opacity = .9; flab.visible = true; card.visible = true; res.userData.set('result = ' + (ok ? R.value : got), ok ? '#6FD49B' : '#F0786A'); return null; }
+      const tl = gsap.timeline();
+      tl.to(frame.position, {y: 0.65, duration: .6, ease: 'power3.out'}, 0).to(frame.scale, {y: 1, duration: .6, ease: 'power3.out'}, 0).to(fbox.material, {opacity: .16, duration: .4}, .2).to(fed.material, {opacity: .9, duration: .4}, .2)
+        .call(() => { flab.visible = true; card.visible = true; }, null, .5);
+      const my = textSprite(ok ? R.value : String(got), {size: 30, color: '#06120f', bg: ok ? '#6FD49B' : '#F0786A', h: 0.34}); my.position.set(-0.6, 0.65, 0.9); my.visible = false; scene.add(my); pill = my;
+      tl.call(() => { my.visible = true; }, null, 1.1).to(my.position, {x: 1.6, y: 0.37, z: 1.1, duration: .9, ease: 'power2.inOut'}, 1.2).to(fbox.material, {opacity: 0, duration: .5}, 1.5).to(fed.material, {opacity: 0, duration: .5}, 1.5).to(frame.scale, {y: 0.05, duration: .5}, 1.5)
+        .call(() => { flab.visible = false; card.visible = false; res.userData.set('result = ' + (ok ? R.value : got), ok ? '#6FD49B' : '#F0786A'); scene.remove(my); if (pill === my) pill = null; }, null, 2.1);
+      if (!ok) tl.to(frame.position, {x: -0.48, duration: .06, yoyo: true, repeat: 7}, .6);
+      lastTl = tl; return tl;
+    }
+  };
+  const tick = () => { r3.render(scene, cam); requestAnimationFrame(tick); }; tick();
+  window.addEventListener('resize', () => { r3.setSize(stage.clientWidth, stage.clientHeight); cam.aspect = stage.clientWidth / stage.clientHeight; cam.updateProjectionMatrix(); fitCam(); });
+  return api;
+}
+function Scene2D(stage) {
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 640 300'); svg.setAttribute('class', 'flat'); svg.setAttribute('aria-hidden', 'true'); stage.appendChild(svg);
+  svg.innerHTML = '<text x="320" y="20" text-anchor="middle" fill="#aeb3c9" font-size="11">Flat view (no WebGL): the call stack tower</text>' +
+    '<rect x="60" y="250" width="520" height="24" rx="4" fill="#1B2150" stroke="#E0B840"/><text x="90" y="266" fill="#E0B840" font-size="14" font-weight="600">MAIN</text>' +
+    '<text id="res" x="430" y="238" fill="#9FE7FF" font-size="13" font-weight="600">result = ?</text>' +
+    '<g id="fr" opacity="0"><rect x="120" y="150" width="200" height="96" rx="8" fill="#38B0E0" fill-opacity=".14" stroke="#38B0E0" stroke-width="1.5"/><text id="fl" x="220" y="140" text-anchor="middle" fill="#9FE7FF" font-size="13" font-weight="600">price()</text>' +
+    '<rect id="cr" x="150" y="186" width="140" height="22" rx="4" fill="#E0B840"/><text id="ct" x="220" y="201" text-anchor="middle" fill="#1a1205" font-size="11" font-weight="600">tests</text></g>' +
+    '<g id="pill" opacity="0"><rect id="pr" x="180" y="186" width="80" height="22" rx="5" fill="#6FD49B"/><text id="pt" x="220" y="201" text-anchor="middle" fill="#06120f" font-size="12" font-weight="600">?</text></g>';
+  const q = s => svg.querySelector(s);
+  const api = {
+    set(v) { q('#res').textContent = 'result = ' + v; q('#res').setAttribute('fill', '#9FE7FF'); },
+    explain(R, ok, got) {
+      const col = ok ? '#6FD49B' : '#F0786A'; q('#fr rect').setAttribute('stroke', col); q('#fr rect').setAttribute('fill', col); q('#fl').textContent = R.fn + '()'; q('#ct').textContent = ok ? 'tests: all pass' : 'tests: a fail'; q('#cr').setAttribute('fill', col);
+      q('#pt').textContent = ok ? R.value : String(got); q('#pr').setAttribute('fill', col); q('#res').textContent = 'result = ?'; q('#res').setAttribute('fill', '#9FE7FF');
+      const done = () => { q('#res').textContent = 'result = ' + (ok ? R.value : got); q('#res').setAttribute('fill', col); };
+      if (!hasGSAP || reduced) { q('#fr').setAttribute('opacity', 1); done(); return null; }
+      q('#pill').setAttribute('transform', ''); q('#pill').setAttribute('opacity', 0);
+      if (api._tl) api._tl.kill();
+      const tl = gsap.timeline(); api._tl = tl; tl.fromTo('#fr', {attr: {opacity: 0, transform: 'translate(0 60)'}}, {attr: {opacity: 1, transform: 'translate(0 0)'}, duration: .6, ease: 'power3.out'})
+        .to('#pill', {attr: {opacity: 1}, duration: .2}, 1.0).to('#pill', {attr: {transform: 'translate(240 37)'}, duration: .9, ease: 'power2.inOut'}, 1.2).to('#fr', {attr: {opacity: 0}, duration: .5}, 1.5).call(() => { done(); q('#pill').setAttribute('opacity', 0); }, null, 2.1);
+      if (!ok) tl.to('#fr', {attr: {transform: 'translate(6 0)'}, duration: .06, yoyo: true, repeat: 7}, .6);
+      return tl;
+    }
+  };
+  return api;
+}
+function Scene(stage) { if (hasTHREE && window.WebGLRenderingContext) { try { return Scene3D(stage); } catch (e) { console.error(e); stage.querySelectorAll('canvas').forEach(c => c.remove()); } } return Scene2D(stage); }
+
+// ---- the sandbox (one instance; the code, inputs, and tests change per round) ----
+const sb = PySandbox($('#sandbox'), {title: 'Copilot\'s code (edit it, then Run)', code: '', inputs: '', tests: [],
+  onTests(passed, n, m) { if (!st || st.locked) return; const first = st.attempts === 0; if (passed === n) { lock(st.showed ? 3 : first ? 10 : 6, st.showed ? 'shown fix' : first ? 'fixed on the first run' : 'fixed on run ' + (st.attempts + 1)); G.explain(cur(), true); $('#capT').textContent = 'Fixed'; $('#capB').textContent = cur().fn + '() now returns ' + cur().value + ' and every test passes. ' + cur().why; }
+    else { const failing = m.tests.find(t => !t.pass); feedback('info', passed + ' of ' + n + ' tests pass. ' + (failing ? 'Look at <code>' + esc(failing.expr) + '</code>: expected ' + esc(failing.expect) + ', got ' + esc(failing.got) + '. ' : '') + 'Edit the code and press <b>Run</b> again (6 points when it passes).'); G.explain(cur(), false, failing ? failing.got : '?'); $('#capT').textContent = 'Not yet'; $('#capB').textContent = 'A test still fails. The coral value is what your version returned.'; } },
+  onRun(m) { if (!st || st.locked) return; st.attempts++; if (m.err === 'timeout') { feedback('bad', 'Stopped after 15 seconds: the program never finished. A loop\'s condition never became False. Find the variable the condition uses and make sure the loop changes it on every pass, then press <b>Run</b> again.'); G.explain(cur(), false, 'never returns'); }
+    else if (!m.ok) { feedback('bad', 'Python stopped with an error. Read the last line of the message in the Output box: it names the error and the line. Fix it and press <b>Run</b> again.'); G.explain(cur(), false, 'error'); } guide(2, 'Fix the code and press <b>Run</b> again, or press <b>Show the fix</b> for 3 points.'); }
+});
+const sbStatus = $('#sandbox .pysb-status'), sbPre = $('#sandbox .pysb-pre'), sbTests = $('#sandbox .pysb-tests');
+new MutationObserver(() => { if (/could not load/i.test(sbStatus.textContent) && !FALLBACK) { FALLBACK = true; feedback('info', 'Python could not load here, so this round switched to pick-the-line mode (same points).'); showMode(); } }).observe(sbStatus, {childList: true, characterData: true, subtree: true});
+
+// ---- rounds ----
+const cur = () => ROUNDS[order[r]];
+function feedback(kind, html) { $('#fb').innerHTML = '<div class="feedback ' + kind + '">' + html + '</div>'; }
+function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === 10 ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+function lock(pts, how) { st.locked = true; st.pts = pts; total += pts; log[r] = {q: cur().title, how, pts}; $('#score').textContent = total; $('#btnNext').disabled = false; $('#btnFix').disabled = true; $('#btnCheck').disabled = true; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round';
+  feedback(pts === 10 ? 'ok' : pts > 0 ? 'info' : 'bad', '<b>' + pts + ' of 10 points</b> (' + how + '). ' + cur().why); drawProgress(); guide(4, 'Press <b>Next round</b>.'); }
+function showMode() {
+  const pick = FALLBACK || st.pick; $('#sbWrap').hidden = pick; $('#pickWrap').hidden = !pick;
+  if (pick && !st.built) { st.built = true; const R = cur(); const lines = R.code.replace(/\n$/, '').split('\n');
+    $('#pickCode').innerHTML = lines.map((l, i) => '<button type="button" class="ln" data-l="' + (i + 1) + '" aria-pressed="false"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' + hl(l) + '</button>').join('');
+    st.fixOrder = shuffle(R.fixes.map((_, i) => i)); $('#fixes').innerHTML = st.fixOrder.map(i => '<button type="button" data-f="' + i + '" aria-pressed="false">' + R.fixes[i][0] + '</button>').join(''); $('#btnCheck').disabled = false; }
+}
+function showRound() {
+  const R = cur(); st = {attempts: 0, showed: false, locked: false, pts: null, pick: false, built: false, line: null, fix: null, checks: 0};
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.title; $('#qText').textContent = R.q; $('#fb').innerHTML = '';
+  $('#symptom').textContent = R.symptom; $('#symptom').classList.toggle('err', R.err);
+  sb.setCode(R.code); sb.setInputs(''); sb.setTests(R.tests); sbPre.className = 'pysb-pre'; sbPre.textContent = 'Tests for this round:\n' + R.tests.map(t => '  ' + t.expr + '  expected ' + t.expect).join('\n'); sbTests.hidden = true;
+  $('#btnNext').disabled = true; $('#btnFix').disabled = false; $('#btnCheck').disabled = true; $('#capT').textContent = 'Round ' + (r + 1); $('#capB').textContent = 'When your tests pass, the fixed call plays here.'; G.set('?');
+  showMode(); drawProgress();
+  guide(1, 'Read the symptom for round ' + (r + 1) + ', find the bad line, fix it, and press <b>Run</b>.');
+}
+$('#pickCode').addEventListener('click', e => { const b = e.target.closest('button.ln'); if (!b || st.locked) return; st.line = +b.dataset.l; document.querySelectorAll('#pickCode button.ln').forEach(x => x.setAttribute('aria-pressed', x === b)); guide(2, st.fix === null ? 'Now pick the fix below, then press <b>Check</b>.' : 'Press <b>Check</b>.'); });
+$('#fixes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || st.locked) return; st.fix = +b.dataset.f; document.querySelectorAll('#fixes button').forEach(x => x.setAttribute('aria-pressed', x === b)); guide(2, st.line === null ? 'Now pick the bad line above, then press <b>Check</b>.' : 'Press <b>Check</b>.'); });
+$('#btnCheck').addEventListener('click', () => {
+  if (st.locked) return; if (st.line === null || st.fix === null) { feedback('info', 'Pick a line and a fix first, then press <b>Check</b>.'); return; }
+  const R = cur(); st.checks++; const lineOk = R.bad.includes(st.line), fixOk = R.fixes[st.fix][1];
+  document.querySelectorAll('#pickCode button.ln').forEach(b => { b.classList.toggle('right', lineOk && +b.dataset.l === st.line); b.classList.toggle('wrong', !lineOk && +b.dataset.l === st.line); });
+  document.querySelectorAll('#fixes button').forEach(b => { b.classList.toggle('right', fixOk && +b.dataset.f === st.fix); b.classList.toggle('wrong', !fixOk && +b.dataset.f === st.fix); });
+  if (lineOk && fixOk) { lock(st.showed ? 3 : st.checks === 1 ? 10 : 6, st.showed ? 'shown fix' : st.checks === 1 ? 'right on the first check' : 'right on check ' + st.checks); G.explain(R, true); }
+  else { feedback('info', (lineOk ? 'The line is right. ' : 'That line is not the cause. ') + (fixOk ? 'The fix is right.' : 'That fix does not cure the symptom.') + ' Change your pick and press <b>Check</b> again (6 points), or press <b>Show the fix</b> (3 points).'); G.explain(R, false, '?'); }
+});
+$('#btnFix').addEventListener('click', () => {
+  if (st.locked) return; const R = cur(); st.showed = true;
+  if (FALLBACK || st.pick) { st.line = R.bad[0]; st.fix = R.fixes.findIndex(f => f[1]); document.querySelectorAll('#pickCode button.ln').forEach(b => { b.setAttribute('aria-pressed', +b.dataset.l === st.line); b.classList.toggle('right', R.bad.includes(+b.dataset.l)); }); document.querySelectorAll('#fixes button').forEach(b => { b.setAttribute('aria-pressed', +b.dataset.f === st.fix); b.classList.toggle('right', +b.dataset.f === st.fix); b.disabled = true; }); lock(3, 'shown fix'); G.explain(R, true); }
+  else { sb.setCode(R.fixed); feedback('info', '<b>The fix is in the code box.</b> Line ' + R.bad[0] + ' was the cause. ' + R.why + ' Press <b>Run</b> to watch the tests pass (3 points).'); guide(3, 'Press <b>Run</b> in the code box to see the tests pass.'); }
+});
+$('#btnResetCode').addEventListener('click', () => { if (st.locked) return; sb.setCode(cur().code); sbPre.className = 'pysb-pre'; sbPre.textContent = 'Code reset to Copilot\'s version. Edit it and press Run.'; sbTests.hidden = true; });
+$('#toPick').addEventListener('click', () => { if (st.locked) return; st.pick = true; showMode(); guide(1, 'Pick the bad line in the code, pick the fix, then press <b>Check</b>.'); });
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); window.scrollTo({top: $('#qTitle').getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth'}); } else finishAll(); });
+function finishAll() {
+  guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.'; $('#symptom').textContent = ''; $('#sbWrap').hidden = true; $('#pickWrap').hidden = true; $('#btnNext').disabled = true; $('#btnFix').disabled = true; $('#fb').innerHTML = '';
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>Bug</th><th>How you solved it</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(l.q) + '</td><td>' + esc(l.how) + '</td><td>' + l.pts + ' / 10</td></tr>').join('') + '<tr><td colspan="3"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
+  drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function start() { order = shuffle(ROUNDS.map((_, i) => i)); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+$('#btnAgain').addEventListener('click', start);
+G = Scene($('#stage'));
+window.__hunt = {get order() { return order; }, get r() { return r; }, get st() { return st; }, get total() { return total; }, get log() { return log; }, get FALLBACK() { return FALLBACK; }, ROUNDS, sb, start};
+start();
+})();
+</script>
+</body>
+</html>
