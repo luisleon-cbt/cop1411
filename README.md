@@ -19,4 +19,4 @@ Live site: https://luisleon-cbt.github.io/cop1411/
 2. In the repository, open Settings, then Pages, and set Source to "Deploy from a branch", branch `main`, folder `/ (root)`.
 3. Each page is then live at `https://luisleon-cbt.github.io/cop1411/weekN/<file>.html`.
 
-The pages load the CBT logo from `luisleon-cbt/items`, and GSAP, Three.js, and fonts from public CDNs. They still work if a CDN fails (a 2D view replaces the 3D one) and need no build step.
+The pages load the CBT logo from `luisleon-cbt/items`, and GSAP and fonts from public CDNs. The boards are SVG drawn and animated with JavaScript; the pages need no build step.
