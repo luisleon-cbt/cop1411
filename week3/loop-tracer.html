@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loop tracer</title>
+<meta name="description" content="COP1411 Week 3 interactive: Watch the daily manifest loop run one package at a time: the token circles the ring, the variables change, the trace table grows one row per pass, and you check a Copilot explanation against it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+  /* loop tracer: code listing, manifest picker, van bar, Copilot explanation checker */
+  .code{background:var(--code-bg);border:1px solid var(--line);border-radius:5px;padding:8px 0;font:500 12.5px/1.6 var(--font-mono);color:var(--silk-dim);overflow:auto;margin:0;counter-reset:ln}
+  .code span{display:block;padding:0 12px 0 40px;white-space:pre;position:relative;border-left:3px solid transparent}
+  .code span::before{counter-increment:ln;content:counter(ln);position:absolute;left:10px;color:#4a5490;font-size:10.5px}
+  .code span.on{background:rgba(224,184,64,.16);color:#fff6d8;border-left-color:var(--cbt-gold)}
+  .code span.dim{opacity:.4}
+  .man{display:grid;gap:8px}
+  .man select,.man input{width:100%}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .bar{height:12px;border:1px solid var(--line);border-radius:3px;background:var(--board-deep);overflow:hidden;margin-top:6px;grid-column:1/-1}
+  .bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .4s,background .3s}
+  .bar i.near{background:var(--cbt-gold)}
+  .bar i.over{background:var(--bad)}
+  .cop{display:grid;gap:8px}
+  .cop .s{border:1px solid var(--line);border-radius:5px;padding:9px 11px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;font-size:14px;line-height:1.45}
+  .cop .s .tf{display:flex;gap:4px}
+  .cop .s .tf .btn{min-width:54px;padding:6px 8px}
+  .cop .s.ok{border-color:var(--ok);background:rgba(111,212,155,.06)}
+  .cop .s.bad{border-color:var(--bad);background:rgba(240,120,106,.06)}
+  .cop .s .why{grid-column:1/-1;font-size:12.5px;color:var(--silk-dim)}
+  .cop .s .why b{color:var(--silk)}
+  .trace tr.new td{background:rgba(224,184,64,.14)}
+  .trace td.c{text-align:center}
+  .outp{min-height:2.6em}
+  .msg{margin:6px 0 0;font-size:12.5px;color:var(--silk-dim);min-height:1.2em}
+  .msg.bad{color:var(--bad)}
+  .copnote{font-size:12.5px;color:var(--silk-dim);margin:0 0 10px}
+  @media(max-width:520px){.cop .s{grid-template-columns:1fr}.cop .s .tf{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 3 · Interactive A</div>
+  </div>
+</header>
+
+<div class="app">
+  <header class="lab-head">
+    <p class="eyebrow">COP1411 · Week 3 · Explorer</p>
+    <h1>Loop tracer</h1>
+    <p class="lede">Watch the daily manifest loop run one package at a time: the token circles the ring, the variables change, the trace table grows one row per pass, and you check a Copilot explanation against it.</p>
+  </header>
+  <section class="stage" id="stage" aria-label="3D view of the loop ring. Drag to orbit, use the zoom buttons or scroll to zoom, click a chip to learn what it does.">
+    <div class="hud hud-top">
+      <ol class="phases" aria-label="Loop phase">
+        <li data-p="read" style="--c:var(--cbt-gold)">Read</li>
+        <li data-p="check" style="--c:var(--ctrl)">Check</li>
+        <li data-p="append" style="--c:var(--cbt-sky)">Append</li>
+        <li data-p="total" style="--c:var(--oper)">Total</li>
+        <li data-p="count" style="--c:var(--alu)">Count</li>
+        <li data-p="heaviest" style="--c:var(--out)">Heaviest</li>
+        <li data-p="report" style="--c:var(--cbt-gold)">Report</li>
+      </ol>
+      <div class="ticks">step <b id="hudStep">0</b> · pass <b id="hudPass">0</b></div>
+      <p class="credit">By Professor De Leon</p>
+    </div>
+    <div class="hud hud-bottom">
+      <div class="legend" aria-label="Colors">
+        <span style="--c:var(--cbt-gold)"><i></i>the token (one package)</span>
+        <span style="--c:var(--ctrl)"><i></i>decision diamond</span>
+        <span style="--c:var(--cbt-sky)"><i></i>the list</span>
+        <span style="--c:var(--alu)"><i></i>van load OK</span>
+        <span style="--c:var(--bad)"><i></i>over capacity</span>
+      </div>
+      <div class="views" role="group" aria-label="Camera views">
+        <button type="button" data-view="overview" class="on">Overview</button>
+        <button type="button" data-view="ring">Ring</button>
+        <button type="button" data-view="rack">Variables</button>
+        <button type="button" data-view="list">List</button>
+        <button type="button" id="follow" class="on" aria-pressed="true">Follow</button>
+      </div>
+    </div>
+    <div class="nogl" id="nogl" hidden>The 3D view needs WebGL and the 3D libraries, which are not available here. The flat board shows the same loop.</div>
+  </section>
+
+  <section class="guide" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How to use this lab</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Look at the board. The loop is drawn as a ring of chips. The VAN-1 manifest (12, 3, 20, 50, 45) is loaded. To try another one, pick it under <b>Manifest</b> below and press <b>Load</b>.</li>
+      <li data-h="2">Press <b>Step</b>. The token moves to the next chip on the ring, the narration says what happens with the real numbers, the variable chips change, and the matching Python line lights up in <b>The code</b>.</li>
+      <li data-h="3">Keep pressing <b>Step</b> (or press <b>Run</b> to play the whole manifest). Each time the token completes one trip around the ring, the <b>Trace table</b> gets one new row. That row is the proof of what the loop did.</li>
+      <li data-h="4">Press <b>Step back</b> any time to see a step again. Press <b>Reset</b> to start the manifest over.</li>
+      <li data-h="5">Press <b>for version</b> under <b>Manifest</b> and run it again. The list is filled before the loop and there is no sentinel: the for loop stops by itself when the list runs out. Then press <b>index version</b>: for i in range(len(weights)) counts 0, 1, 2, ... and weights[i] reads the item at that position, so a second list such as fragile[i] can describe the same package (assignment 3.2 uses this).</li>
+      <li data-h="6">Read <b>Copilot's explanation</b>. Mark each sentence <b>True</b> or <b>False</b> using your trace table, then press <b>Check sentences</b>. Click any chip on the board to read what it does.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Press <b>Step</b> to read the first weight.</span></div>
+      <ul class="tips">
+        <li>Drag on the board to turn it. Use <b>+</b>, <b>&minus;</b>, the arrows, and <b>FIT</b> to look closer, or the view buttons on the board (Overview, Ring, Variables, List, Follow).</li>
+        <li>Keyboard: Space steps, B steps back, R runs or pauses, + and - zoom, 0 shows the whole board.</li>
+        <li>A sentinel is a special value that means "stop". Here it is -1, because no package weighs -1 lb.</li>
+        <li>An index is a position in a list, counted from 0. weights[0] is the first package and weights[len(weights) - 1] is the last.</li>
+      </ul>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <section class="narr" aria-live="polite">
+      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 0</span></div>
+      <p id="narration">Press Step to read the first weight, or Run to play the whole manifest.</p>
+    </section>
+    <div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="btnRun">Run</button>
+        <button type="button" class="btn" id="btnStep">Step</button>
+        <button type="button" class="btn" id="btnBack">Step back</button>
+        <button type="button" class="btn" id="btnReset">Reset</button>
+      </div>
+      <div class="speed" style="margin-top:12px"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="4" step="1" value="2"><output id="speedOut">1×</output></div>
+    </div>
+
+    <section aria-labelledby="hMan">
+      <h2 id="hMan">Manifest</h2>
+      <div class="man">
+        <label for="manSel" class="hint">Weights to read, in order (the program adds the -1 for you)</label>
+        <select id="manSel">
+          <option value="van1">VAN-1 manifest: 12, 3, 20, 50, 45</option>
+          <option value="over">Overload manifest: 400, 350, 300, 200</option>
+          <option value="empty">Empty manifest: -1 right away</option>
+          <option value="one">One package: 7</option>
+          <option value="cap">Exactly at capacity: 600, 600</option>
+          <option value="custom">My own weights</option>
+        </select>
+        <div class="row2" id="customRow" hidden><input type="text" id="custom" inputmode="numeric" placeholder="for example 30, 8, 125" aria-label="Your weights, separated by commas"></div>
+        <div class="row2">
+          <button type="button" class="btn primary" id="btnLoad">Load</button>
+          <span class="hint" style="align-self:center" id="manInfo"></span>
+        </div>
+        <p class="msg" id="manMsg"></p>
+        <p class="hint" style="margin-top:6px">Loop style</p>
+        <div class="row2" role="group" aria-label="Loop style" style="grid-template-columns:1fr 1fr 1fr">
+          <button type="button" class="btn" id="modeWhile" aria-pressed="true">while version</button>
+          <button type="button" class="btn" id="modeFor" aria-pressed="false">for version</button>
+          <button type="button" class="btn" id="modeIndex" aria-pressed="false">index version</button>
+        </div>
+        <p class="hint" id="modeNote">while: read until the sentinel -1 arrives, and append each weight to a list.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="hLive">
+      <h2 id="hLive">Live state</h2>
+      <div class="regs">
+        <div class="reg kv" id="r-weight"><span class="rn">weight</span><span class="rv" id="v-weight">–</span><span class="rf">the package just read</span><span class="rs" id="s-weight"></span></div>
+        <div class="reg kv" id="r-total"><span class="rn">total</span><span class="rv" id="v-total">0</span><span class="rf">accumulator (running sum)</span><span class="rs" id="s-total">lb</span></div>
+        <div class="reg kv" id="r-count"><span class="rn">count</span><span class="rv" id="v-count">0</span><span class="rf">counter (+1 per pass)</span><span class="rs" id="s-count">passes</span></div>
+        <div class="reg kv" id="r-heaviest"><span class="rn">heaviest</span><span class="rv" id="v-heaviest">0</span><span class="rf">maximum so far</span><span class="rs" id="s-heaviest">lb</span></div>
+        <div class="reg kv wide" id="r-van"><span class="rn">VAN-1 load</span><span class="rv" id="v-van">0 / 1200 lb</span><span class="rf" id="vanNote">capacity 1,200 lb; a warning prints only when total is above it</span><span class="rs" id="s-van">0%</span><div class="bar"><i id="vanBar"></i></div></div>
+      </div>
+      <p class="hint" style="margin-top:8px">weights (the list)</p>
+      <div class="tape" id="tape"><em>empty list: []</em></div>
+      <p class="hint" style="margin-top:8px">Printed output</p>
+      <div class="tape outp" id="outp"><em>Nothing printed yet</em></div>
+    </section>
+
+    <section aria-labelledby="hTrace">
+      <h2 id="hTrace">Trace table <small>(one row per pass)</small></h2>
+      <div class="memwrap"><table class="trace" aria-label="Trace table"><thead><tr><th>Pass</th><th>weight</th><th>len(weights)</th><th>total</th><th>count</th><th>heaviest</th></tr></thead><tbody id="traceBody"></tbody></table></div>
+      <p class="hint" style="margin-top:6px" id="traceNote">Row 0 is the state before the loop starts. A new row appears at the end of every trip around the ring.</p>
+    </section>
+
+    <section aria-labelledby="hCode">
+      <h2 id="hCode">The code <small id="codeMode">(while version)</small></h2>
+      <pre class="code" id="code"></pre>
+    </section>
+
+    <section class="span-all" aria-labelledby="hCop">
+      <h2 id="hCop">Copilot's explanation: true or false?</h2>
+      <p class="copnote">A student asked Microsoft Copilot to explain the while version line by line for the VAN-1 manifest. Six of its sentences are below. Some sound right but are wrong. Use the trace table (run the VAN-1 and the overload manifests) to mark each one, then press <b>Check sentences</b>. An explanation that sounds right is not proof; a trace table is.</p>
+      <div class="cop" id="cop"></div>
+      <div class="stepper"><button type="button" class="btn primary" id="btnCop">Check sentences</button><button type="button" class="btn" id="btnCopClear">Clear marks</button><span class="hint" id="copScore" aria-live="polite"></span></div>
+    </section>
+
+    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any chip on the board to learn what it does.</div>
+    <section>
+      <h2>Things to notice</h2>
+      <ul class="notice">
+        <li>total, count, and heaviest all start at 0 before the loop. Row 0 of the trace table shows it. Starting count at 1 would count a package that never arrived.</li>
+        <li>The sentinel -1 is read like any other weight, but the condition weight != -1 fails, so the body never runs for it. It is not counted and not added.</li>
+        <li>The body runs once per package: five packages, five passes, five rows. An empty manifest gives zero passes and the report still prints.</li>
+        <li>The loop never stops because of the capacity. It reads every package; the warning is checked once, after the loop. Exactly 1,200 lb is not above 1,200.</li>
+        <li>The for version does the same work without a sentinel, because the list already knows how many items it has.</li>
+        <li>The index version is the for version with a counter built in: i goes 0, 1, 2, ..., and weights[i] and fragile[i] are the weight and the fragile answer of the same package.</li>
+      </ul>
+    </section>
+    <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+  </aside>
+</div>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+// guide block: mark the current step (1-based) and say the single next action
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+// LAB3D START: CBT 3D kit (modeled on the professor's "Tiny Machine Lab" reference, in CBT colors: navy board, gold traces). Paste as one block.
+// Needs Three.js r147 (three.min.js), examples/js/controls/OrbitControls.js, examples/js/renderers/CSS2DRenderer.js and GSAP 3.12.5.
+// Returns null when any of them (or WebGL) is missing: then draw the 2D fallback.
+//
+// const lab = Lab3D(stageEl, {
+//   board: {w: 22.4, d: 13.6, cx: 0, cz: 0.2, silk: 'BAY-4  REV 1.0  ...', seed: 11},
+//   views: {overview: {pos: [0, 17, 14.5], tgt: [0, 0, 0.4], want: 1.55}, cpu: {...}},
+//   colors: {copper: '#E0B840'}, palette: {...}
+// });
+// lab.chip(key, {x, z, w, d, h, nm, body, metal, cell})  -> rec {g, mat, el, val, sub, h, key}
+// lab.silkRect(x0, x1, z0, z1)   lab.zone(text, x, z, color)   lab.label(html, cls, x, y, z, parent)
+// lab.busMat(color, {base, rest})  lab.trace([{x,z}...], lines, mat)  lab.glowBus(mat)
+// lab.fly([{x,z}...], text, color, {y, dur}) -> GSAP timeline (packet sphere + halo + pill label)
+// lab.hi(rec, color)  lab.clear()  lab.pop(rec)  lab.setView(name)  lab.zoom(factor)  lab.intro()  lab.onPick(fn)  lab.clearPackets()
+// Zoom buttons (+, -, FIT), a pan pad (arrows), the + - 0 keys, and the arrow keys (while the pointer is over the board) are added to the stage automatically
+// (opts.zoomUI: false turns them off; opts.fitView picks the FIT view). Right-drag, Shift or Ctrl plus drag, or two fingers also pan. lab.pan(dx, dz) moves the view.
+function Lab3D(stage, opts) {
+  opts = opts || {};
+  const hasG = typeof window.gsap !== 'undefined';
+  if (!window.THREE || !THREE.OrbitControls || !THREE.CSS2DRenderer || !hasG) return null;
+  try { const t = document.createElement('canvas'); if (!(t.getContext('webgl') || t.getContext('experimental-webgl'))) return null; } catch (e) { return null; }
+  const T = THREE;
+  const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const B = Object.assign({w: 22.4, d: 13.6, cx: 0, cz: 0.2, silk: '', seed: 11}, opts.board || {});
+  // CBT palette (override any key with opts.palette)
+  const P = Object.assign({
+    boardA: '#1a2257', boardB: '#10163f', dots: 'rgba(238,241,250,0.04)', trace: '224,184,64', via: '#0a0e2a',
+    silkText: 'rgba(238,241,250,0.34)', edge: 0x0d1238, clear: 0x0b0f2b, sky: 0xdfe6ff, ground: 0x10163f, rim: 0x38b0e0,
+    chip: '#161a2e', cell: '#1c2138', pinDot: 0x7a809c, font: '"Red Hat Mono", ui-monospace, monospace',
+    uiBg: 'rgba(11,15,43,.82)', uiLine: '#2a3470', uiText: '#eef1fa', uiHover: '#171f4f', uiAccent: '#E0B840'
+  }, opts.palette || {});
+  const COPPER = (opts.colors && opts.colors.copper) || '#E0B840';
+
+  const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = T.sRGBEncoding;
+  renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.setClearColor(P.clear, 0);
+  renderer.domElement.className = 'gl';
+  stage.prepend(renderer.domElement);
+  const labelR = new T.CSS2DRenderer();
+  labelR.domElement.className = 'labels';
+  renderer.domElement.after(labelR.domElement);
+
+  const scene = new T.Scene();
+  scene.fog = new T.Fog(P.clear, 34, 70);
+  const camera = new T.PerspectiveCamera(40, 1, 0.1, 200);
+  const controls = new T.OrbitControls(camera, labelR.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI * 0.46; controls.minDistance = 5; controls.maxDistance = 42;
+  controls.zoomSpeed = 1.1;
+  // pan: right-drag, Ctrl or Shift plus drag, or two fingers; stays on the board plane
+  controls.enablePan = true; controls.screenSpacePanning = false; controls.panSpeed = 0.9;
+  // keep the mouse wheel inside the 3D view: zoom the board, do not scroll the page
+  stage.addEventListener('wheel', e => e.preventDefault(), {passive: false});
+
+  scene.add(new T.HemisphereLight(P.sky, P.ground, 0.6));
+  const sun = new T.DirectionalLight(0xfff1dc, 1.0); sun.position.set(-7, 16, 9); sun.castShadow = true;
+  sun.shadow.mapSize.set(1536, 1536);
+  Object.assign(sun.shadow.camera, {left: -B.w / 2 - 2, right: B.w / 2 + 2, top: B.d / 2 + 2, bottom: -B.d / 2 - 2, near: 1, far: 44});
+  sun.shadow.bias = -0.0005; scene.add(sun);
+  const rim = new T.DirectionalLight(P.rim, 0.35); rim.position.set(12, 6, -10); scene.add(rim);
+
+  // board: a canvas texture with a dot grid, random copper traces, vias, mounting holes and silkscreen
+  function rng(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const cv = document.createElement('canvas'); cv.width = 2048; cv.height = Math.round(2048 * B.d / B.w);
+  function drawBoard() {
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height, rnd = rng(B.seed);
+    const grd = g.createLinearGradient(0, 0, W, H); grd.addColorStop(0, P.boardA); grd.addColorStop(1, P.boardB);
+    g.fillStyle = grd; g.fillRect(0, 0, W, H);
+    g.fillStyle = P.dots;
+    for (let x = 0; x < W; x += 28) for (let y = 0; y < H; y += 28) g.fillRect(x, y, 2, 2);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let i = 0; i < 85; i++) {
+      let x = rnd() * W, y = rnd() * H, dir = Math.floor(rnd() * 8);
+      g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k < 4; k++) { dir = (dir + (rnd() < .5 ? 1 : 7)) % 8; const len = 30 + rnd() * 170, a = dir * Math.PI / 4; x += Math.cos(a) * len; y += Math.sin(a) * len; g.lineTo(x, y); }
+      g.strokeStyle = 'rgba(' + P.trace + ',' + (0.06 + rnd() * 0.09) + ')'; g.lineWidth = 2 + rnd() * 3; g.stroke();
+      g.beginPath(); g.arc(x, y, 5.5, 0, Math.PI * 2); g.fillStyle = 'rgba(' + P.trace + ',0.22)'; g.fill();
+      g.beginPath(); g.arc(x, y, 2.2, 0, Math.PI * 2); g.fillStyle = P.via; g.fill();
+    }
+    [[60, 60], [W - 60, 60], [60, H - 60], [W - 60, H - 60]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 26, 0, Math.PI * 2); g.fillStyle = 'rgba(' + P.trace + ',0.35)'; g.fill(); g.beginPath(); g.arc(x, y, 15, 0, Math.PI * 2); g.fillStyle = P.via; g.fill(); });
+    g.font = '500 24px ' + P.font;
+    g.fillStyle = P.silkText;
+    if (B.silk) g.fillText(B.silk, 120, H - 48);
+    g.fillText('U1', 120, 92);
+  }
+  drawBoard();
+  const tex = new T.CanvasTexture(cv); tex.encoding = T.sRGBEncoding; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawBoard(); tex.needsUpdate = true; });
+  const edge = new T.MeshStandardMaterial({color: P.edge, roughness: .8});
+  const topM = new T.MeshStandardMaterial({map: tex, roughness: .62, metalness: .05});
+  const board = new T.Mesh(new T.BoxGeometry(B.w, 0.36, B.d), [edge, edge, topM, edge, edge, edge]);
+  board.position.set(B.cx, -0.18, B.cz); board.receiveShadow = true; scene.add(board);
+
+  const unit = new T.BoxGeometry(1, 1, 1);
+  const silk = new T.MeshBasicMaterial({color: 0xeef1fa, transparent: true, opacity: .5});
+  function silkRect(x0, x1, z0, z1) {
+    const t = 0.05;
+    [[x0, x1, z0, z0], [x0, x1, z1, z1], [x0, x0, z0, z1], [x1, x1, z0, z1]].forEach(([a, b, c, d]) => {
+      const m = new T.Mesh(unit, silk); m.scale.set(Math.abs(b - a) + t, 0.01, Math.abs(d - c) + t);
+      m.position.set((a + b) / 2, 0.006, (c + d) / 2); scene.add(m);
+    });
+  }
+  function busMat(color, o) {
+    o = o || {};
+    const m = new T.MeshStandardMaterial({color: new T.Color(o.base || color).multiplyScalar(o.base ? 1 : 0.55), emissive: new T.Color(color), emissiveIntensity: o.rest != null ? o.rest : 0.22, roughness: .35, metalness: .65});
+    m.userData.rest = m.emissiveIntensity; return m;
+  }
+  const nrm = (a, b) => { const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1; return {x: -dz / L, z: dx / L}; };
+  function offsetLine(p, o) {
+    return p.map((q, i) => {
+      const nIn = i > 0 ? nrm(p[i - 1], q) : null, nOut = i < p.length - 1 ? nrm(q, p[i + 1]) : null;
+      let n = nIn || nOut;
+      if (nIn && nOut) { const k = 1 / (1 + nIn.x * nOut.x + nIn.z * nOut.z); n = {x: (nIn.x + nOut.x) * k, z: (nIn.z + nOut.z) * k}; }
+      return {x: q.x + n.x * o, z: q.z + n.z * o};
+    });
+  }
+  function trace(points, lines, mat) {
+    const gap = 0.075, w = 0.04;
+    for (let li = 0; li < lines; li++) {
+      const pts = offsetLine(points, (li - (lines - 1) / 2) * gap);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1], dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz);
+        const m = new T.Mesh(unit, mat); m.scale.set(L + w, 0.03, w); m.position.set((a.x + b.x) / 2, 0.016, (a.z + b.z) / 2); m.rotation.y = -Math.atan2(dz, dx);
+        m.receiveShadow = true; scene.add(m);
+      }
+      [pts[0], pts[pts.length - 1]].forEach(p => { const pad = new T.Mesh(unit, mat); pad.scale.set(0.07, 0.032, 0.07); pad.position.set(p.x, 0.016, p.z); scene.add(pad); });
+    }
+  }
+  function glowBus(m) {
+    if (!m) return;
+    gsap.killTweensOf(m);
+    gsap.timeline().to(m, {emissiveIntensity: 1.8, duration: 0.2}).to(m, {emissiveIntensity: m.userData.rest, duration: 1.4});
+  }
+  function label(html, cls, x, y, z, parent) {
+    const el = document.createElement('div'); el.className = cls; el.innerHTML = html;
+    const o = new T.CSS2DObject(el); o.position.set(x, y, z); (parent || scene).add(o); el._obj = o; return el;
+  }
+  function zone(text, x, z, color) { const el = label(text, 'zone', x, 0.05, z); if (color) el.style.setProperty('--c', color); return el; }
+
+  const pinSpots = [], recs = {}, pickables = [];
+  const dotMat = new T.MeshBasicMaterial({color: P.pinDot});
+  function chip(key, o) {
+    const w = o.w || 1.4, d = o.d || 1.2, h = o.h || (o.cell ? 0.28 : 0.34);
+    const g = new T.Group(); g.position.set(o.x, 0, o.z);
+    const mat = new T.MeshStandardMaterial({color: o.body || (o.cell ? P.cell : P.chip), roughness: .42, metalness: o.metal || .22, emissive: new T.Color(0xffffff), emissiveIntensity: 0});
+    const body = new T.Mesh(unit, mat); body.scale.set(w, h, d); body.position.y = h / 2 + 0.03; body.castShadow = true; body.receiveShadow = true; g.add(body);
+    body.userData.key = key; pickables.push(body);
+    if (!o.metal) { const dot = new T.Mesh(new T.CircleGeometry(0.05, 16), dotMat); dot.rotation.x = -Math.PI / 2; dot.position.set(-w / 2 + 0.14, h + 0.035, -d / 2 + 0.14); g.add(dot); }
+    if (!o.noPins) {
+      const n = Math.max(2, Math.floor((w - 0.2) / 0.22));
+      for (let i = 0; i < n; i++) { const px = -w / 2 + 0.14 + i * ((w - 0.28) / (n - 1)); pinSpots.push([o.x + px, o.z - d / 2 - 0.07], [o.x + px, o.z + d / 2 + 0.07]); }
+    }
+    scene.add(g);
+    const el = label('<span class="nm">' + (o.nm || key) + '</span><span class="vl"></span><span class="sb"></span>', 'tag' + (o.cell ? ' cell' : ''), 0, h + 0.08, 0, g);
+    const rec = {key: key, cell: !!o.cell, g: g, mat: mat, el: el, val: el.querySelector('.vl'), sub: el.querySelector('.sb'), h: h, x: o.x, z: o.z};
+    recs[key] = rec; return rec;
+  }
+  function finishPins() {
+    const pinGeo = new T.BoxGeometry(0.07, 0.05, 0.16), pinMat = new T.MeshStandardMaterial({color: 0xc9ced1, metalness: .9, roughness: .3});
+    const pins = new T.InstancedMesh(pinGeo, pinMat, Math.max(1, pinSpots.length)), mtx = new T.Matrix4();
+    pinSpots.forEach(([x, z], i) => { mtx.makeTranslation(x, 0.045, z); pins.setMatrixAt(i, mtx); });
+    scene.add(pins);
+  }
+
+  // packets: a small sphere with an additive halo and a pill label
+  const haloCv = document.createElement('canvas'); haloCv.width = haloCv.height = 64;
+  const hg = haloCv.getContext('2d'), rg = hg.createRadialGradient(32, 32, 0, 32, 32, 32);
+  rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(.35, 'rgba(255,255,255,.35)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+  hg.fillStyle = rg; hg.fillRect(0, 0, 64, 64);
+  const haloTex = new T.CanvasTexture(haloCv);
+  const pktGeo = new T.SphereGeometry(0.13, 20, 14);
+  const live = new Set();
+  function removePacket(p) {
+    scene.remove(p.mesh); if (p.el.parentNode) p.el.parentNode.removeChild(p.el);
+    p.mesh.material.dispose(); p.halo.material.dispose(); live.delete(p);
+  }
+  function fly(path, text, color, o) {
+    o = o || {};
+    const y = o.y != null ? o.y : 0.8;
+    const v = path.map(p => new T.Vector3(p.x, y, p.z));
+    const mesh = new T.Mesh(pktGeo, new T.MeshBasicMaterial({color: new T.Color(color)}));
+    const halo = new T.Sprite(new T.SpriteMaterial({map: haloTex, color: new T.Color(color), blending: T.AdditiveBlending, depthWrite: false, transparent: true}));
+    halo.scale.set(1.1, 1.1, 1.1); mesh.add(halo);
+    const el = document.createElement('div'); el.className = 'pkt'; el.style.setProperty('--c', color); el.textContent = text;
+    const lab = new T.CSS2DObject(el); lab.position.set(0, 0.42, 0); mesh.add(lab);
+    mesh.position.copy(v[0]); mesh.scale.setScalar(0.01); mesh.visible = false; scene.add(mesh);
+    const p = {mesh: mesh, halo: halo, el: el}; live.add(p);
+    let L = 0; for (let i = 1; i < v.length; i++) L += v[i].distanceTo(v[i - 1]);
+    const total = o.dur || Math.max(0.5, Math.min(2.2, L / 7));
+    const tl = gsap.timeline({onComplete: () => removePacket(p)});
+    tl.call(() => { mesh.visible = true; });
+    tl.to(mesh.scale, {x: 1, y: 1, z: 1, duration: 0.18, ease: 'back.out(2)'});
+    for (let i = 1; i < v.length; i++) { const seg = v[i].distanceTo(v[i - 1]); tl.to(mesh.position, {x: v[i].x, y: v[i].y, z: v[i].z, duration: L ? total * seg / L : 0.1, ease: 'none'}); }
+    tl.to(mesh.scale, {x: 0.01, y: 0.01, z: 0.01, duration: 0.18, ease: 'power2.in'});
+    return tl;
+  }
+  function clearPackets() { Array.from(live).forEach(removePacket); }
+
+  const active = new Set();
+  function hi(rec, color) {
+    if (!rec) return;
+    rec.mat.emissive.set(color).convertSRGBToLinear(); gsap.to(rec.mat, {emissiveIntensity: rec.cell ? 0.42 : 0.34, duration: 0.3, overwrite: 'auto'});
+    rec.el.classList.add('on'); active.add(rec);
+  }
+  function clear() {
+    active.forEach(r => { gsap.to(r.mat, {emissiveIntensity: 0, duration: 0.5, overwrite: 'auto'}); r.el.classList.remove('on'); });
+    active.clear();
+  }
+  function pop(rec, big) {
+    if (!rec || RM) return;
+    gsap.fromTo(rec.g.scale, {x: 1.12, y: big ? 1.8 : 1.5, z: 1.12}, {x: 1, y: 1, z: 1, duration: 0.65, ease: 'elastic.out(1,0.5)'});
+  }
+
+  // camera views keep the whole subject in frame on narrow screens
+  const views = opts.views || {overview: {pos: [0, 17, 14.5], tgt: [0, 0, 0.4], want: 1.55}};
+  function viewFor(name) {
+    const b = views[name] || views.overview;
+    const tgt = new T.Vector3(...b.tgt), pos = new T.Vector3(...b.pos);
+    const want = b.want || 1.25;
+    let f = camera.aspect < want ? Math.min(2.4, want / camera.aspect) : 1;
+    if (name === 'overview' || !views[name]) {
+      // the overview (and FIT) must show the whole board width, also on narrow phone screens,
+      // leaving room for the zoom buttons at the right edge
+      // and, on wide stages, fill the stage: the board fits both the width and the height of the view, no more, no less
+      const tanV = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), tanH = tanV * camera.aspect;
+      const dist0 = pos.distanceTo(tgt), sinE = Math.max(0.3, (pos.y - tgt.y) / dist0);
+      const need = (B.w / 2 + 0.5) / (tanH * 0.92) + B.d * 0.25;
+      const needD = (B.d / 2 * sinE + 0.8) / (tanV * 0.78) + B.d * 0.25;   // 0.78 leaves room for the HUD bars at the top and bottom
+      f = Math.max(need, needD) / dist0;
+      const need2 = Math.max(need, needD);
+      controls.maxDistance = Math.max(controls.maxDistance, need2 * 1.3);
+      if (scene.fog) { scene.fog.near = Math.max(scene.fog.near, need2 * 1.1); scene.fog.far = Math.max(scene.fog.far, need2 * 2.6); }
+    }
+    pos.sub(tgt).multiplyScalar(f).add(tgt);
+    return {pos: pos, tgt: tgt};
+  }
+  function setView(name, instant) {
+    const v = viewFor(name), d = (RM || instant) ? 0 : 1.2;
+    const k = 1 / (gsap.globalTimeline.timeScale() || 1);
+    gsap.to(camera.position, {x: v.pos.x, y: v.pos.y, z: v.pos.z, duration: d, ease: 'power2.inOut', overwrite: 'auto'}).timeScale(k);
+    gsap.to(controls.target, {x: v.tgt.x, y: v.tgt.y, z: v.tgt.z, duration: d, ease: 'power2.inOut', overwrite: 'auto'}).timeScale(k);
+  }
+  function focusOn(x, z, dist) {
+    const d = (dist || 7) * (camera.aspect < 1.2 ? Math.min(2.2, 1.25 / camera.aspect) : 1);
+    const k = 1 / (gsap.globalTimeline.timeScale() || 1);
+    gsap.to(camera.position, {x: x * 0.8, y: d * 1.15, z: z + d, duration: RM ? 0 : 1.0, ease: 'power2.inOut', overwrite: 'auto'}).timeScale(k);
+    gsap.to(controls.target, {x: x, y: 0, z: z, duration: RM ? 0 : 1.0, ease: 'power2.inOut', overwrite: 'auto'}).timeScale(k);
+  }
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+    renderer.setSize(w, h, false); renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px';
+    labelR.setSize(w, h);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    stage.style.setProperty('--lab', Math.max(7, Math.min(12, w / 92)) + 'px');
+  }
+  // zoom buttons (+, -, Fit) and keys (+, -, 0): the mouse wheel and pinch still work, but buttons always do
+  function zoom(f) {
+    const t = controls.target, off = camera.position.clone().sub(t);
+    off.setLength(Math.max(controls.minDistance, Math.min(controls.maxDistance, off.length() * f)));
+    const p = t.clone().add(off), k = 1 / (gsap.globalTimeline.timeScale() || 1);
+    gsap.to(camera.position, {x: p.x, y: p.y, z: p.z, duration: RM ? 0 : 0.45, ease: 'power2.out', overwrite: 'auto'}).timeScale(k);
+  }
+  // pan buttons (arrows) and arrow keys: slide the view across the board, in screen directions
+  const PANLIM = {x: B.w / 2 + 1.5, z: B.d / 2 + 1.5};
+  function clampTarget(v) { v.x = Math.max(-PANLIM.x, Math.min(PANLIM.x, v.x)); v.z = Math.max(-PANLIM.z + (B.cz || 0), Math.min(PANLIM.z + (B.cz || 0), v.z)); return v; }
+  function pan(dx, dz) {   // dx: +1 right, -1 left; dz: +1 up (away), -1 down (toward the viewer)
+    const off = camera.position.clone().sub(controls.target), dist = off.length(), step = Math.max(0.6, dist * 0.12);
+    const fwd = new T.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0;
+    if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1); fwd.normalize();
+    const right = new T.Vector3(-fwd.z, 0, fwd.x);
+    const tgt = clampTarget(controls.target.clone().add(right.multiplyScalar(dx * step)).add(fwd.multiplyScalar(dz * step)));
+    const pos = tgt.clone().add(off), k = 1 / (gsap.globalTimeline.timeScale() || 1);
+    gsap.to(controls.target, {x: tgt.x, y: tgt.y, z: tgt.z, duration: RM ? 0 : 0.35, ease: 'power2.out', overwrite: 'auto'}).timeScale(k);
+    gsap.to(camera.position, {x: pos.x, y: pos.y, z: pos.z, duration: RM ? 0 : 0.35, ease: 'power2.out', overwrite: 'auto'}).timeScale(k);
+  }
+  controls.addEventListener('change', () => { const c = controls.target, x = c.x, z = c.z; clampTarget(c); if (c.x !== x || c.z !== z) camera.position.add(new T.Vector3(c.x - x, 0, c.z - z)); });
+  if (opts.zoomUI !== false) {
+    if (!document.getElementById('lab3d-zoom-css')) {
+      const st = document.createElement('style'); st.id = 'lab3d-zoom-css';
+      st.textContent = '.zoomctl{position:absolute;z-index:4;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;padding:4px;background:' + P.uiBg + ';border:1px solid ' + P.uiLine + ';border-radius:6px;backdrop-filter:blur(6px)}' +
+        '.zoomctl button{width:38px;height:34px;border:0;border-radius:4px;background:transparent;color:' + P.uiText + ';font:600 18px/1 ' + P.font + ';cursor:pointer;padding:0}' +
+        '.zoomctl button.fit{font-size:10px;letter-spacing:.06em;height:28px}.zoomctl button:hover{background:' + P.uiHover + ';color:' + P.uiAccent + '}' +
+        '.zoomctl button:focus-visible{outline:2px solid ' + P.uiAccent + ';outline-offset:1px}' +
+        '.zoomctl .pad{display:grid;grid-template-columns:repeat(3,26px);grid-template-rows:repeat(3,24px);gap:1px;margin:3px 0;padding-top:4px;border-top:1px solid ' + P.uiLine + '}' +
+        '.zoomctl .pad button{width:26px;height:24px;font-size:12px}.zoomctl .pad .u{grid-area:1/2}.zoomctl .pad .l{grid-area:2/1}.zoomctl .pad .c{grid-area:2/2;font-size:9px}.zoomctl .pad .r{grid-area:2/3}.zoomctl .pad .d{grid-area:3/2}' +
+        '@media(max-width:520px){.zoomctl{right:10px}.zoomctl button{width:34px;height:32px}.zoomctl .pad{grid-template-columns:repeat(3,28px);grid-template-rows:repeat(3,26px)}.zoomctl .pad button{width:28px;height:26px}}';
+      document.head.appendChild(st);
+    }
+    const box = document.createElement('div'); box.className = 'zoomctl'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+    box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in" title="Zoom in (+)">+</button>' +
+      '<button type="button" data-z="out" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>' +
+      '<div class="pad" role="group" aria-label="Move the view">' +
+      '<button type="button" class="u" data-p="u" aria-label="Move the view up" title="Move up (arrow up)">&#9650;</button>' +
+      '<button type="button" class="l" data-p="l" aria-label="Move the view left" title="Move left (arrow left)">&#9664;</button>' +
+      '<button type="button" class="c" data-z="fit" aria-label="Center the board" title="Center the board (0)">&#9679;</button>' +
+      '<button type="button" class="r" data-p="r" aria-label="Move the view right" title="Move right (arrow right)">&#9654;</button>' +
+      '<button type="button" class="d" data-p="d" aria-label="Move the view down" title="Move down (arrow down)">&#9660;</button></div>' +
+      '<button type="button" class="fit" data-z="fit" aria-label="Show the whole board" title="Show the whole board (0)">FIT</button>';
+    stage.appendChild(box);
+    ['pointerdown', 'pointerup', 'wheel', 'click'].forEach(ev => box.addEventListener(ev, e => e.stopPropagation()));
+    box.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const pd = {l: [-1, 0], r: [1, 0], u: [0, 1], d: [0, -1]}[b.dataset.p];
+      if (pd) pan(pd[0], pd[1]);
+      else if (b.dataset.z === 'in') zoom(0.75); else if (b.dataset.z === 'out') zoom(1.33); else setView(opts.fitView || 'overview');
+    });
+    let over = false;
+    stage.addEventListener('pointerenter', () => { over = true; }); stage.addEventListener('pointerleave', () => { over = false; });
+    document.addEventListener('keydown', e => {
+      const t = e.target, tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+      const ak = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1]}[e.key];
+      if (ak) { if (over || stage.contains(t)) { e.preventDefault(); pan(ak[0], ak[1]); } return; }
+      if (e.key === '+' || e.key === '=') zoom(0.75);
+      else if (e.key === '-' || e.key === '_') zoom(1.33);
+      else if (e.key === '0') setView(opts.fitView || 'overview');
+    });
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+  (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); labelR.render(scene, camera); })();
+
+  // picking: click (not drag) on a chip body
+  const ray = new T.Raycaster(), mouse = new T.Vector2(); let down = null, pickCb = null;
+  labelR.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+  labelR.domElement.addEventListener('pointerup', e => {
+    if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || !pickCb) return;
+    const r = labelR.domElement.getBoundingClientRect();
+    mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObjects(pickables, false)[0];
+    if (hit) pickCb(hit.object.userData.key);
+  });
+
+  function intro() {
+    const v = viewFor('overview'); camera.position.copy(v.pos); controls.target.copy(v.tgt);
+    if (RM) return;
+    gsap.from(camera.position, {x: v.pos.x - 4, y: v.pos.y + 12, z: v.pos.z + 10, duration: 1.8, ease: 'power3.out'});
+    gsap.from(Object.values(recs).map(r => r.g.position), {y: 2.2, duration: 0.7, ease: 'back.out(1.6)', stagger: 0.03, delay: 0.2});
+  }
+
+  const labApi = {T: T, scene: scene, camera: camera, controls: controls, renderer: renderer, recs: recs,
+    chip: chip, finishPins: finishPins, silkRect: silkRect, zone: zone, label: label, busMat: busMat, trace: trace, glowBus: glowBus,
+    fly: fly, clearPackets: clearPackets, hi: hi, clear: clear, pop: pop, setView: setView, focusOn: focusOn, intro: intro, zoom: zoom, pan: pan,
+    onPick: cb => { pickCb = cb; }, unit: unit};
+  (window.__labs = window.__labs || []).push(labApi);   // lets tests reach the camera
+  return labApi;
+}
+// LAB3D END
+
+// ---- the manifests and the loop logic (plain functions, no DOM) ----
+const CAP = 1200;
+const MANIFESTS = {van1: [12, 3, 20, 50, 45], over: [400, 350, 300, 200], empty: [], one: [7], cap: [600, 600]};
+const FRAG = w => w.join(',') === '12,3,20,50,45' ? ['no', 'yes', 'no', 'no', 'yes'] : w.map(() => 'no');
+const CODE = {
+  index: w => ['weights = [' + w.join(', ') + ']', 'fragile = [' + FRAG(w).map(f => '"' + f + '"').join(', ') + ']', 'total = 0', 'count = 0', 'heaviest = 0', 'for i in range(len(weights)):', '    total = total + weights[i]', '    count = count + 1', '    if weights[i] > heaviest:', '        heaviest = weights[i]', 'print(count, "packages,", total, "lb, heaviest", heaviest)', 'if total > 1200:', '    print("WARNING: over capacity")'],
+  while: ['total = 0', 'count = 0', 'heaviest = 0', 'weights = []', 'weight = int(input("Weight (-1 to stop): "))', 'while weight != -1:', '    weights.append(weight)', '    total = total + weight', '    count = count + 1', '    if weight > heaviest:', '        heaviest = weight', '    weight = int(input("Weight (-1 to stop): "))', 'print(count, "packages,", total, "lb, heaviest", heaviest)', 'if total > 1200:', '    print("WARNING: over capacity")'],
+  for: w => ['weights = [' + w.join(', ') + ']', 'total = 0', 'count = 0', 'heaviest = 0', 'for weight in weights:', '    total = total + weight', '    count = count + 1', '    if weight > heaviest:', '        heaviest = weight', 'print(count, "packages,", total, "lb, heaviest", heaviest)', 'if total > 1200:', '    print("WARNING: over capacity")']
+};
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+const listStr = a => '[' + a.join(', ') + ']';
+function reportText(s) {
+  const t = s.vars.total, over = t > CAP;
+  return 'The loop is over. print shows "' + s.vars.count + ' packages, ' + t + ' lb, heaviest ' + s.vars.heaviest + '". Then the program checks total > 1200: ' + t + ' > 1200 is ' +
+    (over ? 'True, so it prints WARNING: over capacity. The van would be ' + (t - CAP) + ' lb over.' : 'False, so there is no warning. ' + (t === CAP ? 'Exactly 1,200 is not above 1,200: the van is full, not over.' : 'The van has ' + (CAP - t) + ' lb to spare.'));
+}
+function reportLines(s) { const o = [s.vars.count + ' packages, ' + s.vars.total + ' lb, heaviest ' + s.vars.heaviest]; if (s.vars.total > CAP) o.push('WARNING: over capacity'); return o; }
+function pushRow(s, w) { s.pass++; s.rows.push({pass: s.pass, weight: w, len: s.list.length, total: s.vars.total, count: s.vars.count, heaviest: s.vars.heaviest}); }
+
+// steps are data: phase, code line(s), where the token goes, the label on the token, the narration (with real values), and the commit that changes the state
+function buildSteps(mode, weights) {
+  const steps = [];
+  if (mode === 'while') {
+    weights.concat([-1]).forEach((w, idx) => {
+      const first = idx === 0;
+      steps.push({phase: 'read', line: first ? 5 : 12, to: 'inp', lbl: w === -1 ? '-1' : 'weight ' + w,
+        text: () => (first ? 'The program asks for the first weight. ' : 'Back at the top of the loop, the program asks for the next weight. ') + (w === -1 ? 'You type -1, the sentinel (the agreed value that means "no more packages"). The variable weight is now -1.' : 'You type ' + w + '. int() turns the text into a number and it is stored in the variable weight, so weight is now ' + w + '.'),
+        commit: s => { s.vars.weight = w; }});
+      steps.push({phase: 'check', line: 6, to: 'sent', lbl: w + ' != -1',
+        text: () => 'The while condition asks: is weight != -1? ' + w + ' != -1 is ' + (w !== -1 ? 'True, so the loop body runs' + (first ? '.' : ' again.') : 'False, so the loop ends. The sentinel is never appended, added, or counted.'),
+        commit: () => {}});
+      if (w === -1) { steps.push({phase: 'report', line: [13, 14, 15], to: 'end', lbl: 'report', text: reportText, commit: s => { s.done = true; s.out = reportLines(s); }}); return; }
+      steps.push({phase: 'append', line: 7, to: 'app', lbl: 'append ' + w,
+        text: s => 'weights.append(' + w + ') adds ' + w + ' to the end of the list. The list now has ' + plural(s.list.length + 1, 'item') + ': ' + listStr(s.list.concat([w])) + '. The index of the new item is ' + s.list.length + ' (indexes start at 0).',
+        commit: s => { s.list.push(w); }});
+      steps.push({phase: 'total', line: 8, to: 'tot', lbl: 'total',
+        text: s => 'total = total + weight: ' + s.vars.total + ' + ' + w + ' = ' + (s.vars.total + w) + '. total is an accumulator: it keeps a running sum, and the new value replaces the old one.',
+        commit: s => { s.vars.total += w; }});
+      steps.push({phase: 'count', line: 9, to: 'cnt', lbl: 'count',
+        text: s => 'count = count + 1: ' + s.vars.count + ' + 1 = ' + (s.vars.count + 1) + '. count is a counter: it goes up by exactly 1 every pass, whatever the weight is.',
+        commit: s => { s.vars.count += 1; }});
+      steps.push({phase: 'heaviest', line: [10, 11], to: s => w > s.vars.heaviest ? 'hv' : 'hvq', lbl: w + ' > ?',
+        text: s => 'if weight > heaviest: ' + w + ' > ' + s.vars.heaviest + ' is ' + (w > s.vars.heaviest ? 'True, so heaviest = ' + w + '. ' : 'False, so heaviest stays ' + s.vars.heaviest + ' and the assignment is skipped. ') + 'That ends pass ' + (s.pass + 1) + ': row ' + (s.pass + 1) + ' goes into the trace table.',
+        commit: s => { if (w > s.vars.heaviest) s.vars.heaviest = w; pushRow(s, w); }});
+    });
+  } else if (mode === 'index') {
+    const fr = FRAG(weights), n = weights.length;
+    weights.forEach((w, idx) => {
+      steps.push({phase: 'check', line: 6, to: 'sent', lbl: 'i = ' + idx, cell: idx,
+        text: () => 'for i in range(len(weights)): len(weights) is ' + n + ', so i runs from 0 to ' + (n - 1) + '. Now i = ' + idx + '. weights[' + idx + '] is ' + w + ' and fragile[' + idx + '] is "' + fr[idx] + '": the same index describes the same package in both lists. ' + (idx === 0 ? 'i is 0 for the first package, because indexes start at 0.' : 'The package number people say is i + 1 = ' + (idx + 1) + '.'),
+        commit: s => { s.vars.weight = w; s.i = idx + 1; }});
+      steps.push({phase: 'total', line: 7, to: 'tot', lbl: 'total',
+        text: s => 'total = total + weights[i]: ' + s.vars.total + ' + ' + w + ' = ' + (s.vars.total + w) + '. weights[i] reads the item at position i; there is no variable called weight in this version.',
+        commit: s => { s.vars.total += w; }});
+      steps.push({phase: 'count', line: 8, to: 'cnt', lbl: 'count',
+        text: s => 'count = count + 1: ' + s.vars.count + ' + 1 = ' + (s.vars.count + 1) + '. After the loop count equals len(weights); the counter is still useful when some packages are skipped.',
+        commit: s => { s.vars.count += 1; }});
+      steps.push({phase: 'heaviest', line: [9, 10], to: s => w > s.vars.heaviest ? 'hv' : 'hvq', lbl: w + ' > ?',
+        text: s => 'if weights[i] > heaviest: ' + w + ' > ' + s.vars.heaviest + ' is ' + (w > s.vars.heaviest ? 'True, so heaviest = weights[i] = ' + w + '. ' : 'False, so heaviest stays ' + s.vars.heaviest + '. ') + 'End of pass ' + (s.pass + 1) + ': row ' + (s.pass + 1) + ' goes into the trace table.',
+        commit: s => { if (w > s.vars.heaviest) s.vars.heaviest = w; pushRow(s, w); }});
+    });
+    steps.push({phase: 'check', line: 6, to: 'sent', lbl: 'i = ' + n + '?',
+      text: () => 'for i in range(len(weights)): the next i would be ' + n + ', but range(' + n + ') stops at ' + (n - 1) + '. ' + (n ? 'The loop ends after ' + n + ' pass' + (n === 1 ? '' : 'es') + ', one per index.' : 'range(0) is empty, so the body never runs.') + ' The last valid index is always len(weights) - 1: asking for weights[' + n + '] would be an IndexError.',
+      commit: () => {}});
+    steps.push({phase: 'report', line: [11, 12, 13], to: 'end', lbl: 'report', text: reportText, commit: s => { s.done = true; s.out = reportLines(s); }});
+  } else {
+    weights.forEach((w, idx) => {
+      steps.push({phase: 'check', line: 5, to: 'sent', lbl: 'item ' + idx + ': ' + w, cell: idx,
+        text: () => 'for weight in weights: items left? Yes, item ' + idx + ' of ' + weights.length + ' (indexes start at 0). The for loop takes it for you: weight = ' + w + '. No input and no sentinel: the list was filled before the loop.',
+        commit: s => { s.vars.weight = w; s.i = idx + 1; }});
+      steps.push({phase: 'total', line: 6, to: 'tot', lbl: 'total',
+        text: s => 'total = total + weight: ' + s.vars.total + ' + ' + w + ' = ' + (s.vars.total + w) + '. Same accumulator as in the while version.',
+        commit: s => { s.vars.total += w; }});
+      steps.push({phase: 'count', line: 7, to: 'cnt', lbl: 'count',
+        text: s => 'count = count + 1: ' + s.vars.count + ' + 1 = ' + (s.vars.count + 1) + '. With a for loop you could also use len(weights), which is ' + weights.length + ', but the counter shows how many passes ran.',
+        commit: s => { s.vars.count += 1; }});
+      steps.push({phase: 'heaviest', line: [8, 9], to: s => w > s.vars.heaviest ? 'hv' : 'hvq', lbl: w + ' > ?',
+        text: s => 'if weight > heaviest: ' + w + ' > ' + s.vars.heaviest + ' is ' + (w > s.vars.heaviest ? 'True, so heaviest = ' + w + '. ' : 'False, so heaviest stays ' + s.vars.heaviest + '. ') + 'End of pass ' + (s.pass + 1) + ': row ' + (s.pass + 1) + ' goes into the trace table.',
+        commit: s => { if (w > s.vars.heaviest) s.vars.heaviest = w; pushRow(s, w); }});
+    });
+    steps.push({phase: 'check', line: 5, to: 'sent', lbl: 'no items left',
+      text: () => 'for weight in weights: items left? No. ' + (weights.length ? 'All ' + plural(weights.length, 'item') + ' of the list were used, so the for loop ends by itself.' : 'The list is empty, so the body never runs: zero passes.') + ' Nothing was typed and no sentinel was needed.',
+      commit: () => {}});
+    steps.push({phase: 'report', line: [10, 11, 12], to: 'end', lbl: 'report', text: reportText, commit: s => { s.done = true; s.out = reportLines(s); }});
+  }
+  return steps;
+}
+
+// ---- geometry shared by the 3D board and the flat 2D board (x right, z toward the viewer) ----
+const COMP = {
+  start: {x: -7.5, z: -6.3, w: 2.2, d: 1.2, nm: 'START'},
+  inp: {x: -7.5, z: -3.5, w: 2.6, d: 1.4, nm: 'INPUT weight'},
+  sent: {x: -3.5, z: -3.5, w: 1.9, d: 1.9, nm: 'weight != -1?', diamond: true, noPins: true},
+  app: {x: 0.5, z: -3.5, w: 2.6, d: 1.4, nm: 'weights.append'},
+  tot: {x: 4.5, z: -3.5, w: 2.6, d: 1.4, nm: 'total = total + weight'},
+  cnt: {x: 4.5, z: 0.25, w: 2.6, d: 1.4, nm: 'count = count + 1'},
+  hvq: {x: 4.5, z: 4, w: 1.9, d: 1.9, nm: 'weight > heaviest?', diamond: true, noPins: true},
+  hv: {x: 0.5, z: 4, w: 2.6, d: 1.4, nm: 'heaviest = weight'},
+  end: {x: -3.5, z: -6.3, w: 2.6, d: 1.2, nm: 'REPORT'},
+  weight: {x: 8.6, z: -6.3, w: 2.5, d: 1.5, nm: 'weight', cell: true},
+  total: {x: 11.6, z: -6.3, w: 2.5, d: 1.5, nm: 'total', cell: true},
+  count: {x: 8.6, z: -4.2, w: 2.5, d: 1.5, nm: 'count', cell: true},
+  heaviest: {x: 11.6, z: -4.2, w: 2.5, d: 1.5, nm: 'heaviest', cell: true},
+  van: {x: 10.1, z: -1.3, w: 5.8, d: 1.6, nm: 'VAN-1 · 1,200 LB', body: '#1f2a5e'}
+};
+const RING = ['inp', 'sent', 'app', 'tot', 'cnt', 'hvq', 'hv', 'bl'];
+const PT = {bl: {x: -7.5, z: 4}};
+const NSLOT = 10, SLOT0 = -8.3, SLOTDX = 2.0, SLOTZ = 6.5;
+for (let i = 0; i < NSLOT; i++) COMP['L' + i] = {x: SLOT0 + i * SLOTDX, z: SLOTZ, w: 1.5, d: 1.1, nm: '[' + i + ']', cell: true};
+const BAR = {x0: 7.3, x1: 12.9, z: 0.35};
+const pos = k => PT[k] || {x: COMP[k].x, z: COMP[k].z};
+function ringPath(from, to) {   // the token walks the ring in order; start to inp and sent to end are straight hops
+  if (to === 'end') return [pos('sent'), pos('end')];
+  let pts, i;
+  if (from === 'start' || from === 'end') { pts = [pos('start'), pos('inp')]; i = 0; }
+  else { i = RING.indexOf(from); if (i < 0) return [pos(to)]; pts = [pos(from)]; }
+  let guard = 0;
+  while (RING[i] !== to && guard++ < 12) { i = (i + 1) % RING.length; pts.push(pos(RING[i])); }
+  return pts;
+}
+const NAMES = {
+  while: {inp: 'INPUT weight', sent: 'weight != -1?', app: 'weights.append', weight: 'weight'},
+  for: {inp: 'for weight in weights', sent: 'items left?', app: '(list already full)', weight: 'weight'},
+  index: {inp: 'for i in range(len(weights))', sent: 'i < len(weights)?', app: '(list already full)', weight: 'weights[i]'}
+};
+const INFO = {
+  start: '<b>START.</b> The terminal symbol. Before the loop, the program sets total = 0, count = 0, heaviest = 0, and weights = [] (an empty list). Those starting values are row 0 of the trace table.',
+  inp: '<b>INPUT weight.</b> input() shows the question and waits for you to type. It always returns text, so int() turns "12" into the number 12. In the for version this chip is where the loop takes the next item from the list instead.',
+  sent: '<b>The loop condition.</b> A decision diamond: weight != -1 means "weight is not equal to -1". True sends the token around the ring (the body runs); False sends it out to REPORT. The value -1 is the sentinel.',
+  app: '<b>weights.append(weight).</b> Adds the weight to the end of the list. The list remembers every package, so a second loop can go through them again later. In the for version the list is full before the loop starts.',
+  tot: '<b>total = total + weight.</b> The accumulator. Read it right to left: take the old total, add the weight, store the result back in total.',
+  cnt: '<b>count = count + 1.</b> The counter. Up by exactly one every pass, no matter what the weight is. After the loop, count is the number of packages.',
+  hvq: '<b>weight > heaviest?</b> The maximum-so-far pattern. Only a weight that beats the current record changes heaviest. Starting heaviest at 0 works because no package weighs less than 0.',
+  hv: '<b>heaviest = weight.</b> Runs only when the diamond says True. When it says False the token flies past this chip without stopping.',
+  end: '<b>REPORT.</b> After the loop: print the count, the total, and the heaviest, then check total > 1200 once. The warning is a decision after the loop, not a way to stop it.',
+  weight: '<b>weight.</b> Holds the package just read. It is replaced on every pass, so after the loop it holds -1 (the sentinel) in the while version.',
+  total: '<b>total.</b> The running sum of every weight read so far. Compared with the van capacity (1,200 lb) in the report.',
+  count: '<b>count.</b> How many passes the body has run. One per package.',
+  heaviest: '<b>heaviest.</b> The largest weight seen so far. Changes only when a bigger package arrives.',
+  van: '<b>VAN-1.</b> Capacity 1,200 lb. The bar below the van shows total against the capacity: green is fine, gold is within 100 lb of full, coral is over. Exactly 1,200 is not over.'
+};
+for (let i = 0; i < NSLOT; i++) INFO['L' + i] = '<b>weights[' + i + '].</b> Slot ' + i + ' of the list. Lists are numbered from 0, so the first package is weights[0]' + (i ? ' and this is the ' + (i + 1) + (i === 1 ? 'nd' : i === 2 ? 'rd' : 'th') + ' package.' : '.') + ' len(weights) tells how many slots are filled.';
+const C = {gold: '#E0B840', sky: '#38B0E0', coral: '#F0786A', green: '#6FD49B', peri: '#A9B4FF', ice: '#9FE7FF'};
+const PHC = {read: C.gold, check: C.coral, append: C.sky, total: C.peri, count: C.green, heaviest: C.ice, report: C.gold};
+
+function Graphics3D(stage) {
+  const lab = Lab3D(stage, {board: {w: 26, d: 16, silk: 'CBT TECHNOLOGY INSTITUTE  COP1411  DAILY MANIFEST LOOP', seed: 33},
+    views: {overview: {pos: [0, 23, 20], tgt: [0, 0, 0.3], want: 1.5}, ring: {pos: [-1.5, 13, 12], tgt: [-1.5, 0, 0.5], want: 1.3}, rack: {pos: [10, 11, 6], tgt: [10, 0, -3], want: 1.3}, list: {pos: [1.5, 9, 12.5], tgt: [1.5, 0, 6.3], want: 1.4}}});
+  if (!lab) return null;
+  const T = lab.T;
+  const ringMat = lab.busMat(C.gold), exitMat = lab.busMat(C.coral), listMat = lab.busMat(C.sky);
+  const ringPts = RING.map(pos); ringPts.push(pos('inp'));
+  lab.trace(ringPts, 3, ringMat);
+  lab.trace([pos('start'), pos('inp')], 2, ringMat);
+  lab.trace([pos('sent'), pos('end')], 2, exitMat);
+  lab.trace([{x: SLOT0 - 1.2, z: SLOTZ}, {x: SLOT0 + (NSLOT - 1) * SLOTDX + 1.2, z: SLOTZ}], 2, listMat);
+  Object.keys(COMP).forEach(k => { const r = lab.chip(k, COMP[k]); if (COMP[k].diamond) r.g.rotation.y = Math.PI / 4; });
+  lab.finishPins();
+  const R = lab.recs;
+  for (let i = 0; i < NSLOT; i++) { R['L' + i].g.visible = false; R['L' + i].el._obj.visible = false; }
+  lab.silkRect(BAR.x0, BAR.x1, BAR.z - 0.35, BAR.z + 0.35);
+  const barMat = new T.MeshStandardMaterial({color: new T.Color(C.green), emissive: new T.Color(C.green), emissiveIntensity: .5, roughness: .4});
+  const bar = new T.Mesh(lab.unit, barMat); bar.scale.set(0.001, 0.14, 0.5); bar.position.set(BAR.x0, 0.1, BAR.z); lab.scene.add(bar);
+  lab.zone('the loop ring · one trip = one pass', -1.5, 0.3, C.gold);
+  lab.zone('exit when False', -5.4, -5, C.coral);
+  lab.zone('variables', 10.1, -7.6, C.peri);
+  lab.zone('capacity 1,200 lb', 10.1, 1.3, C.green);
+  lab.zone('weights (the list) · index in brackets', 1.5, 5.4, C.sky);
+  lab.onPick(k => api.onPick && api.onPick(k));
+  lab.intro();
+  const api = {
+    fly: (pts, text, color) => lab.fly(pts, text, color),
+    hi: (k, c) => lab.hi(R[k], c), clear: () => lab.clear(), clearPackets: () => lab.clearPackets(), pop: k => lab.pop(R[k]),
+    focus: (x, z) => lab.focusOn(x, z, 9), view: n => lab.setView(n),
+    setMode(mode) { Object.keys(NAMES[mode]).forEach(k => { R[k].el.querySelector('.nm').textContent = NAMES[mode][k]; }); R.app.el.style.opacity = mode === 'while' ? 1 : .55; },
+    update(S) {
+      R.weight.val.textContent = S.vars.weight == null ? '–' : S.vars.weight; R.total.val.textContent = S.vars.total; R.count.val.textContent = S.vars.count; R.heaviest.val.textContent = S.vars.heaviest;
+      R.van.val.textContent = S.vars.total + ' lb'; R.van.sub.textContent = S.vars.total > CAP ? 'OVER BY ' + (S.vars.total - CAP) : S.done ? 'OK' : '';
+      const f = Math.min(1.12, S.vars.total / CAP), len = Math.max(0.001, f * (BAR.x1 - BAR.x0));
+      bar.scale.x = len; bar.position.x = BAR.x0 + len / 2;
+      const col = S.vars.total > CAP ? C.coral : S.vars.total >= CAP - 100 ? C.gold : C.green; barMat.color.set(col); barMat.emissive.set(col);
+      for (let i = 0; i < NSLOT; i++) { const on = i < S.list.length; R['L' + i].g.visible = on; R['L' + i].el._obj.visible = on; if (on) R['L' + i].val.textContent = S.list[i]; }
+    }, onPick: null
+  };
+  return api;
+}
+function Graphics2D(stage) {
+  const NS = 'http://www.w3.org/2000/svg', K = 30, X = x => (x + 13) * K, Y = z => (z + 8) * K;
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 780 480'); svg.setAttribute('class', 'flat'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flat board of the loop ring');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet'); stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  el('rect', {x: 4, y: 4, width: 772, height: 472, rx: 12, fill: '#1a2257', stroke: '#3a4690'});
+  const poly = (pts, col, w) => el('polyline', {points: pts.map(p => X(p.x) + ',' + Y(p.z)).join(' '), fill: 'none', stroke: col, 'stroke-width': w, 'stroke-opacity': .55, 'stroke-linejoin': 'round'});
+  poly(RING.map(pos).concat([pos('inp')]), C.gold, 5); poly([pos('start'), pos('inp')], C.gold, 3); poly([pos('sent'), pos('end')], C.coral, 3);
+  poly([{x: SLOT0 - 1.2, z: SLOTZ}, {x: SLOT0 + (NSLOT - 1) * SLOTDX + 1.2, z: SLOTZ}], C.sky, 3);
+  const txt = (x, y, s, size, fill, a) => { const t = el('text', Object.assign({x: x, y: y, 'text-anchor': 'middle', fill: fill || '#aeb3c9', 'font-size': size}, a || {})); t.textContent = s; return t; };
+  txt(X(-1.5), Y(0.3), 'THE LOOP RING · ONE TRIP = ONE PASS', 9, C.gold); txt(X(10.1), Y(1.5), 'CAPACITY 1,200 LB', 9, C.green); txt(X(1.5), Y(5.5), 'WEIGHTS (THE LIST)', 9, C.sky); txt(X(-5.4), Y(-5), 'EXIT WHEN FALSE', 8, C.coral);
+  const parts = {};
+  Object.keys(COMP).forEach(k => { const c = COMP[k], g = el('g', {style: 'cursor:pointer'});
+    const r = c.diamond ? el('polygon', {points: [[X(c.x), Y(c.z) - c.d * K * .7], [X(c.x) + c.w * K * .7, Y(c.z)], [X(c.x), Y(c.z) + c.d * K * .7], [X(c.x) - c.w * K * .7, Y(c.z)]].map(p => p.join(',')).join(' '), fill: '#161a2e', stroke: '#4a5490', 'stroke-width': 1.5}, g)
+      : el('rect', {x: X(c.x - c.w / 2), y: Y(c.z - c.d / 2), width: c.w * K, height: c.d * K, rx: 5, fill: c.body || (c.cell ? '#1c2138' : '#161a2e'), stroke: '#4a5490', 'stroke-width': 1.5}, g);
+    g.addEventListener('click', () => api.onPick && api.onPick(k));
+    const nm = txt(X(c.x), Y(c.z) - (c.cell ? 6 : 4), c.nm, c.diamond ? 8 : 8.5, '#aeb3c9', {}); g.appendChild(nm);
+    const v = txt(X(c.x), Y(c.z) + 12, '', 13, '#eef1fa', {'font-weight': 700}); g.appendChild(v);
+    parts[k] = {r: r, nm: nm, v: v, g: g};
+  });
+  for (let i = 0; i < NSLOT; i++) parts['L' + i].g.style.display = 'none';
+  el('rect', {x: X(BAR.x0), y: Y(BAR.z) - 7, width: (BAR.x1 - BAR.x0) * K, height: 14, rx: 3, fill: 'none', stroke: '#4a5490'});
+  const bar = el('rect', {x: X(BAR.x0), y: Y(BAR.z) - 7, width: 0, height: 14, rx: 3, fill: C.green});
+  const api = {
+    fly(pts, text, color) { if (!hasGSAP || pts.length < 2) return null; const g = el('g', {class: 'pk'}); el('circle', {r: 8, fill: color}, g); const t = txt(0, -12, text, 11, color, {'font-weight': 700}); g.appendChild(t);
+      const P = pts.map(p => ({x: X(p.x), y: Y(p.z)})); let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y);
+      const o = {t: 0}; return gsap.timeline({onComplete: () => g.remove()}).to(o, {t: 1, duration: Math.max(0.5, Math.min(2.2, L / 210)), ease: 'none', onUpdate: () => { let d = o.t * L, i = 1; while (i < P.length - 1 && d > Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y)) { d -= Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y); i++; } const seg = Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y) || 1, f = Math.min(1, d / seg); g.setAttribute('transform', 'translate(' + (P[i - 1].x + (P[i].x - P[i - 1].x) * f) + ',' + (P[i - 1].y + (P[i].y - P[i - 1].y) * f) + ')'); }}); },
+    hi(k, c) { parts[k].r.setAttribute('stroke', c); parts[k].r.setAttribute('stroke-width', 3); },
+    clear() { Object.values(parts).forEach(p => { p.r.setAttribute('stroke', '#4a5490'); p.r.setAttribute('stroke-width', 1.5); }); },
+    clearPackets() { svg.querySelectorAll('g.pk').forEach(g => g.remove()); }, pop() {}, focus() {}, view() {},
+    setMode(mode) { Object.keys(NAMES[mode]).forEach(k => { parts[k].nm.textContent = NAMES[mode][k]; }); parts.app.g.style.opacity = mode === 'while' ? 1 : .55; },
+    update(S) {
+      parts.weight.v.textContent = S.vars.weight == null ? '–' : S.vars.weight; parts.total.v.textContent = S.vars.total; parts.count.v.textContent = S.vars.count; parts.heaviest.v.textContent = S.vars.heaviest;
+      parts.van.v.textContent = S.vars.total + ' lb' + (S.vars.total > CAP ? ' · OVER BY ' + (S.vars.total - CAP) : '');
+      const f = Math.min(1.12, S.vars.total / CAP); bar.setAttribute('width', f * (BAR.x1 - BAR.x0) * K); bar.setAttribute('fill', S.vars.total > CAP ? C.coral : S.vars.total >= CAP - 100 ? C.gold : C.green);
+      for (let i = 0; i < NSLOT; i++) { const on = i < S.list.length; parts['L' + i].g.style.display = on ? '' : 'none'; if (on) parts['L' + i].v.textContent = S.list[i]; }
+    }, onPick: null
+  };
+  return api;
+}
+
+// ---- state and engine (snapshot history gives step back) ----
+let mode = 'while', weights = MANIFESTS.van1.slice(), STEPS = [];
+const fresh = () => ({vars: {weight: null, total: 0, count: 0, heaviest: 0}, list: [], rows: [], pass: 0, i: 0, at: 'start', phase: null, line: null, step: 0, done: false, out: []});
+let S = fresh(), hist = [], tl = null, running = false, timer = null, speed = 1, follow = true, G = null;
+const SPEEDS = [0.25, 0.5, 1, 2, 4];
+const FOCUS = {read: [-5.5, -3.5], check: [-3.5, -3.5], append: [0.5, -3.5], total: [4.5, -3.5], count: [4.5, 0.25], heaviest: [2.5, 4], report: [-3.5, -6.3]};
+function rebuild() { if (mode !== 'while') { S.list = weights.slice(); } STEPS = buildSteps(mode, weights); }
+function setPhase(p) { document.querySelectorAll('.phases li').forEach(li => li.classList.toggle('on', li.dataset.p === p)); const li = document.querySelector('.phases li[data-p="' + p + '"]'); $('#phaseTag').textContent = li ? li.textContent : 'Ready'; $('#phaseTag').style.setProperty('--pc', li ? getComputedStyle(li).getPropertyValue('--c') : 'var(--silk-dim)'); }
+function renderCode() {
+  const lines = mode === 'while' ? CODE.while : CODE[mode](weights), cur = [].concat(S.line || []);
+  $('#code').innerHTML = lines.map((l, i) => '<span class="' + (cur.indexOf(i + 1) >= 0 ? 'on' : '') + '">' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>').join('');
+  $('#codeMode').textContent = '(' + mode + ' version)';
+}
+function renderTrace() {
+  const rows = [{pass: 0, weight: '–', len: mode === 'while' ? 0 : weights.length, total: 0, count: 0, heaviest: 0}].concat(S.rows);
+  $('#traceBody').innerHTML = rows.map((r, i) => '<tr class="' + (i === rows.length - 1 && i > 0 ? 'new' : '') + '"><td class="c">' + r.pass + '</td><td class="c">' + r.weight + '</td><td class="c">' + r.len + '</td><td class="c">' + r.total + '</td><td class="c">' + r.count + '</td><td class="c">' + r.heaviest + '</td></tr>').join('');
+}
+function render() {
+  const v = S.vars;
+  $('#v-weight').textContent = v.weight == null ? '–' : v.weight; $('#s-weight').textContent = v.weight === -1 ? 'sentinel' : v.weight == null ? 'nothing read yet' : 'lb';
+  $('#v-total').textContent = v.total; $('#v-count').textContent = v.count; $('#s-count').textContent = v.count + (v.count === 1 ? ' pass' : ' passes'); $('#v-heaviest').textContent = v.heaviest;
+  $('#v-van').textContent = v.total + ' / 1200 lb'; $('#s-van').textContent = Math.round(v.total / CAP * 100) + '%';
+  const bar = $('#vanBar'); bar.style.width = Math.min(100, v.total / CAP * 100) + '%'; bar.className = v.total > CAP ? 'over' : v.total >= CAP - 100 ? 'near' : '';
+  $('#vanNote').textContent = v.total > CAP ? 'over capacity by ' + (v.total - CAP) + ' lb: the report will warn' : v.total === CAP ? 'exactly at capacity: full, not over, so no warning' : 'capacity 1,200 lb; a warning prints only when total is above it';
+  $('#tape').innerHTML = S.list.length ? S.list.map((w, i) => '<span title="weights[' + i + ']">' + w + '</span>').join('') + '<em>len = ' + S.list.length + '</em>' : '<em>empty list: []</em>';
+  $('#outp').innerHTML = S.out.length ? S.out.map(o => '<span>' + o + '</span>').join('') : '<em>Nothing printed yet</em>';
+  $('#hudStep').textContent = S.step; $('#hudPass').textContent = S.pass; $('#ctx').textContent = 'Step ' + S.step + ' of ' + STEPS.length;
+  $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = S.step >= STEPS.length; $('#btnRun').textContent = running ? 'Pause' : 'Run';
+  ['weight', 'total', 'count', 'heaviest'].forEach(k => $('#r-' + k).classList.toggle('on', S.phase === ({weight: 'read', total: 'total', count: 'count', heaviest: 'heaviest'})[k] || (k === 'weight' && S.phase === 'check' && mode !== 'while')));
+  $('#r-van').classList.toggle('on', S.phase === 'report');
+  renderTrace(); renderCode(); G && G.update(S);
+  guide(S.step === 0 ? 2 : S.step < STEPS.length ? 3 : (mode === 'while' ? 5 : 6),
+    S.step === 0 ? 'Press <b>Step</b> to ' + (mode === 'while' ? 'read the first weight' : 'start the for loop') + ', or <b>Run</b> to play the whole manifest.'
+    : S.step < STEPS.length ? 'Read the narration, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + STEPS.length + '. The trace table has ' + plural(S.rows.length, 'row') + ' so far.'
+    : mode === 'while' ? 'Done: ' + S.rows.length + (S.rows.length === 1 ? ' pass' : ' passes') + '. Press <b>for version</b> and <b>Run</b> again, or go to <b>Copilot\'s explanation</b> and mark the sentences.' : mode === 'for' ? 'Done: the for loop ran ' + S.rows.length + (S.rows.length === 1 ? ' pass' : ' passes') + ' with no sentinel. Press <b>index version</b> and <b>Run</b> to see the same loop with weights[i].' : 'Done: i went from 0 to ' + (S.rows.length - 1) + ', one index per package. Now mark the sentences in <b>Copilot\'s explanation</b> and press <b>Check sentences</b>.');
+}
+function finish(m) { tl = null; m.commit(S); S.step++; render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed); } }
+function stepFwd(animated) {
+  if (tl) { tl.progress(1); return; }
+  if (S.step >= STEPS.length) return;
+  hist.push(JSON.parse(JSON.stringify(S)));
+  const m = STEPS[S.step]; S.phase = m.phase; S.line = m.line; setPhase(m.phase); $('#narration').textContent = m.text(S);
+  const to = typeof m.to === 'function' ? m.to(S) : m.to, path = ringPath(S.at, to), color = PHC[m.phase];
+  const light = () => { G.clear(); G.hi(to, color); if (m.phase === 'heaviest') G.hi('hvq', color); if (m.cell != null) G.hi('L' + m.cell, C.sky); const vk = {read: 'weight', total: 'total', count: 'count', heaviest: 'heaviest', report: 'van'}[m.phase]; if (vk) G.hi(vk, color); if (mode !== 'while' && m.phase === 'check') G.hi('weight', color); };
+  if (animated !== false && hasGSAP && G) {
+    if (follow && FOCUS[m.phase]) G.focus(FOCUS[m.phase][0], FOCUS[m.phase][1]);
+    tl = gsap.timeline({onComplete: () => finish(m)});
+    const f = G.fly(path, m.lbl, color); if (f) tl.add(f); else tl.to({}, {duration: 0.4});
+    tl.call(() => { light(); G.pop(to); }); tl.to({}, {duration: 0.35});
+    tl.timeScale(speed);
+  } else { light(); finish(m); }
+  S.at = to;
+}
+function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); G && (G.clearPackets(), G.clear()); setPhase(S.phase); $('#narration').textContent = 'Stepped back. Press Step to watch that step again.'; render(); }
+function run() { if (S.step >= STEPS.length) return; running = true; render(); stepFwd(); }
+function stop() { running = false; clearTimeout(timer); render(); }
+function reset(keepMsg) { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); hist = []; rebuild(); G && (G.clearPackets(), G.clear(), G.setMode(mode)); setPhase(null); $('#narration').textContent = keepMsg || ('Press Step to ' + (mode === 'while' ? 'read the first weight' : 'start the for loop') + ', or Run to play the whole manifest.'); render(); }
+
+// ---- manifest picker ----
+function parseCustom(str) {
+  const parts = str.split(/[,\s]+/).filter(Boolean); if (!parts.length) return {err: 'Type at least one weight, for example 30, 8, 125. For an empty manifest pick "Empty manifest" instead.'};
+  if (parts.length > NSLOT) return {err: 'Up to ' + NSLOT + ' weights fit on the list rack. Remove some.'};
+  const w = []; for (const p of parts) { if (!/^\d+$/.test(p)) return {err: '"' + p + '" is not a whole number. Use digits only, separated by commas. The -1 is added for you.'}; const n = +p; if (n > 2000) return {err: n + ' lb is more than any package Palmetto Parcel moves. Use 0 to 2000.'}; w.push(n); }
+  return {w: w};
+}
+function loadManifest() {
+  const k = $('#manSel').value; let w;
+  if (k === 'custom') { const r = parseCustom($('#custom').value); if (r.err) { $('#manMsg').textContent = r.err; $('#manMsg').className = 'msg bad'; return; } w = r.w; } else w = MANIFESTS[k].slice();
+  weights = w; $('#manMsg').textContent = ''; $('#manMsg').className = 'msg';
+  $('#manInfo').textContent = w.length ? plural(w.length, 'weight') + ' then -1' : 'no weights: -1 first';
+  reset('Loaded ' + (w.length ? listStr(w) + ' then -1' : 'an empty manifest: the first thing typed is -1') + '. Press Step or Run.');
+  guide(2, 'Manifest loaded. Press <b>Step</b> or <b>Run</b>.');
+}
+$('#manSel').addEventListener('change', () => { $('#customRow').hidden = $('#manSel').value !== 'custom'; if ($('#manSel').value === 'custom') $('#custom').focus(); });
+$('#btnLoad').addEventListener('click', loadManifest);
+$('#custom').addEventListener('keydown', e => { if (e.key === 'Enter') loadManifest(); });
+function setMode(m) { mode = m; $('#modeWhile').setAttribute('aria-pressed', m === 'while'); $('#modeFor').setAttribute('aria-pressed', m === 'for'); $('#modeIndex').setAttribute('aria-pressed', m === 'index'); $('#r-weight .rn').textContent = NAMES[m].weight;
+  $('#modeNote').textContent = m === 'while' ? 'while: read until the sentinel -1 arrives, and append each weight to a list.' : m === 'for' ? 'for: the list is complete before the loop; the body runs once per item and stops by itself.' : 'index: for i in range(len(weights)) gives i = 0, 1, 2, ... so weights[i] and fragile[i] describe the same package.';
+  reset(m === 'while' ? 'while version loaded. Press Step to read the first weight.' : m === 'for' ? 'for version loaded: the list ' + listStr(weights) + ' is already full. Press Step to start the loop.' : 'index version loaded: the lists weights = ' + listStr(weights) + ' and fragile = [' + FRAG(weights).map(f => '"' + f + '"').join(', ') + '] are already full. Press Step to start the loop.'); guide(m === 'while' ? 2 : 5, 'Press <b>Step</b> or <b>Run</b> to watch the ' + m + ' version.'); }
+$('#modeWhile').addEventListener('click', () => setMode('while'));
+$('#modeFor').addEventListener('click', () => setMode('for'));
+$('#modeIndex').addEventListener('click', () => setMode('index'));
+
+// ---- Copilot's explanation: six sentences, marked against the trace table ----
+const COP = [
+  {s: 'The loop stops when the user types -1, and -1 is never added to the total.', t: true, why: 'True. The last row of the VAN-1 trace shows total 130 = 12 + 3 + 20 + 50 + 45. If -1 had been added, total would be 129.'},
+  {s: 'count starts at 1, because the first package is already counted when the loop begins.', t: false, why: 'False. Row 0 shows count = 0 before the loop, and row 1 shows count = 1 after the first package. Starting at 1 would report 6 packages for VAN-1.'},
+  {s: 'total is an accumulator: on every pass the new weight is added to the old total.', t: true, why: 'True. Read the total column down: 12, 15, 35, 85, 130. Each value is the one above plus the weight on that row.'},
+  {s: 'The loop stops as soon as total is above 1,200, so an overloaded van is never fully read.', t: false, why: 'False. Run the overload manifest: the trace has 4 rows and total reaches 1,250. The only exit is the sentinel; the capacity check happens once, after the loop.'},
+  {s: 'heaviest changes only when the new weight is larger than the heaviest so far.', t: true, why: 'True. Row 2 (weight 3) keeps heaviest 12, and row 5 (weight 45) keeps heaviest 50. Only rows 1, 3, and 4 change it.'},
+  {s: 'For the VAN-1 manifest the body runs 6 times: once for each of the five packages and once for the -1.', t: false, why: 'False. The trace table has 5 rows, so the body ran 5 times. The -1 is read, the condition weight != -1 is False, and the body is skipped.'}
+];
+let marks = COP.map(() => null);
+function renderCop(checked) {
+  $('#cop').innerHTML = COP.map((c, i) => { const ok = checked && marks[i] === c.t, bad = checked && marks[i] !== null && marks[i] !== c.t;
+    return '<div class="s' + (ok ? ' ok' : bad ? ' bad' : '') + '"><span>' + (i + 1) + '. ' + c.s + '</span><span class="tf" role="group" aria-label="Sentence ' + (i + 1) + '"><button type="button" class="btn" data-i="' + i + '" data-v="1" aria-pressed="' + (marks[i] === true) + '">True</button><button type="button" class="btn" data-i="' + i + '" data-v="0" aria-pressed="' + (marks[i] === false) + '">False</button></span>' + (checked && marks[i] !== null ? '<span class="why"><b>' + (ok ? 'Right. ' : 'Not quite. ') + '</b>' + c.why + '</span>' : '') + '</div>'; }).join('');
+}
+$('#cop').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; marks[+b.dataset.i] = b.dataset.v === '1'; renderCop(false); $('#copScore').textContent = ''; const left = marks.filter(m => m === null).length; guide(6, left ? 'Mark the remaining ' + plural(left, 'sentence') + ', then press <b>Check sentences</b>.' : 'All six marked. Press <b>Check sentences</b>.'); });
+$('#btnCop').addEventListener('click', () => { const left = marks.filter(m => m === null).length; if (left) { $('#copScore').textContent = 'Mark every sentence first (' + left + ' left).'; return; } const right = COP.filter((c, i) => marks[i] === c.t).length; renderCop(true); $('#copScore').textContent = right + ' of 6 right. ' + (right === 6 ? 'You verified the whole explanation with the trace table.' : 'Read the proof under each sentence and compare it with your trace table.'); guide(6, right === 6 ? 'Done. Try your own manifest under <b>Manifest</b>, or click chips on the board to read what they do.' : 'Read the proofs below, then press <b>Clear marks</b> and try again.'); });
+$('#btnCopClear').addEventListener('click', () => { marks = COP.map(() => null); renderCop(false); $('#copScore').textContent = ''; });
+renderCop(false);
+
+// ---- wire up ----
+const stage = $('#stage');
+try { G = Graphics3D(stage); } catch (e) { console.error(e); G = null; }
+if (!G) { $('#nogl').hidden = false; document.querySelectorAll('.views').forEach(v => v.hidden = true); G = Graphics2D(stage); }
+G.onPick = k => { $('#info').innerHTML = INFO[k] || ''; };
+if (stage.clientWidth < 700) { follow = false; $('#follow').classList.remove('on'); $('#follow').setAttribute('aria-pressed', 'false'); }
+$('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
+$('#btnRun').addEventListener('click', () => running ? stop() : run());
+$('#btnBack').addEventListener('click', back);
+$('#btnReset').addEventListener('click', () => reset());
+$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
+document.querySelectorAll('.views button[data-view]').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.views button[data-view]').forEach(x => x.classList.toggle('on', x === b)); G.view(b.dataset.view); }));
+$('#follow').addEventListener('click', () => { follow = !follow; $('#follow').classList.toggle('on', follow); $('#follow').setAttribute('aria-pressed', follow); });
+document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
+  if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click(); });
+$('#manInfo').textContent = '5 weights then -1';
+rebuild(); G.setMode(mode); render();
+window.__tracer = {buildSteps: buildSteps, ringPath: ringPath, state: () => S, steps: () => STEPS};
+})();
+</script>
+</body>
+</html>

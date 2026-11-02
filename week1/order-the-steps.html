@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order the steps</title>
+<meta name="description" content="COP1411 Week 1 interactive: Put scrambled delivery algorithms in the right order, name their inputs and outputs, and rate Copilot prompts. Ten rounds, 100 points.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS (page mode challenge) */
+  .opts button .seq{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+  .opts button .seq span{background:rgba(238,241,250,.07);border:1px solid var(--line);border-radius:4px;padding:2px 7px;font:500 13px var(--font-mono)}
+  .opts button .seq i{font-style:normal;color:var(--cbt-gold)}
+  .opts button .pr{display:block;white-space:pre-wrap;font:500 13.5px/1.45 var(--font-mono);color:var(--silk)}
+  .task{background:var(--panel-2);border:1px solid var(--line);border-left:4px solid var(--cbt-sky);border-radius:6px;padding:10px 13px;margin:8px 0 4px;font-size:14px}
+  .task .cli{margin-top:8px}
+  .scramble{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+  .scramble span{background:var(--board-deep);border:1px dashed var(--line-2);border-radius:4px;padding:4px 9px;font:500 13px var(--font-mono);color:var(--silk)}
+  .tag .vl{max-width:9em;white-space:nowrap}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 1 · Interactive B</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero split reveal" style="--i:0">
+    <div><span class="eyebrow">COP1411 · Week 1 · Challenge</span><h1>Order the steps</h1><p class="lede">Put scrambled Palmetto Parcel algorithms in the right order, name the inputs and outputs of short programs, and rate four Microsoft Copilot prompts for the same task. Ten rounds, 100 points.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit when two steps are swapped</span></div><div><b>Shuffled</b><span>every attempt</span></div></div>
+  </section>
+  <aside class="card reveal" style="--i:1" data-ref="BOARD">
+    <h2>Watch it on the board</h2>
+    <div class="stage wide" id="stage"><div class="nogl" id="nogl" hidden>The 3D view is not available here; the flat board shows the same steps.</div></div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">After you check an answer, press Play the explanation: the board fills the five slots in the right order, or lights the three parts of a prompt.</p></div>
+    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
+  </aside>
+  <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How this challenge works</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Read the task in the round below. In rounds with scrambled steps, read every step first, then <b>pick the order</b> that works.</li>
+      <li data-h="2">Press <b>Check</b>. You see your points and why the best answer is best. Two swapped steps earn partial credit; a step that uses a value nobody has read yet earns nothing.</li>
+      <li data-h="3">Press <b>Play the explanation</b> to watch the board above fill the slots in order, or light the parts a prompt covers.</li>
+      <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> for a new shuffle.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and pick an answer.</span></div>
+      <ul class="tips"><li>Drag on the board to turn it. Use <b>+</b>, <b>&minus;</b>, the arrows, and <b>FIT</b> to look closer.</li><li>Ask of every step: what does it need, and who produced that? A step cannot use a value that has not been read or computed yet.</li></ul>
+    </div>
+  </section>
+  <section class="card reveal" style="--i:3" data-ref="ROUND">
+    <div class="progress" id="prog"></div>
+    <h2 id="qTitle">Round 1</h2>
+    <div id="qText" style="margin:0 0 6px"></div>
+    <div class="opts" id="opts"></div>
+    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
+    <div id="fb"></div>
+  </section>
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
+    <h2>Your results</h2>
+    <div class="scroll-x"><table class="data" id="resTable"></table></div>
+    <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
+  </section>
+</main>
+<footer class="foot">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// LAB3D START: CBT 3D kit (modeled on the professor's "Tiny Machine Lab" reference, in CBT colors: navy board, gold traces). Paste as one block.
+// Needs Three.js r147 (three.min.js), examples/js/controls/OrbitControls.js, examples/js/renderers/CSS2DRenderer.js and GSAP 3.12.5.
+// Returns null when any of them (or WebGL) is missing: then draw the 2D fallback.
+//
+// const lab = Lab3D(stageEl, {
+//   board: {w: 22.4, d: 13.6, cx: 0, cz: 0.2, silk: 'BAY-4  REV 1.0  ...', seed: 11},
+//   views: {overview: {pos: [0, 17, 14.5], tgt: [0, 0, 0.4], want: 1.55}, cpu: {...}},
+//   colors: {copper: '#E0B840'}, palette: {...}
+// });
+// lab.chip(key, {x, z, w, d, h, nm, body, metal, cell})  -> rec {g, mat, el, val, sub, h, key}
+// lab.silkRect(x0, x1, z0, z1)   lab.zone(text, x, z, color)   lab.label(html, cls, x, y, z, parent)
+// lab.busMat(color, {base, rest})  lab.trace([{x,z}...], lines, mat)  lab.glowBus(mat)
+// lab.fly([{x,z}...], text, color, {y, dur}) -> GSAP timeline (packet sphere + halo + pill label)
+// lab.hi(rec, color)  lab.clear()  lab.pop(rec)  lab.setView(name)  lab.zoom(factor)  lab.intro()  lab.onPick(fn)  lab.clearPackets()
+// Zoom buttons (+, -, FIT), a pan pad (arrows), the + - 0 keys, and the arrow keys (while the pointer is over the board) are added to the stage automatically
+// (opts.zoomUI: false turns them off; opts.fitView picks the FIT view). Right-drag, Shift or Ctrl plus drag, or two fingers also pan. lab.pan(dx, dz) moves the view.
+function Lab3D(stage, opts) {
+  opts = opts || {};
+  const hasG = typeof window.gsap !== 'undefined';
+  if (!window.THREE || !THREE.OrbitControls || !THREE.CSS2DRenderer || !hasG) return null;
+  try { const t = document.createElement('canvas'); if (!(t.getContext('webgl') || t.getContext('experimental-webgl'))) return null; } catch (e) { return null; }
+  const T = THREE;
+  const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const B = Object.assign({w: 22.4, d: 13.6, cx: 0, cz: 0.2, silk: '', seed: 11}, opts.board || {});
+  // CBT palette (override any key with opts.palette)
+  const P = Object.assign({
+    boardA: '#1a2257', boardB: '#10163f', dots: 'rgba(238,241,250,0.04)', trace: '224,184,64', via: '#0a0e2a',
+    silkText: 'rgba(238,241,250,0.34)', edge: 0x0d1238, clear: 0x0b0f2b, sky: 0xdfe6ff, ground: 0x10163f, rim: 0x38b0e0,
+    chip: '#161a2e', cell: '#1c2138', pinDot: 0x7a809c, font: '"Red Hat Mono", ui-monospace, monospace',
+    uiBg: 'rgba(11,15,43,.82)', uiLine: '#2a3470', uiText: '#eef1fa', uiHover: '#171f4f', uiAccent: '#E0B840'
+  }, opts.palette || {});
+  const COPPER = (opts.colors && opts.colors.copper) || '#E0B840';
+
+  const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = T.sRGBEncoding;
+  renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.setClearColor(P.clear, 0);
+  renderer.domElement.className = 'gl';
+  stage.prepend(renderer.domElement);
+  const labelR = new T.CSS2DRenderer();
+  labelR.domElement.className = 'labels';
+  renderer.domElement.after(labelR.domElement);
+
+  const scene = new T.Scene();
+  scene.fog = new T.Fog(P.clear, 34, 70);
+  const camera = new T.PerspectiveCamera(40, 1, 0.1, 200);
+  const controls = new T.OrbitControls(camera, labelR.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI * 0.46; controls.minDistance = 5; controls.maxDistance = 42;
+  controls.zoomSpeed = 1.1;
+  // pan: right-drag, Ctrl or Shift plus drag, or two fingers; stays on the board plane
+  controls.enablePan = true; controls.screenSpacePanning = false; controls.panSpeed = 0.9;
+  // keep the mouse wheel inside the 3D view: zoom the board, do not scroll the page
+  stage.addEventListener('wheel', e => e.preventDefault(), {passive: false});
+
+  scene.add(new T.HemisphereLight(P.sky, P.ground, 0.6));
+  const sun = new T.DirectionalLight(0xfff1dc, 1.0); sun.position.set(-7, 16, 9); sun.castShadow = true;
+  sun.shadow.mapSize.set(1536, 1536);
+  Object.assign(sun.shadow.camera, {left: -B.w / 2 - 2, right: B.w / 2 + 2, top: B.d / 2 + 2, bottom: -B.d / 2 - 2, near: 1, far: 44});
+  sun.shadow.bias = -0.0005; scene.add(sun);
+  const rim = new T.DirectionalLight(P.rim, 0.35); rim.position.set(12, 6, -10); scene.add(rim);
+
+  // board: a canvas texture with a dot grid, random copper traces, vias, mounting holes and silkscreen
+  function rng(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const cv = document.createElement('canvas'); cv.width = 2048; cv.height = Math.round(2048 * B.d / B.w);
+  function drawBoard() {
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height, rnd = rng(B.seed);
+    const grd = g.createLinearGradient(0, 0, W, H); grd.addColorStop(0, P.boardA); grd.addColorStop(1, P.boardB);
+    g.fillStyle = grd; g.fillRect(0, 0, W, H);
+    g.fillStyle = P.dots;
+    for (let x = 0; x < W; x += 28) for (let y = 0; y < H; y += 28) g.fillRect(x, y, 2, 2);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let i = 0; i < 85; i++) {
+      let x = rnd() * W, y = rnd() * H, dir = Math.floor(rnd() * 8);
+      g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k < 4; k++) { dir = (dir + (rnd() < .5 ? 1 : 7)) % 8; const len = 30 + rnd() * 170, a = dir * Math.PI / 4; x += Math.cos(a) * len; y += Math.sin(a) * len; g.lineTo(x, y); }
+      g.strokeStyle = 'rgba(' + P.trace + ',' + (0.06 + rnd() * 0.09) + ')'; g.lineWidth = 2 + rnd() * 3; g.stroke();
+      g.beginPath(); g.arc(x, y, 5.5, 0, Math.PI * 2); g.fillStyle = 'rgba(' + P.trace + ',0.22)'; g.fill();
+      g.beginPath(); g.arc(x, y, 2.2, 0, Math.PI * 2); g.fillStyle = P.via; g.fill();
+    }
+    [[60, 60], [W - 60, 60], [60, H - 60], [W - 60, H - 60]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 26, 0, Math.PI * 2); g.fillStyle = 'rgba(' + P.trace + ',0.35)'; g.fill(); g.beginPath(); g.arc(x, y, 15, 0, Math.PI * 2); g.fillStyle = P.via; g.fill(); });
+    g.font = '500 24px ' + P.font;
+    g.fillStyle = P.silkText;
+    if (B.silk) g.fillText(B.silk, 120, H - 48);
+    g.fillText('U1', 120, 92);
+  }
+  drawBoard();
+  const tex = new T.CanvasTexture(cv); tex.encoding = T.sRGBEncoding; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawBoard(); tex.needsUpdate = true; });
+  const edge = new T.MeshStandardMaterial({color: P.edge, roughness: .8});
+  const topM = new T.MeshStandardMaterial({map: tex, roughness: .62, metalness: .05});
+  const board = new T.Mesh(new T.BoxGeometry(B.w, 0.36, B.d), [edge, edge, topM, edge, edge, edge]);
+  board.position.set(B.cx, -0.18, B.cz); board.receiveShadow = true; scene.add(board);
+
+  const unit = new T.BoxGeometry(1, 1, 1);
+  const silk = new T.MeshBasicMaterial({color: 0xeef1fa, transparent: true, opacity: .5});
+  function silkRect(x0, x1, z0, z1) {
+    const t = 0.05;
+    [[x0, x1, z0, z0], [x0, x1, z1, z1], [x0, x0, z0, z1], [x1, x1, z0, z1]].forEach(([a, b, c, d]) => {
+      const m = new T.Mesh(unit, silk); m.scale.set(Math.abs(b - a) + t, 0.01, Math.abs(d - c) + t);
+      m.position.set((a + b) / 2, 0.006, (c + d) / 2); scene.add(m);
+    });
+  }
+  function busMat(color, o) {
+    o = o || {};
+    const m = new T.MeshStandardMaterial({color: new T.Color(o.base || color).multiplyScalar(o.base ? 1 : 0.55), emissive: new T.Color(color), emissiveIntensity: o.rest != null ? o.rest : 0.22, roughness: .35, metalness: .65});
+    m.userData.rest = m.emissiveIntensity; return m;
+  }
+  const nrm = (a, b) => { const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1; return {x: -dz / L, z: dx / L}; };
+  function offsetLine(p, o) {
+    return p.map((q, i) => {
+      const nIn = i > 0 ? nrm(p[i - 1], q) : null, nOut = i < p.length - 1 ? nrm(q, p[i + 1]) : null;
+      let n = nIn || nOut;
+      if (nIn && nOut) { const k = 1 / (1 + nIn.x * nOut.x + nIn.z * nOut.z); n = {x: (nIn.x + nOut.x) * k, z: (nIn.z + nOut.z) * k}; }
+      return {x: q.x + n.x * o, z: q.z + n.z * o};
+    });
+  }
+  function trace(points, lines, mat) {
+    const gap = 0.075, w = 0.04;
+    for (let li = 0; li < lines; li++) {
+      const pts = offsetLine(points, (li - (lines - 1) / 2) * gap);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1], dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz);
+        const m = new T.Mesh(unit, mat); m.scale.set(L + w, 0.03, w); m.position.set((a.x + b.x) / 2, 0.016, (a.z + b.z) / 2); m.rotation.y = -Math.atan2(dz, dx);
+        m.receiveShadow = true; scene.add(m);
+      }
+      [pts[0], pts[pts.length - 1]].forEach(p => { const pad = new T.Mesh(unit, mat); pad.scale.set(0.07, 0.032, 0.07); pad.position.set(p.x, 0.016, p.z); scene.add(pad); });
+    }
+  }
+  function glowBus(m) {
+    if (!m) return;
+    gsap.killTweensOf(m);
+    gsap.timeline().to(m, {emissiveIntensity: 1.8, duration: 0.2}).to(m, {emissiveIntensity: m.userData.rest, duration: 1.4});
+  }
+  function label(html, cls, x, y, z, parent) {
+    const el = document.createElement('div'); el.className = cls; el.innerHTML = html;
+    const o = new T.CSS2DObject(el); o.position.set(x, y, z); (parent || scene).add(o); el._obj = o; return el;
+  }
+  function zone(text, x, z, color) { const el = label(text, 'zone', x, 0.05, z); if (color) el.style.setProperty('--c', color); return el; }
+
+  const pinSpots = [], recs = {}, pickables = [];
+  const dotMat = new T.MeshBasicMaterial({color: P.pinDot});
+  function chip(key, o) {
+    const w = o.w || 1.4, d = o.d || 1.2, h = o.h || (o.cell ? 0.28 : 0.34);
+    const g = new T.Group(); g.position.set(o.x, 0, o.z);
+    const mat = new T.MeshStandardMaterial({color: o.body || (o.cell ? P.cell : P.chip), roughness: .42, metalness: o.metal || .22, emissive: new T.Color(0xffffff), emissiveIntensity: 0});
+    const body = new T.Mesh(unit, mat); body.scale.set(w, h, d); body.position.y = h / 2 + 0.03; body.castShadow = true; body.receiveShadow = true; g.add(body);
+    body.userData.key = key; pickables.push(body);
+    if (!o.metal) { const dot = new T.Mesh(new T.CircleGeometry(0.05, 16), dotMat); dot.rotation.x = -Math.PI / 2; dot.position.set(-w / 2 + 0.14, h + 0.035, -d / 2 + 0.14); g.add(dot); }
+    if (!o.noPins) {
+      const n = Math.max(2, Math.floor((w - 0.2) / 0.22));
+      for (let i = 0; i < n; i++) { const px = -w / 2 + 0.14 + i * ((w - 0.28) / (n - 1)); pinSpots.push([o.x + px, o.z - d / 2 - 0.07], [o.x + px, o.z + d / 2 + 0.07]); }
+    }
+    scene.add(g);
+    const el = label('<span class="nm">' + (o.nm || key) + '</span><span class="vl"></span><span class="sb"></span>', 'tag' + (o.cell ? ' cell' : ''), 0, h + 0.08, 0, g);
+    const rec = {key: key, cell: !!o.cell, g: g, mat: mat, el: el, val: el.querySelector('.vl'), sub: el.querySelector('.sb'), h: h, x: o.x, z: o.z};
+    recs[key] = rec; return rec;
+  }
+  function finishPins() {
+    const pinGeo = new T.BoxGeometry(0.07, 0.05, 0.16), pinMat = new T.MeshStandardMaterial({color: 0xc9ced1, metalness: .9, roughness: .3});
+    const pins = new T.InstancedMesh(pinGeo, pinMat, Math.max(1, pinSpots.length)), mtx = new T.Matrix4();
+    pinSpots.forEach(([x, z], i) => { mtx.makeTranslation(x, 0.045, z); pins.setMatrixAt(i, mtx); });
+    scene.add(pins);
+  }
+
+  // packets: a small sphere with an additive halo and a pill label
+  const haloCv = document.createElement('canvas'); haloCv.width = haloCv.height = 64;
+  const hg = haloCv.getContext('2d'), rg = hg.createRadialGradient(32, 32, 0, 32, 32, 32);
+  rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(.35, 'rgba(255,255,255,.35)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+  hg.fillStyle = rg; hg.fillRect(0, 0, 64, 64);
+  const haloTex = new T.CanvasTexture(haloCv);
+  const pktGeo = new T.SphereGeometry(0.13, 20, 14);
+  const live = new Set();
+  function removePacket(p) {
+    scene.remove(p.mesh); if (p.el.parentNode) p.el.parentNode.removeChild(p.el);
+    p.mesh.material.dispose(); p.halo.material.dispose(); live.delete(p);
+  }
+  function fly(path, text, color, o) {
+    o = o || {};
+    const y = o.y != null ? o.y : 0.8;
+    const v = path.map(p => new T.Vector3(p.x, y, p.z));
+    const mesh = new T.Mesh(pktGeo, new T.MeshBasicMaterial({color: new T.Color(color)}));
+    const halo = new T.Sprite(new T.SpriteMaterial({map: haloTex, color: new T.Color(color), blending: T.AdditiveBlending, depthWrite: false, transparent: true}));
+    halo.scale.set(1.1, 1.1, 1.1); mesh.add(halo);
+    const el = document.createElement('div'); el.className = 'pkt'; el.style.setProperty('--c', color); el.textContent = text;
+    const lab = new T.CSS2DObject(el); lab.position.set(0, 0.42, 0); mesh.add(lab);
+    mesh.position.copy(v[0]); mesh.scale.setScalar(0.01); mesh.visible = false; scene.add(mesh);
+    const p = {mesh: mesh, halo: halo, el: el}; live.add(p);
+    let L = 0; for (let i = 1; i < v.length; i++) L += v[i].distanceTo(v[i - 1]);
+    const total = o.dur || Math.max(0.5, Math.min(2.2, L / 7));
+    const tl = gsap.timeline({onComplete: () => removePacket(p)});
+    tl.call(() => { mesh.visible = true; });
+    tl.to(mesh.scale, {x: 1, y: 1, z: 1, duration: 0.18, ease: 'back.out(2)'});
+    for (let i = 1; i < v.length; i++) { const seg = v[i].distanceTo(v[i - 1]); tl.to(mesh.position, {x: v[i].x, y: v[i].y, z: v[i].z, duration: L ? total * seg / L : 0.1, ease: 'none'}); }
+    tl.to(mesh.scale, {x: 0.01, y: 0.01, z: 0.01, duration: 0.18, ease: 'power2.in'});
+    return tl;
+  }
+  function clearPackets() { Array.from(live).forEach(removePacket); }
+
+  const active = new Set();
+  function hi(rec, color) {
+    if (!rec) return;
+    rec.mat.emissive.set(color).convertSRGBToLinear(); gsap.to(rec.mat, {emissiveIntensity: rec.cell ? 0.42 : 0.34, duration: 0.3, overwrite: 'auto'});
+    rec.el.classList.add('on'); active.add(rec);
+  }
+  function clear() {
+    active.forEach(r => { gsap.to(r.mat, {emissiveIntensity: 0, duration: 0.5, overwrite: 'auto'}); r.el.classList.remove('on'); });
+    active.clear();
+  }
+  function pop(rec, big) {
+    if (!rec || RM) return;
+    gsap.fromTo(rec.g.scale, {x: 1.12, y: big ? 1.8 : 1.5, z: 1.12}, {x: 1, y: 1, z: 1, duration: 0.65, ease: 'elastic.out(1,0.5)'});
+  }
+
+  // camera views keep the whole subject in frame on narrow screens
+  const views = opts.views || {overview: {pos: [0, 17, 14.5], tgt: [0, 0, 0.4], want: 1.55}};
+  function viewFor(name) {
+    const b = views[name] || views.overview;
+    const tgt = new T.Vector3(...b.tgt), pos = new T.Vector3(...b.pos);
+    const want = b.want || 1.25;
+    let f = camera.aspect < want ? Math.min(2.4, want / camera.aspect) : 1;
+    if (name === 'overview' || !views[name]) {
+      // the overview (and FIT) must show the whole board width, also on narrow phone screens,
+      // leaving room for the zoom buttons at the right edge
+      // and, on wide stages, fill the stage: the board fits both the width and the height of the view, no more, no less
+      const tanV = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), tanH = tanV * camera.aspect;
+      const dist0 = pos.distanceTo(tgt), sinE = Math.max(0.3, (pos.y - tgt.y) / dist0);
+      const need = (B.w / 2 + 0.5) / (tanH * 0.92) + B.d * 0.25;
+      const needD = (B.d / 2 * sinE + 0.8) / (tanV * 0.78) + B.d * 0.25;   // 0.78 leaves room for the HUD bars at the top and bottom
+      f = Math.max(need, needD) / dist0;
+      const need2 = Math.max(need, needD);
+      controls.maxDistance = Math.max(controls.maxDistance, need2 * 1.3);
+      if (scene.fog) { scene.fog.near = Math.max(scene.fog.near, need2 * 1.1); scene.fog.far = Math.max(scene.fog.far, need2 * 2.6); }
+    }
+    pos.sub(tgt).multiplyScalar(f).add(tgt);
+    return {pos: pos, tgt: tgt};
+  }
+  function setView(name, instant) {
+    const v = viewFor(name), d = (RM || instant) ? 0 : 1.2;
+    const k = 1 / (gsap.globalTimeline.timeScale() || 1);
+    gsap.to(camera.position, {x: v.pos.x, y: v.pos.y, z: v.pos.z, duration: d, ease: 'power2.inOut', overwrite: 'auto'}).timeScale(k);
+    gsap.to(controls.target, {x: v.tgt.x, y: v.tgt.y, z: v.tgt.z, duration: d, ease: 'power2.inOut', overwrite: 'auto'}).timeScale(k);
+  }
+  function focusOn(x, z, dist) {
+    const d = (dist || 7) * (camera.aspect < 1.2 ? Math.min(2.2, 1.25 / camera.aspect) : 1);
+    const k = 1 / (gsap.globalTimeline.timeScale() || 1);
+    gsap.to(camera.position, {x: x * 0.8, y: d * 1.15, z: z + d, duration: RM ? 0 : 1.0, ease: 'power2.inOut', overwrite: 'auto'}).timeScale(k);
+    gsap.to(controls.target, {x: x, y: 0, z: z, duration: RM ? 0 : 1.0, ease: 'power2.inOut', overwrite: 'auto'}).timeScale(k);
+  }
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+    renderer.setSize(w, h, false); renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px';
+    labelR.setSize(w, h);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    stage.style.setProperty('--lab', Math.max(7, Math.min(12, w / 92)) + 'px');
+  }
+  // zoom buttons (+, -, Fit) and keys (+, -, 0): the mouse wheel and pinch still work, but buttons always do
+  function zoom(f) {
+    const t = controls.target, off = camera.position.clone().sub(t);
+    off.setLength(Math.max(controls.minDistance, Math.min(controls.maxDistance, off.length() * f)));
+    const p = t.clone().add(off), k = 1 / (gsap.globalTimeline.timeScale() || 1);
+    gsap.to(camera.position, {x: p.x, y: p.y, z: p.z, duration: RM ? 0 : 0.45, ease: 'power2.out', overwrite: 'auto'}).timeScale(k);
+  }
+  // pan buttons (arrows) and arrow keys: slide the view across the board, in screen directions
+  const PANLIM = {x: B.w / 2 + 1.5, z: B.d / 2 + 1.5};
+  function clampTarget(v) { v.x = Math.max(-PANLIM.x, Math.min(PANLIM.x, v.x)); v.z = Math.max(-PANLIM.z + (B.cz || 0), Math.min(PANLIM.z + (B.cz || 0), v.z)); return v; }
+  function pan(dx, dz) {   // dx: +1 right, -1 left; dz: +1 up (away), -1 down (toward the viewer)
+    const off = camera.position.clone().sub(controls.target), dist = off.length(), step = Math.max(0.6, dist * 0.12);
+    const fwd = new T.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0;
+    if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1); fwd.normalize();
+    const right = new T.Vector3(-fwd.z, 0, fwd.x);
+    const tgt = clampTarget(controls.target.clone().add(right.multiplyScalar(dx * step)).add(fwd.multiplyScalar(dz * step)));
+    const pos = tgt.clone().add(off), k = 1 / (gsap.globalTimeline.timeScale() || 1);
+    gsap.to(controls.target, {x: tgt.x, y: tgt.y, z: tgt.z, duration: RM ? 0 : 0.35, ease: 'power2.out', overwrite: 'auto'}).timeScale(k);
+    gsap.to(camera.position, {x: pos.x, y: pos.y, z: pos.z, duration: RM ? 0 : 0.35, ease: 'power2.out', overwrite: 'auto'}).timeScale(k);
+  }
+  controls.addEventListener('change', () => { const c = controls.target, x = c.x, z = c.z; clampTarget(c); if (c.x !== x || c.z !== z) camera.position.add(new T.Vector3(c.x - x, 0, c.z - z)); });
+  if (opts.zoomUI !== false) {
+    if (!document.getElementById('lab3d-zoom-css')) {
+      const st = document.createElement('style'); st.id = 'lab3d-zoom-css';
+      st.textContent = '.zoomctl{position:absolute;z-index:4;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;padding:4px;background:' + P.uiBg + ';border:1px solid ' + P.uiLine + ';border-radius:6px;backdrop-filter:blur(6px)}' +
+        '.zoomctl button{width:38px;height:34px;border:0;border-radius:4px;background:transparent;color:' + P.uiText + ';font:600 18px/1 ' + P.font + ';cursor:pointer;padding:0}' +
+        '.zoomctl button.fit{font-size:10px;letter-spacing:.06em;height:28px}.zoomctl button:hover{background:' + P.uiHover + ';color:' + P.uiAccent + '}' +
+        '.zoomctl button:focus-visible{outline:2px solid ' + P.uiAccent + ';outline-offset:1px}' +
+        '.zoomctl .pad{display:grid;grid-template-columns:repeat(3,26px);grid-template-rows:repeat(3,24px);gap:1px;margin:3px 0;padding-top:4px;border-top:1px solid ' + P.uiLine + '}' +
+        '.zoomctl .pad button{width:26px;height:24px;font-size:12px}.zoomctl .pad .u{grid-area:1/2}.zoomctl .pad .l{grid-area:2/1}.zoomctl .pad .c{grid-area:2/2;font-size:9px}.zoomctl .pad .r{grid-area:2/3}.zoomctl .pad .d{grid-area:3/2}' +
+        '@media(max-width:520px){.zoomctl{right:10px}.zoomctl button{width:34px;height:32px}.zoomctl .pad{grid-template-columns:repeat(3,28px);grid-template-rows:repeat(3,26px)}.zoomctl .pad button{width:28px;height:26px}}';
+      document.head.appendChild(st);
+    }
+    const box = document.createElement('div'); box.className = 'zoomctl'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+    box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in" title="Zoom in (+)">+</button>' +
+      '<button type="button" data-z="out" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>' +
+      '<div class="pad" role="group" aria-label="Move the view">' +
+      '<button type="button" class="u" data-p="u" aria-label="Move the view up" title="Move up (arrow up)">&#9650;</button>' +
+      '<button type="button" class="l" data-p="l" aria-label="Move the view left" title="Move left (arrow left)">&#9664;</button>' +
+      '<button type="button" class="c" data-z="fit" aria-label="Center the board" title="Center the board (0)">&#9679;</button>' +
+      '<button type="button" class="r" data-p="r" aria-label="Move the view right" title="Move right (arrow right)">&#9654;</button>' +
+      '<button type="button" class="d" data-p="d" aria-label="Move the view down" title="Move down (arrow down)">&#9660;</button></div>' +
+      '<button type="button" class="fit" data-z="fit" aria-label="Show the whole board" title="Show the whole board (0)">FIT</button>';
+    stage.appendChild(box);
+    ['pointerdown', 'pointerup', 'wheel', 'click'].forEach(ev => box.addEventListener(ev, e => e.stopPropagation()));
+    box.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const pd = {l: [-1, 0], r: [1, 0], u: [0, 1], d: [0, -1]}[b.dataset.p];
+      if (pd) pan(pd[0], pd[1]);
+      else if (b.dataset.z === 'in') zoom(0.75); else if (b.dataset.z === 'out') zoom(1.33); else setView(opts.fitView || 'overview');
+    });
+    let over = false;
+    stage.addEventListener('pointerenter', () => { over = true; }); stage.addEventListener('pointerleave', () => { over = false; });
+    document.addEventListener('keydown', e => {
+      const t = e.target, tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+      const ak = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1]}[e.key];
+      if (ak) { if (over || stage.contains(t)) { e.preventDefault(); pan(ak[0], ak[1]); } return; }
+      if (e.key === '+' || e.key === '=') zoom(0.75);
+      else if (e.key === '-' || e.key === '_') zoom(1.33);
+      else if (e.key === '0') setView(opts.fitView || 'overview');
+    });
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+  (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); labelR.render(scene, camera); })();
+
+  // picking: click (not drag) on a chip body
+  const ray = new T.Raycaster(), mouse = new T.Vector2(); let down = null, pickCb = null;
+  labelR.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+  labelR.domElement.addEventListener('pointerup', e => {
+    if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || !pickCb) return;
+    const r = labelR.domElement.getBoundingClientRect();
+    mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObjects(pickables, false)[0];
+    if (hit) pickCb(hit.object.userData.key);
+  });
+
+  function intro() {
+    const v = viewFor('overview'); camera.position.copy(v.pos); controls.target.copy(v.tgt);
+    if (RM) return;
+    gsap.from(camera.position, {x: v.pos.x - 4, y: v.pos.y + 12, z: v.pos.z + 10, duration: 1.8, ease: 'power3.out'});
+    gsap.from(Object.values(recs).map(r => r.g.position), {y: 2.2, duration: 0.7, ease: 'back.out(1.6)', stagger: 0.03, delay: 0.2});
+  }
+
+  const labApi = {T: T, scene: scene, camera: camera, controls: controls, renderer: renderer, recs: recs,
+    chip: chip, finishPins: finishPins, silkRect: silkRect, zone: zone, label: label, busMat: busMat, trace: trace, glowBus: glowBus,
+    fly: fly, clearPackets: clearPackets, hi: hi, clear: clear, pop: pop, setView: setView, focusOn: focusOn, intro: intro, zoom: zoom, pan: pan,
+    onPick: cb => { pickCb = cb; }, unit: unit};
+  (window.__labs = window.__labs || []).push(labApi);   // lets tests reach the camera
+  return labApi;
+}
+// LAB3D END
+
+
+// ---- rounds: 10 rounds, 10 points each ----
+// kind 'order': steps in the correct order, options are orders (arrays of step indexes). kind 'io' and 'prompt': plain options.
+const ROUNDS = [
+  {kind: 'order', q: 'Make a price label for package PP-2026-0001 (Sabor Cubano Bakery, 12 lb, 8 miles). The steps are scrambled below. Which order works?',
+    steps: ['Read the weight', 'Read the miles', 'Compute the price', 'Print the label'], short: ['Read weight', 'Read miles', 'Compute price', 'Print label'], scramble: [2, 0, 3, 1],
+    opts: [[[0, 1, 2, 3], 10, 'Read both inputs first, compute with them, then print. Reading the miles before the weight would also work: independent inputs can go in either order. What cannot move is the compute step: it needs both values.'],
+      [[0, 2, 1, 3], 4, 'Only two steps are swapped, but the price is computed before the miles are known. The formula would use an empty box.'],
+      [[3, 0, 1, 2], 0, 'The label is printed first, before any value exists. There is nothing to print yet.'],
+      [[2, 3, 0, 1], 0, 'Compute and print come before any input. Every step that uses a value must come after the step that produces it.']]},
+  {kind: 'order', q: 'Yusniel loads VAN-1 for the morning route. Put the loading algorithm in order.',
+    steps: ['Open the doors and check the van is empty', 'Scan each tracking number', 'Place heavy packages on the floor', 'Place light and fragile packages on top', 'Close the doors and print the manifest'], short: ['Check van', 'Scan numbers', 'Heavy on floor', 'Light on top', 'Close, print'], scramble: [3, 1, 4, 0, 2],
+    opts: [[[0, 1, 2, 3, 4], 10, 'Check the van, scan, heavy first, light and fragile on top, then close and print. Each step prepares the next one.'],
+      [[0, 2, 1, 3, 4], 4, 'Scanning after the heavy packages are already in place means climbing in to find them. Scan first, then load. Two steps swapped: partial credit.'],
+      [[0, 1, 3, 2, 4], 0, 'Light and fragile packages on the floor with heavy ones on top is how boxes get crushed. The order of these two steps is the whole point of the rule.'],
+      [[4, 0, 1, 2, 3], 0, 'The doors are closed and the manifest printed before anything is loaded. The manifest would be empty.']]},
+  {kind: 'order', q: 'Keisha delivers package PP-2026-0002 to Doral Dental Group. Put the delivery algorithm in order.',
+    steps: ['Drive to the customer address', 'Ring the bell and ask for the receiver', 'Hand over the package', 'Get a signature', 'Mark the package delivered in the app'], short: ['Drive there', 'Find receiver', 'Hand over', 'Signature', 'Mark delivered'], scramble: [2, 4, 0, 3, 1],
+    opts: [[[0, 1, 2, 3, 4], 10, 'Drive, find the receiver, hand over, sign, record. The signature proves the hand-over, and the app entry records the signed delivery.'],
+      [[0, 1, 3, 2, 4], 4, 'Asking for a signature before handing over the package is backwards but close: two steps swapped. The receiver signs for what they received.'],
+      [[0, 4, 1, 2, 3], 0, 'Marking the package delivered right after arriving, before anyone has it, records a delivery that has not happened.'],
+      [[2, 3, 0, 1, 4], 0, 'Handing over the package before driving to the address is impossible. The first two steps use a place the driver has not reached.']]},
+  {kind: 'order', q: 'At the counter, Dante computes the change for a customer who pays $20.00 cash for a $16.10 label. Put the algorithm in order.',
+    steps: ['Read the total ($16.10)', 'Read the cash given ($20.00)', 'change = cash minus total', 'Print the change ($3.90)'], short: ['Read total', 'Read cash', 'Subtract', 'Print change'], scramble: [2, 0, 3, 1],
+    opts: [[[0, 1, 2, 3], 10, 'Two inputs, one process, one output: the same shape as the price label. 20.00 minus 16.10 is 3.90.'],
+      [[1, 0, 2, 3], 10, 'Reading the cash before the total also works: the two inputs are independent. The subtraction still comes after both.'],
+      [[0, 2, 1, 3], 4, 'The subtraction runs before the cash is known: two steps swapped, so partial credit, but the program would fail.'],
+      [[3, 2, 0, 1], 0, 'Print first, compute second, read last. Every step uses a value that does not exist yet.']]},
+  {kind: 'order', q: 'A customer types a tracking number on the Palmetto Parcel website. Put the lookup algorithm in order.',
+    steps: ['Read the tracking number the customer typed', 'Remove spaces and make the letters uppercase', 'Look it up in the list of packages', 'Show the package status'], short: ['Read number', 'Clean it', 'Look it up', 'Show status'], scramble: [3, 1, 0, 2],
+    opts: [[[0, 1, 2, 3], 10, 'Read it, clean it, look it up, show the result. Cleaning before the lookup means "pp-2026-0001 " still finds the package.'],
+      [[0, 2, 1, 3], 4, 'Looking it up before cleaning means a lowercase or spaced entry is not found. Two steps swapped: partial credit.'],
+      [[1, 0, 2, 3], 0, 'Cleaning a value before reading it is impossible: there is nothing to clean yet.'],
+      [[3, 0, 1, 2], 0, 'The status is shown before the number is read. The screen would show the status of nothing.']]},
+  {kind: 'order', q: 'Print a receipt for a package at the counter. Put the algorithm in order.',
+    steps: ['Read the customer name, the tracking number, and the price', 'Build the receipt text with the date', 'Print the receipt', 'Save a copy in the day\'s records'], short: ['Read inputs', 'Build text', 'Print receipt', 'Save copy'], scramble: [2, 3, 0, 1],
+    opts: [[[0, 1, 2, 3], 10, 'Inputs first, then build the text, print it, and save it. Both print and save need the finished text.'],
+      [[0, 1, 3, 2], 10, 'Saving the copy before printing also works: both steps only read the finished text. Either order is a correct algorithm.'],
+      [[0, 2, 1, 3], 4, 'Printing before the text is built: two steps swapped. The printer would get an empty receipt.'],
+      [[1, 2, 0, 3], 0, 'Building and printing the receipt before reading the name and price: the receipt would have no customer and no amount.']]},
+  {kind: 'io', q: 'Here is the week 1 algorithm in pseudocode. Name its inputs and its output.',
+    task: 'INPUT weight\nINPUT miles\nprice = 4.50 + 0.80 * weight + 0.25 * miles\nOUTPUT "Package price: $" and price with two decimals',
+    io: {inputs: 'weight, miles', output: 'price label'},
+    opts: [['Inputs: weight and miles. Output: the price label.', 10, 'The two INPUT lines read values from the user; the OUTPUT line shows the only result. price is computed inside the algorithm, so it is neither an input nor the final output text.'],
+      ['Inputs: weight, miles, and price. Output: the price label.', 4, 'weight and miles are right, but price is not given by the user. It is computed by the process step. Partial credit.'],
+      ['Inputs: 4.50, 0.80, and 0.25. Output: weight.', 0, '4.50, 0.80, and 0.25 are constants written inside the algorithm. They never change from one run to the next, so they are not inputs. weight is an input, not an output.'],
+      ['Inputs: the price label. Output: weight and miles.', 0, 'Backwards. The label is what comes out; weight and miles are what goes in.']]},
+  {kind: 'io', q: 'Here is a short Python program. Name its inputs and its output.',
+    task: 'name = input("Customer: ")\nboxes = int(input("Boxes: "))\nlabels = boxes * 2\nprint(f"{name} needs {labels} labels")',
+    io: {inputs: 'name, boxes', output: 'the sentence'},
+    opts: [['Inputs: the customer name and the number of boxes. Output: one sentence with the label count.', 10, 'Two input() calls read name and boxes (boxes converted to an integer). The process doubles the count. The print line is the only output.'],
+      ['Inputs: name, boxes, and labels. Output: one sentence.', 4, 'labels is computed by the program (boxes * 2), not typed by the user. Partial credit for the rest.'],
+      ['Inputs: name. Output: boxes and labels.', 0, 'boxes is read with input(), so it is an input. labels is computed and only appears inside the printed sentence.'],
+      ['Inputs: "Customer: " and "Boxes: ". Output: the number 2.', 0, 'Those texts are the prompts the program shows while asking. The number 2 is a constant in the formula, not an output.']]},
+  {kind: 'prompt', q: 'Four students ask Microsoft Copilot for the week 1 program. Which prompt names the inputs, the steps, and the expected output?',
+    opts: [['Write a Python 3 program that reads the weight in pounds and the miles with input() and float(), computes price = 4.50 + 0.80 * weight + 0.25 * miles, and prints exactly "Package price: $16.10" when the weight is 12 and the miles are 8.', 10, 'Inputs (weight, miles, how to read them), the exact step, and the expected output with a worked example. Copilot has nothing to guess, and you have a test to check its answer.', [1, 1, 1]],
+      ['Write a Python program that asks for the weight and the miles and prints the price.', 4, 'The inputs and the fact that a price is printed are named, but the formula is missing, so Copilot invents its own rates, and there is no example to check against. Partial credit.', [1, 0, 0]],
+      ['Write a Python program that prices a package.', 0, 'No inputs, no steps, no expected output. Copilot will answer with something, and it will not be the Palmetto Parcel rule.', [0, 0, 0]],
+      ['Write a program with a professional interface that calculates shipping costs for a delivery company in Doral and shows a nice label.', 0, 'Many words, none of the three parts. "Professional" and "nice" are not specifications; the rates, the inputs, and the output text are still unknown.', [0, 0, 0]]]},
+  {kind: 'prompt', q: 'Dante wants a change calculator for the counter (total paid in cash). Which prompt is a complete specification?',
+    opts: [['Write a Python 3 program that reads the total and the cash given with input() and float(), computes change = cash - total, and prints exactly "Change: $3.90" when the total is 16.10 and the cash is 20.00.', 10, 'Both inputs, the exact step (which value is subtracted from which), and the expected output with an example you can test.', [1, 1, 1]],
+      ['Write a Python program for Palmetto Parcel that reads the total and the cash given and prints the change.', 4, 'Inputs and output are named, but not the step: Copilot might compute total minus cash and print a negative number, and there is no example to catch it. Partial credit.', [1, 0, 1]],
+      ['Write a Python program that reads the cash given and prints "Change: $3.90".', 0, 'One input is missing (the total), there is no step, and the output is hard-coded. A program that always prints $3.90 is not a calculator.', [0, 0, 1]],
+      ['Make a change calculator.', 0, 'No inputs, no steps, no expected output. The shortest prompt is also the one that produces the most guessing.', [0, 0, 0]]]}
+];
+// build the option text for ordering rounds: the step names joined with arrows
+ROUNDS.forEach(R => { if (R.kind === 'order') R.opts = R.opts.map(o => [o[0], o[1], o[2]]); });
+const seqHtml = (R, order) => '<span class="seq">' + order.map((i, k) => (k ? '<i>&rarr;</i>' : '') + '<span>' + esc(R.steps[i]) + '</span>').join('') + '</span>';
+const optHtml = (R, o) => R.kind === 'order' ? seqHtml(R, o[0]) : R.kind === 'prompt' ? '<span class="pr">' + esc(o[0]) + '</span>' : esc(o[0]);
+const optText = (R, o) => R.kind === 'order' ? o[0].map(i => R.steps[i]).join(' > ') : o[0];
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+let order = [], r = 0, picked = null, total = 0, log = [], G = null;
+
+// ---- board (3D with a flat 2D fallback): five step slots on top, the three parts of a prompt below ----
+const ZT = -2.1, ZB = 2.3;
+const SLOTS = [-7.4, -3.7, 0, 3.7, 7.4];
+const PARTS = [{k: 'inp', x: -5.2, nm: 'INPUTS'}, {k: 'stp', x: 0, nm: 'STEPS'}, {k: 'outp', x: 5.2, nm: 'EXPECTED OUTPUT'}];
+function board(stage) {
+  const lab = Lab3D(stage, {board: {w: 20, d: 9, silk: 'CBT TECHNOLOGY INSTITUTE  COP1411  ORDER THE STEPS', seed: 5}, views: {overview: {pos: [0, 11.5, 9.5], tgt: [0, 0, 0.1], want: 1.6}}});
+  if (lab) {
+    const gold = lab.busMat('#E0B840'), sky = lab.busMat('#38B0E0');
+    for (let i = 0; i < SLOTS.length - 1; i++) lab.trace([{x: SLOTS[i] + 1.5, z: ZT}, {x: SLOTS[i + 1] - 1.5, z: ZT}], 2, gold);
+    lab.trace([{x: PARTS[0].x + 1.8, z: ZB}, {x: PARTS[1].x - 1.8, z: ZB}], 3, sky); lab.trace([{x: PARTS[1].x + 1.8, z: ZB}, {x: PARTS[2].x - 1.8, z: ZB}], 3, sky);
+    const slots = SLOTS.map((x, i) => lab.chip('s' + i, {x: x, z: ZT, w: 3.0, d: 1.3, nm: 'STEP ' + (i + 1)}));
+    const parts = PARTS.map(p => lab.chip(p.k, {x: p.x, z: ZB, w: 3.6, d: 1.4, nm: p.nm, cell: true}));
+    lab.finishPins();
+    lab.silkRect(-9.3, 9.3, ZT - 1.0, ZT + 1.0); lab.silkRect(-7.4, 7.4, ZB - 1.0, ZB + 1.0);
+    lab.zone('an algorithm: steps in order', 0, ZT - 1.35, '#E0B840');
+    lab.zone('a prompt is a specification: the three parts', 0, ZB + 1.35, '#38B0E0');
+    lab.intro();
+    const api = {
+      reset() { lab.clear(); lab.clearPackets(); slots.forEach(s => { s.val.textContent = ''; s.sub.textContent = ''; }); parts.forEach(p => { p.val.textContent = ''; p.sub.textContent = ''; }); },
+      playOrder(R, orderArr, okFlags) {
+        const t = gsap.timeline(); t.call(() => api.reset());
+        orderArr.forEach((si, k) => {
+          t.call(() => { lab.hi(slots[k], okFlags[k] ? '#6FD49B' : '#F0786A'); slots[k].val.textContent = R.short[si]; slots[k].sub.textContent = okFlags[k] ? '' : 'out of order'; lab.pop(slots[k]); });
+          if (k < orderArr.length - 1) t.add(lab.fly([{x: SLOTS[k], z: ZT}, {x: SLOTS[k + 1], z: ZT}], '', '#E0B840', {y: 0.7})); else t.to({}, {duration: 0.4});
+        });
+        return t;
+      },
+      playIO(R) {
+        const t = gsap.timeline(); t.call(() => { api.reset(); lab.hi(parts[0], '#38B0E0'); parts[0].val.textContent = R.io.inputs; parts[0].sub.textContent = 'read from the user'; lab.pop(parts[0]); });
+        t.add(lab.fly([{x: PARTS[0].x, z: ZB}, {x: PARTS[1].x, z: ZB}], R.io.inputs, '#38B0E0'));
+        t.call(() => { lab.hi(parts[1], '#A9B4FF'); parts[1].val.textContent = 'compute'; parts[1].sub.textContent = 'inside the program'; lab.pop(parts[1]); });
+        t.add(lab.fly([{x: PARTS[1].x, z: ZB}, {x: PARTS[2].x, z: ZB}], R.io.output, '#9FE7FF'));
+        t.call(() => { lab.hi(parts[2], '#9FE7FF'); parts[2].val.textContent = R.io.output; parts[2].sub.textContent = 'shown on the screen'; lab.pop(parts[2]); });
+        return t;
+      },
+      playPrompt(cov) {
+        const t = gsap.timeline(); t.call(() => api.reset());
+        cov.forEach((c, i) => { t.call(() => { lab.hi(parts[i], c ? '#6FD49B' : '#F0786A'); parts[i].val.textContent = c ? 'named' : 'missing'; parts[i].sub.textContent = c ? 'Copilot knows this' : 'Copilot must guess'; lab.pop(parts[i]); }); if (i < 2) t.add(lab.fly([{x: PARTS[i].x, z: ZB}, {x: PARTS[i + 1].x, z: ZB}], '', c ? '#6FD49B' : '#F0786A')); });
+        return t;
+      }
+    };
+    return api;
+  }
+  $('#nogl').hidden = false;
+  const NS = 'http://www.w3.org/2000/svg', K = 40, X = x => (x + 10) * K, Y = z => (z + 4.5) * K;
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 800 360'); svg.setAttribute('class', 'flat'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flat board'); stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  el('rect', {x: 4, y: 4, width: 792, height: 352, rx: 12, fill: '#1a2257', stroke: '#3a4690'});
+  el('line', {x1: X(SLOTS[0]), y1: Y(ZT), x2: X(SLOTS[4]), y2: Y(ZT), stroke: '#E0B840', 'stroke-width': 5, 'stroke-opacity': .5});
+  el('line', {x1: X(PARTS[0].x), y1: Y(ZB), x2: X(PARTS[2].x), y2: Y(ZB), stroke: '#38B0E0', 'stroke-width': 5, 'stroke-opacity': .5});
+  const mk = (x, z, w, d, nm) => { const r = el('rect', {x: X(x - w / 2), y: Y(z - d / 2), width: w * K, height: d * K, rx: 5, fill: '#161a2e', stroke: '#4a5490', 'stroke-width': 1.5});
+    el('text', {x: X(x), y: Y(z) - 8, 'text-anchor': 'middle', fill: '#aeb3c9', 'font-size': 9}).textContent = nm;
+    return {r: r, v: el('text', {x: X(x), y: Y(z) + 10, 'text-anchor': 'middle', fill: '#eef1fa', 'font-size': 10, 'font-weight': 700})}; };
+  const slots = SLOTS.map((x, i) => mk(x, ZT, 3.0, 1.3, 'STEP ' + (i + 1))), parts = PARTS.map(p => mk(p.x, ZB, 3.6, 1.4, p.nm));
+  el('text', {x: X(0), y: Y(ZT - 1.25), 'text-anchor': 'middle', fill: '#E0B840', 'font-size': 9, 'letter-spacing': 2}).textContent = 'AN ALGORITHM: STEPS IN ORDER';
+  el('text', {x: X(0), y: Y(ZB + 1.45), 'text-anchor': 'middle', fill: '#38B0E0', 'font-size': 9, 'letter-spacing': 2}).textContent = 'A PROMPT: THE THREE PARTS';
+  const set = (p, c, v) => { p.r.setAttribute('stroke', c); p.r.setAttribute('stroke-width', c === '#4a5490' ? 1.5 : 3); p.v.textContent = v; };
+  const api = {
+    reset() { slots.concat(parts).forEach(p => set(p, '#4a5490', '')); },
+    playOrder(R, orderArr, okFlags) { api.reset(); orderArr.forEach((si, k) => set(slots[k], okFlags[k] ? '#6FD49B' : '#F0786A', R.short[si])); return null; },
+    playIO(R) { api.reset(); set(parts[0], '#38B0E0', R.io.inputs); set(parts[1], '#A9B4FF', 'compute'); set(parts[2], '#9FE7FF', R.io.output); return null; },
+    playPrompt(cov) { api.reset(); cov.forEach((c, i) => set(parts[i], c ? '#6FD49B' : '#F0786A', c ? 'named' : 'missing')); return null; }
+  };
+  return api;
+}
+
+function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+function showRound() {
+  guide(1, 'Read round ' + (r + 1) + ' of ' + ROUNDS.length + ' below and <b>pick one answer</b>.');
+  const R = ROUNDS[order[r]]; picked = null;
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length;
+  let q = '<p style="margin:0 0 6px">' + esc(R.q) + '</p>';
+  if (R.kind === 'order') q += '<div class="scramble" aria-label="Scrambled steps">' + R.scramble.map(i => '<span>' + esc(R.steps[i]) + '</span>').join('') + '</div>';
+  if (R.kind === 'io') q += '<div class="task"><div style="font:600 11px var(--font-mono);letter-spacing:.1em;color:var(--cbt-sky)">THE ALGORITHM</div><pre class="cli" style="margin-top:8px">' + esc(R.task) + '</pre></div>';
+  $('#qText').innerHTML = q; $('#fb').innerHTML = '';
+  R._opts = shuffle(R.opts);
+  $('#opts').innerHTML = R._opts.map((o, i) => '<button type="button" data-i="' + i + '">' + optHtml(R, o) + '</button>').join('');
+  $('#btnCheck').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true; G && G.reset(); $('#capT').textContent = 'Round ' + (r + 1); $('#capB').textContent = R.kind === 'order' ? 'After you check, the board fills the five slots in the right order.' : R.kind === 'io' ? 'After you check, the board shows which values go in and what comes out.' : 'After you check, the board lights the parts your prompt names and the parts Copilot would have to guess.'; drawProgress();
+}
+$('#opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); guide(2, 'Press <b>Check</b> to see your points.'); });
+$('#btnCheck').addEventListener('click', () => {
+  if (picked === null) { guide(1, 'Pick an answer first, then press <b>Check</b>.'); $('#fb').innerHTML = '<div class="feedback info">Pick an answer first.</div>'; return; }
+  guide(3, 'Read the explanation. Press <b>Play the explanation</b> to see it on the board, then <b>Next round</b>.');
+  const R = ROUNDS[order[r]], o = R._opts[picked], max = Math.max(...R.opts.map(x => x[1])), best = R._opts.find(x => x[1] === max);
+  total += o[1]; log[r] = {q: R.q, a: optText(R, o), pts: o[1], max: max, opt: o};
+  document.querySelectorAll('#opts button').forEach((b, i) => { b.disabled = true; b.style.borderColor = ''; if (R._opts[i][1] === max) b.classList.add('right'); else if (i === picked) b.classList.add('wrong'); });
+  $('#fb').innerHTML = '<div class="feedback ' + (o[1] === max ? 'ok' : o[1] > 0 ? 'info' : 'bad') + '"><b>' + o[1] + ' of ' + max + ' points.</b> ' + esc(o[2]) + (o[1] === max ? '' : ' <b>The best answer:</b> ' + (R.kind === 'order' ? seqHtml(R, best[0]) : esc(best[0])) + ' ' + esc(best[2])) + '</div>';
+  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
+});
+$('#btnPlay').addEventListener('click', () => {
+  const l = log[r], R = ROUNDS[order[r]], max = l.max, best = R.opts.find(x => x[1] === max);
+  if (!G) return;
+  $('#capT').textContent = 'Explanation';
+  if (R.kind === 'order') {
+    const chosen = l.opt[0], ok = chosen.map((si, k) => si === best[0][k]);
+    const allOk = l.pts === max;
+    $('#capB').textContent = (allOk ? 'Your order, step by step: ' : 'Your order with the misplaced steps in coral, then the correct order: ') + best[0].map((i, k) => (k + 1) + '. ' + R.steps[i]).join(' · ');
+    const t = G.playOrder(R, chosen, allOk ? chosen.map(() => true) : ok);
+    if (t && !allOk) { t.to({}, {duration: 0.8}); t.add(G.playOrder(R, best[0], best[0].map(() => true))); }
+  } else if (R.kind === 'io') {
+    $('#capB').textContent = 'Inputs come from the user (' + R.io.inputs + '), the process computes with them, and the output (' + R.io.output + ') is what the screen shows. ' + best[2];
+    G.playIO(R);
+  } else {
+    const cov = l.opt[3] || [0, 0, 0], names = ['the inputs', 'the steps', 'the expected output'], missing = names.filter((n, i) => !cov[i]);
+    $('#capB').textContent = (missing.length ? 'Your prompt leaves Copilot guessing ' + missing.join(' and ') + '. ' : 'Your prompt names all three parts. ') + best[2];
+    G.playPrompt(cov);
+  }
+  $('#cap').scrollIntoView({behavior: 'smooth', block: 'nearest'});
+});
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); } else finishAll(); });
+function finishAll() {
+  guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').innerHTML = '<p style="margin:0 0 6px">Your score: ' + total + ' out of 100.' + (total === 100 ? ' Every order, every input, and every prompt right.' : total >= 70 ? ' Review the rounds you missed in the table below.' : ' Press Try again and ask of every step: what does it need, and which step produced that?') + '</p>'; $('#opts').innerHTML = ''; $('#btnCheck').disabled = true; $('#btnNext').disabled = true;
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function start() { order = shuffle(ROUNDS.map((_, i) => i)); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+$('#btnAgain').addEventListener('click', start);
+try { G = board($('#stage')); } catch (e) { console.error(e); }
+window.__rounds = ROUNDS; window.__cur = () => ROUNDS[order[r]];
+start();
+})();
+</script>
+</body>
+</html>
