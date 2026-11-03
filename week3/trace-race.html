@@ -467,66 +467,100 @@ function guide(stepNo, nowHtml) {
 }
 const $ = s => document.querySelector(s);
 // FLOWKIT START
-// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot), orthogonal arrows
-// with Yes/No labels and loop-back routes, a data token that travels the arrows carrying the real value, node highlighting,
-// memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
-//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows});
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot) drawn the way a
+// textbook draws them: saturated outlines, a small icon that says what the symbol does, bold text, Yes and No badges on the branches,
+// a symbol key under the chart; orthogonal arrows with loop-back routes, a data token that travels the arrows carrying the real value,
+// node highlighting, memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows, key});
 //   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
 //   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
 //   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   key: true (default) draws the symbol key under the chart; key: false hides it; startFit: true opens with the whole chart in view instead of zoomed to START
 //   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
 //   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
-//   fk.flash(id, color) / fk.focus(id) / fk.fit() / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() (the default view: whole chart when readable, else zoomed to START) / fk.fitAll() (whole chart, the FIT button) / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
 //   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
 //   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
 function FlowKit(stage, opts) {
   'use strict';
-  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, nodes: [], edges: []}, opts || {});
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, key: true, nodes: [], edges: []}, opts || {});
   const NS = 'http://www.w3.org/2000/svg';
   const hasGSAP = typeof window.gsap !== 'undefined';
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const light = document.documentElement.getAttribute('data-theme') === 'light';
-  const C = light ? {ink: '#1A1D2E', line: '#4a5490', arrow: '#5B66C9', active: '#E0B840', done: '#2E9E63', error: '#D6473C', label: '#1A1D2E',
-    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#FFFFFF', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(40,48,104,.06)'},
-    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}} : {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
-    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#F4F5FA', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(238,240,248,.08)'},
-    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}};
-  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2;
+  const C = light ? {ink: '#1A1D2E', line: '#3F4A8F', arrow: '#3F4A8F', active: '#E0B840', done: '#2E9E63', error: '#D6473C', label: '#1A1D2E', yes: '#2E9E63', no: '#D6473C', paper: '#FFFFFF', edge: '#C5CAE0', grid: '#E8EAF3', keyInk: '#3a3f5c',
+      fill: {terminal: '#FBEFC4', io: '#D9EEFA', process: '#FFFFFF', decision: '#E1E4FF', call: '#DCF4E6', slot: 'rgba(40,48,104,.05)'},
+      stroke: {terminal: '#B8921F', io: '#1F86B5', process: '#3F4A8F', decision: '#5B66C9', call: '#2E9E63', slot: '#8A90B8'}}
+    : {ink: '#1A1D2E', line: '#8a94d8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa', yes: '#2E9E63', no: '#D6473C', paper: '#161c4d', edge: '#2a3270', grid: '#2a3270', keyInk: '#aeb3c9',
+      fill: {terminal: '#FBF0C8', io: '#DCEFFA', process: '#F7F8FC', decision: '#E1E4FF', call: '#DDF4E6', slot: 'rgba(238,240,248,.08)'},
+      stroke: {terminal: '#B8921F', io: '#1F86B5', process: '#4a5490', decision: '#5B66C9', call: '#2E9E63', slot: '#8A90B8'}};
+  const KEY_H = O.key ? 56 : 0;
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2 + KEY_H;
   const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   stage.appendChild(svg);
   const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
   const defs = el('defs', {});
-  const mk = el('marker', {id: 'fk-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
-  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.arrow}, mk);
-  const mk2 = el('marker', {id: 'fk-arrow-hot', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
-  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.active}, mk2);
-  const glow = el('filter', {id: 'fk-glow', x: '-20%', y: '-20%', width: '140%', height: '140%'}, defs);
-  el('feGaussianBlur', {stdDeviation: 3, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
-  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: light ? '#FFFFFF' : '#161c4d', stroke: light ? '#DADDEA' : '#2a3270'});
-  const grid = el('g', {opacity: light ? .6 : .25});
-  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: light ? '#E8EAF3' : '#2a3270', 'stroke-dasharray': '3 6'}, grid);
+  const marker = (id, color) => { const m = el('marker', {id: id, viewBox: '0 0 10 10', refX: 8.5, refY: 5, markerWidth: 9, markerHeight: 9, orient: 'auto-start-reverse'}, defs); el('path', {d: 'M0,0 L10,5 L0,10 z', fill: color}, m); };
+  marker('fk-arrow', C.arrow); marker('fk-arrow-hot', C.active);
+  const glow = el('filter', {id: 'fk-glow', x: '-25%', y: '-25%', width: '150%', height: '150%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3.5, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  const shadow = el('filter', {id: 'fk-shadow', x: '-10%', y: '-10%', width: '120%', height: '140%'}, defs);
+  el('feDropShadow', {dx: 0, dy: 2, stdDeviation: 2, 'flood-color': '#1A1D2E', 'flood-opacity': light ? .18 : .5}, shadow);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: C.paper, stroke: C.edge, 'stroke-width': 1.5});
+  const grid = el('g', {opacity: light ? .7 : .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - KEY_H - 8, stroke: C.grid, 'stroke-dasharray': '3 6'}, grid);
   const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
   const nodes = {}, edges = {};
   let pick = null;
 
+  // ---- icons: small glyphs that say what a symbol does (drawn with strokes so they scale cleanly) ----
+  function icon(kind, x, y, color, g) {
+    const k = el('g', {transform: 'translate(' + x + ',' + y + ')', fill: 'none', stroke: color, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}, g);
+    if (kind === 'keyboard') { el('rect', {x: -9, y: -6, width: 18, height: 12, rx: 2}, k); el('path', {d: 'M-6,-2.5 h2 M-2,-2.5 h2 M2,-2.5 h2 M6,-2.5 h0.5 M-6,1 h2 M-2,1 h2 M2,1 h2 M-4,4 h8'}, k); }
+    else if (kind === 'screen') { el('rect', {x: -9, y: -7, width: 18, height: 12, rx: 2}, k); el('path', {d: 'M-4,8 h8 M0,5 v3 M-5,-3 h7 M-5,0 h5'}, k); }
+    else if (kind === 'process') { el('rect', {x: -8, y: -8, width: 16, height: 16, rx: 3}, k); el('path', {d: 'M-4,-2 h8 M-4,2 h8'}, k); }
+    else if (kind === 'decision') { const t = el('text', {x: 0, y: 5, 'text-anchor': 'middle', fill: color, stroke: 'none', 'font-size': 15, 'font-weight': 800, 'font-family': 'Archivo, Arial, sans-serif'}, k); t.textContent = '?'; }
+    else if (kind === 'call') { el('rect', {x: -8, y: -8, width: 16, height: 16, rx: 3}, k); const t = el('text', {x: 0, y: 4.5, 'text-anchor': 'middle', fill: color, stroke: 'none', 'font-size': 12, 'font-style': 'italic', 'font-weight': 700, 'font-family': 'Georgia, serif'}, k); t.textContent = 'f'; }
+    else if (kind === 'return') { el('path', {d: 'M7,-5 v4 a3,3 0 0 1 -3,3 h-9 M-2,-1 l-4,3 l4,3'}, k); }
+    else if (kind === 'start') { el('circle', {r: 8}, k); el('path', {d: 'M-2.5,-4 L4,0 L-2.5,4 z', fill: color, stroke: 'none'}, k); }
+    else if (kind === 'end') { el('circle', {r: 8}, k); el('rect', {x: -3.5, y: -3.5, width: 7, height: 7, rx: 1, fill: color, stroke: 'none'}, k); }
+    return k;
+  }
+  function iconFor(n) {
+    const t = String(n.text || '').trim().toUpperCase();
+    if (n.type === 'terminal') return /^END|^STOP|RETURN/.test(t) ? (t.startsWith('RETURN') ? 'return' : 'end') : 'start';
+    if (n.type === 'io') return /^OUTPUT|^PRINT|^DISPLAY|^SHOW|^RETURN/.test(t) ? 'screen' : 'keyboard';
+    if (n.type === 'process') return 'process';
+    if (n.type === 'decision') return 'decision';
+    if (n.type === 'call') return 'call';
+    return null;
+  }
   function shape(n, g) {
-    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 26 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 28 : O.nodeH, cx = X(n.col), cy = Y(n.row);
     const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
     let s;
-    if (n.type === 'terminal') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
-    else if (n.type === 'io') { const k = 16; s = el('polygon', {points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g); }
-    else if (n.type === 'decision') s = el('polygon', {points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g);
-    else if (n.type === 'call') { s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx - w / 2 + 8, y1: cy - h / 2, x2: cx - w / 2 + 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx + w / 2 - 8, y1: cy - h / 2, x2: cx + w / 2 - 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); }
-    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: fill, stroke: stroke, 'stroke-width': 1.5, 'stroke-dasharray': '6 5'}, g);
-    else s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
-    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke};
+    const common = {fill: fill, stroke: stroke, 'stroke-width': 2.5, filter: n.type === 'slot' ? '' : 'url(#fk-shadow)'};
+    if (n.type === 'terminal') s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2}, common), g);
+    else if (n.type === 'io') { const k = 18; s = el('polygon', Object.assign({points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' ')}, common), g); }
+    else if (n.type === 'decision') s = el('polygon', Object.assign({points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' ')}, common), g);
+    else if (n.type === 'call') { s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4}, common), g); el('line', {x1: cx - w / 2 + 9, y1: cy - h / 2, x2: cx - w / 2 + 9, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2.5}, g); el('line', {x1: cx + w / 2 - 9, y1: cy - h / 2, x2: cx + w / 2 - 9, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2.5}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: C.fill.slot, stroke: C.stroke.slot, 'stroke-width': 1.8, 'stroke-dasharray': '7 5'}, g);
+    else s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4}, common), g);
+    // the icon sits at the left edge of rectangles and parallelograms, and in the top corner of a diamond
+    const ic = iconFor(n);
+    let textX = cx, maxW = w - 16;
+    if (ic && n.type !== 'decision') {
+      const ix = n.type === 'io' ? cx - w / 2 + 26 : n.type === 'call' ? cx - w / 2 + 26 : cx - w / 2 + 20;
+      icon(ic, ix, cy, stroke, g); textX = cx + 12; maxW = w - 44;
+    } else if (ic) { icon(ic, cx, cy - h / 2 + 16, stroke, g); }
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke, textX: textX, maxW: maxW};
   }
   function text(n, g, geo) {
-    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11 : 12.5, lh = 15;
-    const t = el('text', {x: geo.cx, y: geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? '#aeb3c9' : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 600}, g);
-    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.cx, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11.5 : lines.some(l => l.length > 26) ? 12 : 13, lh = fs + 3;
+    const t = el('text', {x: geo.textX, y: geo.cy + (lines.length === 1 ? fs * .36 : fs * .36 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? (light ? '#6b739a' : '#aeb3c9') : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 700}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.textX, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
     return t;
   }
   function addNode(n) {
@@ -537,60 +571,88 @@ function FlowKit(stage, opts) {
     g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
     nodes[n.id] = rec; return rec;
   }
-  // anchor points on a node: top, bottom, left, right
   function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
   function route(e) {
     const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
     if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
     const pts = [];
-    if (b.row > a.row && !e.side) {              // downward: bottom to top, with a jog when the columns differ
+    if (b.row > a.row && !e.side) {
       const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
       if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
       pts.push(t); return pts;
     }
-    if (e.side) {                                 // a branch: leave sideways, go to the target column, then down into the target
+    if (e.side) {
       const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
       if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
       else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
       return pts;
     }
-    // loop back: bottom, down a bit, over to the lane, up above the target, over, into the top
     const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
     pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
     return pts;
   }
+  function badge(label, x, y, side) {
+    const up = String(label).trim().toUpperCase(), col = /^(YES|TRUE|Y|T)$/.test(up) ? C.yes : /^(NO|FALSE|N|F)$/.test(up) ? C.no : C.line;
+    const w = Math.max(30, String(label).length * 7.5 + 12), g = el('g', {class: 'fk-badge'}, L.labels);
+    const bx = side === 'left' ? x - w - 4 : side === 'right' ? x + 4 : x + 6;
+    el('rect', {x: bx, y: y - 10, width: w, height: 20, rx: 10, fill: col, stroke: C.paper, 'stroke-width': 1.5}, g);
+    const t = el('text', {x: bx + w / 2, y: y + 4, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 11, 'font-weight': 800, 'font-family': 'Figtree, Arial, sans-serif', 'letter-spacing': '.04em'}, g); t.textContent = label;
+    return g;
+  }
   function addEdge(e) {
     const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
     const g = el('g', {class: 'fk-edge'}, L.edges);
-    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.2, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.6, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
     let lab = null;
-    if (e.label) { const p0 = pts[0], p1 = pts[1], lx = p0[0] + (p1[0] - p0[0]) * (e.side ? .18 : 0) + (e.side === 'left' ? -8 : e.side === 'right' ? 8 : 10), ly = p0[1] + (p1[1] - p0[1]) * (e.side ? 0 : .5) + (e.side ? -8 : 4);
-      lab = el('text', {x: lx, y: ly, fill: C.arrow, 'font-size': 11, 'font-weight': 700, 'font-family': 'Figtree, sans-serif', 'text-anchor': e.side === 'left' ? 'end' : 'start'}, L.labels); lab.textContent = e.label; }
+    if (e.label) {
+      const p0 = pts[0], p1 = pts[1];
+      if (e.side) lab = badge(e.label, p0[0] + (p1[0] - p0[0]) * .22, p0[1], e.side);
+      else lab = badge(e.label, p0[0], p0[1] + Math.min(22, (p1[1] - p0[1]) * .45), 'down');
+    }
     const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
   }
   O.nodes.forEach(addNode); O.edges.forEach(addEdge);
+
+  // ---- the symbol key under the chart ----
+  if (O.key) {
+    const ky = H - KEY_H + 10, items = [['terminal', 'START / END'], ['io', 'INPUT / OUTPUT'], ['process', 'PROCESS (compute, store)'], ['decision', 'DECISION (Yes / No)'], ['call', 'CALL a function']];
+    const kg = el('g', {class: 'fk-key', opacity: .95});
+    el('line', {x1: 12, y1: H - KEY_H, x2: W - 12, y2: H - KEY_H, stroke: C.edge, 'stroke-width': 1}, kg);
+    let kx = 18;
+    items.forEach(it => {
+      const type = it[0], fill = C.fill[type], stroke = C.stroke[type], sx = kx, sy = ky + 8, sw = 34, sh = 18;
+      if (type === 'terminal') el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 9, fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'io') el('polygon', {points: [sx + 7, sy, sx + sw, sy, sx + sw - 7, sy + sh, sx, sy + sh].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'decision') el('polygon', {points: [sx + sw / 2, sy - 3, sx + sw + 2, sy + sh / 2, sx + sw / 2, sy + sh + 3, sx - 2, sy + sh / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'call') { el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 2, fill: fill, stroke: stroke, 'stroke-width': 2}, kg); el('line', {x1: sx + 5, y1: sy, x2: sx + 5, y2: sy + sh, stroke: stroke, 'stroke-width': 2}, kg); el('line', {x1: sx + sw - 5, y1: sy, x2: sx + sw - 5, y2: sy + sh, stroke: stroke, 'stroke-width': 2}, kg); }
+      else el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 2, fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      const t = el('text', {x: sx + sw + 8, y: sy + 13, fill: C.keyInk, 'font-size': 10.5, 'font-weight': 700, 'font-family': 'Figtree, Arial, sans-serif', 'letter-spacing': '.04em'}, kg); t.textContent = it[1];
+      kx += sw + 8 + it[1].length * 6.6 + 26;
+    });
+    const tk = el('text', {x: W - 18, y: ky + 21, 'text-anchor': 'end', fill: C.keyInk, 'font-size': 10.5, 'font-weight': 600, 'font-family': 'Figtree, Arial, sans-serif'}, kg); tk.textContent = 'Arrows show the order. The token carries the value.';
+    if (kx > W - 300) tk.remove();
+  }
 
   function highlight(id, state) {
     const r = nodes[id]; if (!r) return; r.state = state;
     const base = r.geo.stroke;
     r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
-    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4 : 2);
-    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else r.geo.s.removeAttribute('filter');
-    r.g.setAttribute('opacity', state === 'done' ? .8 : 1);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4.5 : 2.5);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else if (r.type !== 'slot') r.geo.s.setAttribute('filter', 'url(#fk-shadow)');
+    r.g.setAttribute('opacity', state === 'done' ? .85 : 1);
   }
   function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
-  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), lh = 15; r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.cx, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
-  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 7}}, {attr: {'stroke-width': 4}, duration: .5}); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), fs = lines.some(l => l.length > 26) ? 12 : 13, lh = fs + 3; r.t.setAttribute('font-size', fs); r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? fs * .36 : fs * .36 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.textX, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4.5); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 8}}, {attr: {'stroke-width': 4.5}, duration: .5}); }
   function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
   function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
-  // a token travels along one or more edges (keys "from>to"); the pill carries the value
   function token(keys, label, color) {
     const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
     const g = el('g', {class: 'fk-token'}, L.tokens);
-    const tw = Math.max(28, String(label).length * 7.2 + 16);
-    el('circle', {r: 15, fill: color || '#38B0E0', opacity: .28}, g);
-    el('rect', {x: -tw / 2, y: -11, width: tw, height: 22, rx: 11, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1}, g);
-    const t = el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const tw = Math.max(32, String(label).length * 7.6 + 18);
+    el('circle', {r: 17, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -12, width: tw, height: 24, rx: 12, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1.2}, g);
+    const t = el('text', {y: 4.5, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 12.5, 'font-weight': 800, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
     const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
     const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
     const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
@@ -603,15 +665,26 @@ function FlowKit(stage, opts) {
   // view: zoom and pan through the viewBox
   const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
   const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
-  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * home.h / home.w; V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), home.h * 1.1 - V.h); }
+  const asp = () => (stage.clientWidth && stage.clientHeight) ? stage.clientHeight / stage.clientWidth : home.h / home.w;  // the view keeps the stage's aspect
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * asp(); V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), Math.max(-home.h * .1, home.h * 1.1 - V.h)); }
   function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
   function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
-  function fit() { go(home); }
-  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * home.h / home.w}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
-  apply();
+  function fitAll() { go(home); }
+  // the default view: the whole chart when its symbols stay readable (about 150 px wide on screen), otherwise zoomed in around the first symbol
+  function comfortable(animate) {
+    const sw = stage.clientWidth || 0, sh = stage.clientHeight || 0, first = O.nodes.length ? nodes[O.nodes[0].id] : null;
+    const scale = (sw && sh) ? Math.min(sw / home.w, sh / home.h) : 1;   // screen pixels per chart unit when the whole chart fits
+    if (!first || O.startFit || !sw || O.nodeW * scale >= 140) { if (animate) go(home); else { Object.assign(V, home); apply(); } return; }
+    const w = Math.min(home.w * 1.2, sw * O.nodeW / 150);
+    const tgt = {w: w, h: w * asp()}; tgt.x = first.geo.cx - w / 2; tgt.y = first.geo.cy - O.rowH * 0.9;
+    Object.assign(V, tgt); clamp(); if (animate) go(Object.assign({}, V)); else apply();
+  }
+  function fit() { comfortable(true); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * asp()}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply(); comfortable(false);
   if (!document.getElementById('flowkit-css')) {
     const st = document.createElement('style'); st.id = 'flowkit-css';
-    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4}' +
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4.5}' +
       '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
       '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
       '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
@@ -626,14 +699,14 @@ function FlowKit(stage, opts) {
   const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
   box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
   stage.appendChild(box);
-  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fit(); });
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fitAll(); });
   let drag = null;
   svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
   svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
   svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
   svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
 
-  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, fitAll: fitAll, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
   window.__flows = window.__flows || []; window.__flows.push(api);
   return api;
 }
