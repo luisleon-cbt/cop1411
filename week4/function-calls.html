@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -261,6 +261,107 @@
   /* page mode: board card on top across the full width, the round or task below */
   .card .stage.wide{aspect-ratio:21/9;min-height:360px}
   @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+    /* ----- CBT light variant (course.yaml theme: light): CBT colors on white, the stage at 75 percent with the instructions at its right ----- */
+  :root{
+    --board:#F6F7FB; --board-deep:#FFFFFF; --panel:#FFFFFF; --panel-2:#EEF0F8; --line:#DADDEA; --line-2:#C5CAE0;
+    --silk:#1A1D2E; --silk-dim:#5d6178; --copper:#E0B840;
+    --addr:#B8921F; --data:#1F86B5; --ctrl:#D6473C; --alu:#2E9E63; --oper:#5B66C9; --out:#1F7FA8; --led:#2E9E63;
+    --ok:#2E9E63; --bad:#D6473C; --warn:#B8921F; --neon:#1B7F3B;
+    --ink:#1A1D2E; --ink-2:#3a3f5c; --muted:#5d6178; --bg:#FFFFFF; --card:#FFFFFF; --edge:#DADDEA; --edge-2:#C5CAE0; --dim:#5d6178; --silk-2:#3a3f5c;
+    --code-bg:#F4F5FA; --code-ink:#1A1D2E;
+    --net-blue:#1F86B5; --net-green:#2E9E63; --net-amber:#B8921F; --net-purple:#5B66C9; --net-teal:#1E9E8F;
+    --ok-soft:rgba(46,158,99,.10); --bad-soft:rgba(214,71,60,.10); --warn-soft:rgba(184,146,31,.12);
+    --shadow:0 1px 2px rgba(26,29,46,.06);
+    color-scheme:light;
+  }
+  html{background:#FFFFFF}
+  body{background:#FFFFFF;color:var(--silk)}
+  body::before{display:none}
+  a{color:var(--cbt-navy)}
+  h1,h2,h3{color:var(--cbt-navy)}
+  .eyebrow{color:var(--data)}
+  .lede,.muted{color:var(--silk-dim)}
+  .card{background:#FFFFFF;background-image:none;box-shadow:var(--shadow)}
+  .card[data-ref]::after{color:#9a9fbd}
+  .spec{background:var(--line)}
+  .spec div{background:#FFFFFF}
+  .btn{background:#FFFFFF;border-color:var(--line-2);color:var(--cbt-navy)}
+  .btn:hover:not(:disabled){border-color:var(--cbt-navy);background:var(--panel-2)}
+  .btn.primary,.btn.go{background:var(--cbt-gold);border-color:var(--cbt-gold);color:#1a1205}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data);background:#E6F5FB}
+  .feedback{color:var(--silk)}
+  .feedback.ok{background:var(--ok-soft);border-color:rgba(46,158,99,.5)}
+  .feedback.bad{background:var(--bad-soft);border-color:rgba(214,71,60,.5)}
+  .feedback.info{background:rgba(31,134,181,.08);border-color:rgba(31,134,181,.5)}
+  .score .big{color:var(--cbt-navy)}
+  th,table.data th{background:var(--panel-2);color:var(--silk-dim)}
+  td,table.data td{border-bottom:1px solid var(--line)}
+  .caption,.narr{background:var(--panel-2);border-color:var(--line);color:var(--silk)}
+  .caption .t{color:var(--cap,var(--addr))}
+  .reg.on,.reg.flash{background:var(--warn-soft)}
+  .notice li::marker{color:var(--addr)}
+  .legend{color:var(--silk-dim)}
+  .legend i{box-shadow:none}
+  .ptag{color:var(--silk)}
+  footer.foot .byline,.byline{color:var(--cbt-navy)!important;text-shadow:none;font-weight:700}
+  /* landing page cards */
+  html[data-theme="light"] .wk a.item{background:var(--panel-2);border-color:var(--line);color:var(--silk)}
+  html[data-theme="light"] .wk a.item:hover{background:#FBF4DD;border-color:var(--cbt-gold)}
+  html[data-theme="light"] .wk:not(.featured)::before{color:rgba(40,48,104,.07)}
+  html[data-theme="light"] .wk.featured{background:#FFFFFF;border-color:var(--cbt-gold);box-shadow:var(--shadow)}
+  html[data-theme="light"] .wk.featured p{color:var(--silk-dim)!important}
+  .credit{color:var(--cbt-navy)}
+  .foot{color:var(--silk-dim);border-top:1px solid var(--line)}
+  .topbar{box-shadow:0 3px 0 var(--cbt-gold)}
+  /* stage and HUD on a light board */
+  .stage,.stage.flowstage,.card .stage,.stage3d{background:#F3F5FB;border:1px solid var(--line)}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(255,255,255,.94);border-color:var(--line);backdrop-filter:none}
+  .phases li{color:var(--silk-dim)}
+  .phases li.on{background:var(--c,var(--cbt-gold));color:#1a1205}
+  .hud .views button{color:var(--cbt-navy)}
+  .hud .views button.on{background:var(--cbt-navy);color:#FFFFFF}
+  .nogl{background:rgba(255,255,255,.9);color:var(--silk)}
+  .tag,.stage3d .label3d{color:var(--silk);text-shadow:none}
+  /* guide: the instructions */
+  .guide ol.steps li{background:#FFFFFF;border-color:var(--line);color:var(--silk)}
+  .guide ol.steps li::before{background:var(--panel-2);color:var(--cbt-navy)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:#FBF4DD}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{background:var(--ok);color:#FFFFFF}
+  .guide ol.steps li b,.guide .now b{color:#8a6a08}
+  .guide .now{background:#E6F5FB;border-left-color:var(--cbt-sky);color:var(--silk)}
+  .guide .now .k{color:var(--data)}
+  .guide .tips{color:var(--silk-dim)}
+  .panel{background:none}
+  /* page-level blocks that pages define after the theme (code panels, scenes): the html attribute wins over the page's own rule */
+  html[data-theme="light"] .code{background:#F4F5FA;border:1px solid var(--line);color:#1A1D2E}
+  html[data-theme="light"] .code .ln.on{background:#FBF4DD;box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  html[data-theme="light"] .token.keyword{color:#5B66C9}html[data-theme="light"] .token.string{color:#1F7FA8}html[data-theme="light"] .token.number{color:#B8921F}
+  html[data-theme="light"] .token.function{color:#2E9E63}html[data-theme="light"] .token.comment{color:#7c819e}html[data-theme="light"] .token.builtin{color:#9a5b00}html[data-theme="light"] .token.operator,html[data-theme="light"] .token.punctuation{color:#3a3f5c}
+  html[data-theme="light"] .flowcard,html[data-theme="light"] .scene,html[data-theme="light"] .stage.flowstage{background:#F3F5FB;border:1px solid var(--line)}
+  html[data-theme="light"] pre,html[data-theme="light"] code{color:var(--silk)}
+  /* side layout: the stage at the left (three quarters), the instructions at its right (one quarter), the panel below */
+  @media(min-width:960px){
+    .app{display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,1fr);gap:0 22px;max-width:1400px;margin:0 auto;padding:0 16px;height:auto;min-height:0}
+    .app>.lab-head{grid-column:1/-1;max-width:none;padding:18px 0 14px}
+    .app>.stage{grid-column:1;grid-row:2;width:100%;height:clamp(420px,70vh,860px);border:1px solid var(--line);border-radius:8px}
+    .app>.guide{grid-column:2;grid-row:2;max-width:none;padding:0;display:block;align-self:start;max-height:clamp(420px,70vh,860px);overflow:auto}
+    .app>.guide h2{margin:0 0 10px;font-size:16px}
+    .app>.guide ol.steps{gap:6px}
+    .app>.guide ol.steps li{font-size:13.5px;padding:7px 8px 7px 40px}
+    .app>.guide .now{margin-top:10px;font-size:14.5px;padding:12px 14px}
+    .app>.guide .tips{font-size:12.5px}
+    .panel{grid-column:1/-1;max-width:none;padding:22px 0 28px}
+    .wrap{display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,1fr);gap:0 22px;max-width:1400px}
+    .wrap>.hero{grid-column:1/-1}
+    .wrap>aside.card{grid-column:1;grid-row:2}
+    .wrap>section.guide{grid-column:2;grid-row:2;padding:0;display:block;align-self:start;max-height:85vh;overflow:auto}
+    .wrap>section.guide h2{margin:0 0 10px;font-size:16px}
+    .wrap>section.guide ol.steps li{font-size:13.5px;padding:7px 8px 7px 40px}
+    .wrap>section.guide .now{margin-top:10px;font-size:14.5px;padding:12px 14px}
+    .wrap>section.card,.wrap>#results,.wrap>section:not(.guide):not(.hero){grid-column:1/-1}
+  }
   /* ===== end of theme ===== */
 
   /* page-specific CSS (flowchart explorer: MAIN and the function side by side) */
@@ -272,7 +373,7 @@
   .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre;max-height:380px}
   .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
   .code .ln.bug{background:rgba(240,120,106,.12);box-shadow:inset 3px 0 0 #F0786A}.code .ln.on.bug{background:rgba(224,184,64,.22)}
-  .code .ln .no{color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px}
+  .code .ln .no{color:var(--silk-dim);display:inline-block;width:2ch;text-align:right;margin-right:10px}
   .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}.token.boolean{color:#E0B840}
   .pick{display:grid;gap:10px}
   .pick label{display:grid;gap:4px;font-size:12.5px;color:var(--silk-dim)}
@@ -281,7 +382,7 @@
   .pick .presets{display:flex;flex-wrap:wrap;gap:6px}
   .pick .presets .btn{padding:6px 9px;font-size:11px}
   .scope{border:1px dashed var(--line-2);border-radius:8px;padding:10px 12px;background:rgba(111,212,155,.04)}
-  .scope h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline;color:#6FD49B}
+  .scope h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline;color:var(--alu)}
   .scope h3 small{font:400 11px var(--font-mono);color:var(--silk-dim)}
   .lbl{font:500 10.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim);margin:10px 0 6px}
   .lrow{display:flex;flex-wrap:wrap;gap:6px}
@@ -289,16 +390,22 @@
   .lb .ix{font-size:10px;color:var(--silk-dim)}.lb b{font-size:14px;font-weight:600}
   .lb.on{border-color:var(--cbt-sky);box-shadow:0 0 10px rgba(56,176,224,.4)}
   .lb.cmp{border-color:var(--cbt-gold);background:rgba(224,184,64,.14)}
-  .lb.hit{border-color:#6FD49B;background:rgba(111,212,155,.16)}
-  .lb.miss{border-color:#F0786A;background:rgba(240,120,106,.14)}
+  .lb.hit{border-color:var(--alu);background:rgba(111,212,155,.16)}
+  .lb.miss{border-color:var(--ctrl);background:rgba(240,120,106,.14)}
   .lb.ghost{border-style:dashed;opacity:.8}
   .cond{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font:12.5px var(--font-mono);color:var(--silk-dim)}
   .cond .k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
-  .cond code{color:#eef1fa}.cond b{color:var(--cbt-gold)}
-  .cond b.t{color:#6FD49B}.cond b.f{color:#F0786A}
+  .cond code{color:var(--silk)}.cond b{color:var(--addr)}
+  .cond b.t{color:var(--alu)}.cond b.f{color:var(--ctrl)}
   .hint{margin:0;font-size:12px;color:var(--silk-dim)}
   .memhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
   .memhead small{font:400 11px var(--font-mono);color:var(--silk-dim)}
+  /* light theme: readable disabled buttons, the scope panel and the ghost chart on white */
+  html[data-theme=light] .btn:disabled,html[data-theme=light] .btn[disabled]{opacity:1;background:var(--panel-2);border-color:var(--line);color:var(--silk-dim)}
+  html[data-theme=light] .pysb-bar button:disabled{opacity:1;background:var(--panel-2);border-color:var(--line);color:var(--silk-dim)}
+  html[data-theme=light] .scope{background:#F3FAF6}
+  html[data-theme=light] .lb{background:#FFFFFF}
+  html[data-theme=light] .code .ln.bug{background:rgba(214,71,60,.10);box-shadow:inset 3px 0 0 var(--ctrl)}
 </style>
 </head>
 <body>
@@ -330,8 +437,8 @@
       <div class="legend" aria-label="Colors">
         <span style="--c:var(--cbt-gold)"><i></i>the symbol running now</span>
         <span style="--c:var(--cbt-sky)"><i></i>the data token (arguments)</span>
-        <span style="--c:#6FD49B"><i></i>return value, done</span>
-        <span style="--c:#F0786A"><i></i>error or wrong value</span>
+        <span style="--c:var(--alu)"><i></i>return value, done</span>
+        <span style="--c:var(--ctrl)"><i></i>error or wrong value</span>
       </div>
     </div>
   </section>
@@ -449,7 +556,10 @@ function FlowKit(stage, opts) {
   const NS = 'http://www.w3.org/2000/svg';
   const hasGSAP = typeof window.gsap !== 'undefined';
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const C = {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  const C = light ? {ink: '#1A1D2E', line: '#4a5490', arrow: '#5B66C9', active: '#E0B840', done: '#2E9E63', error: '#D6473C', label: '#1A1D2E',
+    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#FFFFFF', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(40,48,104,.06)'},
+    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}} : {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
     fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#F4F5FA', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(238,240,248,.08)'},
     stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}};
   const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2;
@@ -465,9 +575,9 @@ function FlowKit(stage, opts) {
   el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.active}, mk2);
   const glow = el('filter', {id: 'fk-glow', x: '-20%', y: '-20%', width: '140%', height: '140%'}, defs);
   el('feGaussianBlur', {stdDeviation: 3, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
-  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: '#161c4d', stroke: '#2a3270'});
-  const grid = el('g', {opacity: .25});
-  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: '#2a3270', 'stroke-dasharray': '3 6'}, grid);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: light ? '#FFFFFF' : '#161c4d', stroke: light ? '#DADDEA' : '#2a3270'});
+  const grid = el('g', {opacity: light ? .6 : .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: light ? '#E8EAF3' : '#2a3270', 'stroke-dasharray': '3 6'}, grid);
   const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
   const nodes = {}, edges = {};
   let pick = null;
@@ -578,7 +688,10 @@ function FlowKit(stage, opts) {
       '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
       '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
       '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
-      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}';
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}' +
+      'html[data-theme=light] .fk-zoom{background:rgba(255,255,255,.95);border-color:#DADDEA}html[data-theme=light] .fk-zoom button{color:#283068}html[data-theme=light] .fk-zoom button:hover{background:#EEF0F8;color:#283068}' +
+      'html[data-theme=light] .fk-box{background:#FFFFFF;border-color:#DADDEA}html[data-theme=light] .fk-box .n{color:#5d6178}html[data-theme=light] .fk-box .v{color:#1A1D2E}html[data-theme=light] .fk-box .v.empty{color:#9a9fbd}html[data-theme=light] .fk-box .l{color:#5d6178}' +
+      'html[data-theme=light] .fk-con{background:#1A1D2E;border-color:#DADDEA;color:#9FE7FF}';
     document.head.appendChild(st);
   }
   const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
@@ -599,7 +712,7 @@ function FlowKit(stage, opts) {
 FlowKit.memory = function (host, vars) {
   host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
   const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
-  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: document.documentElement.getAttribute('data-theme') === 'light' ? '#1A1D2E' : '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
     get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
 };
 // the program's screen: FlowKit.console(host) -> {print, clear, lines}
@@ -639,7 +752,11 @@ function PySandbox(host, opts) {
       '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
       '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
       '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
-      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}';
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}' +
+      'html[data-theme=light] .pysb{background:#FFFFFF;border-color:#DADDEA}html[data-theme=light] .pysb-head{border-color:#DADDEA;color:#1A1D2E}html[data-theme=light] .pysb-status{color:#5d6178}' +
+      'html[data-theme=light] .pysb textarea{background:#F4F5FA;color:#1A1D2E}html[data-theme=light] .pysb-in{border-color:#DADDEA}html[data-theme=light] .pysb-in label,html[data-theme=light] .pysb-out label{color:#5d6178}' +
+      'html[data-theme=light] .pysb-bar{border-color:#DADDEA}html[data-theme=light] .pysb-bar button{background:#FFFFFF;border-color:#C5CAE0;color:#283068}html[data-theme=light] .pysb-bar button.primary{background:#E0B840;color:#1a1205;border-color:transparent}html[data-theme=light] .pysb-bar .hint{color:#5d6178}' +
+      'html[data-theme=light] .pysb-out pre{background:#1A1D2E;color:#eef1fa}html[data-theme=light] .pysb-out pre.err{color:#ffb3a9}html[data-theme=light] .pysb-tests{color:#1A1D2E}html[data-theme=light] .pysb-tests li .got{color:#5d6178}html[data-theme=light] .pysb-tests li.pass::before{background:#2E9E63}html[data-theme=light] .pysb-tests li.fail::before{background:#D6473C}';
     document.head.appendChild(st);
   }
   host.classList.add('pysb');
@@ -849,13 +966,13 @@ function infoFor(fn, co) {
   if (fn === 'price') Object.assign(I, {f_p: '<b>PROCESS.</b> p is a local variable, created here and deleted at the return. Python line: <code>p = 4.50 + 0.80 * weight + 0.25 * miles</code>.',
     f_d: '<b>DECISION.</b> <code>if fragile:</code> reads the parameter box. True takes the Yes arrow to the surcharge; False goes straight to the return.',
     f_add: '<b>PROCESS.</b> <code>p = p + 3.00</code>: the fragile surcharge, only on the Yes path.',
-    f_ret: '<b>RETURN.</b> <code>return p</code> ends the function at once and sends the value back to the call symbol. return is not print: nothing appears on the screen here.' + (co ? ' <span style="color:#F0786A">Copilot\'s version returns before any surcharge: the parameter fragile is never read.</span>' : '')});
+    f_ret: '<b>RETURN.</b> <code>return p</code> ends the function at once and sends the value back to the call symbol. return is not print: nothing appears on the screen here.' + (co ? ' <span style="color:var(--ctrl)">Copilot\'s version returns before any surcharge: the parameter fragile is never read.</span>' : '')});
   if (fn === 'zone') Object.assign(I, {f_d1: '<b>DECISION.</b> <code>if city == "Doral":</code>. Text comparison is exact: "doral" in lower case is not "Doral".',
-    f_d2: '<b>DECISION.</b> The elif runs only when the first check was False. <code>or</code> makes the branch True when either city matches.' + (co ? ' <span style="color:#F0786A">Copilot put Kendall here, with the zone B cities. Kendall is zone C.</span>' : ''),
+    f_d2: '<b>DECISION.</b> The elif runs only when the first check was False. <code>or</code> makes the branch True when either city matches.' + (co ? ' <span style="color:var(--ctrl)">Copilot put Kendall here, with the zone B cities. Kendall is zone C.</span>' : ''),
     f_d3: '<b>DECISION.</b> The last elif. ' + (co ? 'In Copilot\'s version only Homestead reaches zone C.' : 'Kendall and Homestead are zone C.'),
     f_rA: '<b>RETURN "A".</b> The first True branch returns and the function is over: the other diamonds are never checked.', f_rB: '<b>RETURN "B".</b> Hialeah and Miami Gardens are zone B.', f_rC: '<b>RETURN "C".</b> Zone C.',
     f_rAsk: '<b>RETURN "Ask dispatch".</b> The else branch: any city the chain did not match. Without an else, the function would fall off its end and return None.'});
-  if (fn === 'manifest_total') Object.assign(I, {f_t: '<b>PROCESS.</b> The accumulator starts at ' + (co ? '1. <span style="color:#F0786A">Copilot started it at 1, so every total is one pound too high, and an empty list totals 1.</span>' : '0 before the loop adds anything.'),
+  if (fn === 'manifest_total') Object.assign(I, {f_t: '<b>PROCESS.</b> The accumulator starts at ' + (co ? '1. <span style="color:var(--ctrl)">Copilot started it at 1, so every total is one pound too high, and an empty list totals 1.</span>' : '0 before the loop adds anything.'),
     f_d: '<b>DECISION (for loop).</b> <code>for w in weights:</code> asks: is there another item? Yes takes the next item; No leaves the loop.',
     f_w: '<b>PROCESS.</b> The for loop copies the next item into the box w, one item per pass.', f_add: '<b>PROCESS.</b> <code>total = total + w</code> adds the item to the accumulator, then the arrow loops back to the diamond.',
     f_ret: '<b>RETURN.</b> After the last item the loop ends and the total goes back to MAIN.'});
@@ -863,11 +980,11 @@ function infoFor(fn, co) {
     f_d1: '<b>DECISION (for loop).</b> Is i still a valid index? With 5 packages the indexes are 0 to 4, so the loop runs while i < 5.',
     f_d2: '<b>DECISION.</b> <code>if packages[i] == tracking:</code> compares the item at index i with the number we are looking for.',
     f_rm: '<b>RETURN -1.</b> Reached only after every item was checked and none matched. -1 is a signal that means "not found": no real index is negative.',
-    f_ri: co ? '<b>RETURN packages[i].</b> <span style="color:#F0786A">Copilot returns the item, which is the tracking number MAIN already had. MAIN needs the position i to look up the weight.</span>' : '<b>RETURN i.</b> The position of the match. Returning ends the loop early: the remaining items are never checked.',
+    f_ri: co ? '<b>RETURN packages[i].</b> <span style="color:var(--ctrl)">Copilot returns the item, which is the tracking number MAIN already had. MAIN needs the position i to look up the weight.</span>' : '<b>RETURN i.</b> The position of the match. Returning ends the loop early: the remaining items are never checked.',
     f_inc: '<b>PROCESS.</b> No match: the for loop moves i to the next index and loops back.'});
   if (fn === 'sort_by_weight') Object.assign(I, {f_n: '<b>PROCESS.</b> n is the number of items. With 5 items, there are 4 neighboring pairs.',
     f_d1: '<b>DECISION (outer loop).</b> <code>for i in range(n - 1)</code>: one pass per item except the last. Each pass bubbles the heaviest remaining weight to the end.',
-    f_d2: '<b>DECISION (inner loop).</b> ' + (co ? '<code>for j in range(n - i)</code>. <span style="color:#F0786A">One pair too many: on the first pass j reaches n - 1 and weights[j + 1] does not exist.</span>' : '<code>for j in range(n - 1 - i)</code>: the pairs still unsorted. Each pass checks one pair fewer, because the end of the list is already in order.'),
+    f_d2: '<b>DECISION (inner loop).</b> ' + (co ? '<code>for j in range(n - i)</code>. <span style="color:var(--ctrl)">One pair too many: on the first pass j reaches n - 1 and weights[j + 1] does not exist.</span>' : '<code>for j in range(n - 1 - i)</code>: the pairs still unsorted. Each pass checks one pair fewer, because the end of the list is already in order.'),
     f_d3: '<b>DECISION.</b> <code>if weights[j] > weights[j + 1]:</code> compares two neighbors. True means they are out of order.',
     f_sw: '<b>PROCESS.</b> <code>weights[j], weights[j + 1] = weights[j + 1], weights[j]</code> swaps the two neighbors in one line.',
     f_rw: '<b>RETURN weights.</b> The list is handed back lightest first. It is the same list MAIN passed in, so MAIN\'s copy is sorted too.'});
@@ -877,12 +994,13 @@ function infoFor(fn, co) {
 // ---- building the chart, the code, and the memory for the current choice ----
 let fk = null, CHART = null, MEM = null, MAIN_VARS = [], FNMEM = null, CON = null, STEPS = [], INFO = {}, LINES = [], BUG_LINE = 0, FN_LINES = 0;
 function fnEls() { const els = []; Object.keys(fk.nodes).forEach(id => { if (id[0] === 'f') els.push(fk.nodes[id].g); }); Object.keys(fk.edges).forEach(k => { if (k.indexOf('f_') >= 0) { els.push(fk.edges[k].g); if (fk.edges[k].lab) els.push(fk.edges[k].lab); } }); return els; }
+const GHOST = document.documentElement.getAttribute('data-theme') === 'light' ? .45 : .16;  // the ghost chart needs more ink on a white board
 function setFnVisible(show, animate, faded) {
   const els = fnEls();
   if (hasGSAP) gsap.killTweensOf(els);
-  if (!show) { els.forEach(e => { e.style.opacity = .16; }); return; }  // a ghost: the function is defined but not running
+  if (!show) { els.forEach(e => { e.style.opacity = GHOST; }); return; }  // a ghost: the function is defined but not running
   const op = faded ? .55 : 1;
-  if (animate && hasGSAP) gsap.fromTo(els, {opacity: .16, x: 36}, {opacity: op, x: 0, duration: .55 / speed, ease: 'power2.out', clearProps: 'transform'});
+  if (animate && hasGSAP) gsap.fromTo(els, {opacity: GHOST, x: 36}, {opacity: op, x: 0, duration: .55 / speed, ease: 'power2.out', clearProps: 'transform'});
   else { if (hasGSAP) gsap.set(els, {clearProps: 'transform'}); els.forEach(e => { e.style.opacity = op; }); }
 }
 function ensureRet(id) { const key = id + '>m_call'; if (fk.edges[key]) return; fk.addEdge({from: id, to: 'm_call', points: retRoute(id)}); }
@@ -1091,7 +1209,7 @@ function draw(prev, animate) {
   if (S.node) fk.highlight(S.node, S.error && S.step >= STEPS.length ? 'error' : 'active');
   setFnVisible(S.fnShown, false, S.fnFaded);  // the jump step animates the slide-in itself
   MAIN_VARS.forEach(v => { const val = S.main[v]; MEM.set(v, val == null ? null : val, {pop: !!(animate && prev && prev.main[v] !== val)}); });
-  const rb = $('#memory [data-n="result"] .v'); if (rb) rb.style.color = S.main.bad ? '#F0786A' : '';
+  const rb = $('#memory [data-n="result"] .v'); if (rb) rb.style.color = S.main.bad ? 'var(--ctrl)' : '';
   const fw = $('#fnwrap'), fh = $('#fnmem');
   if (S.fn) {
     fw.hidden = false;
