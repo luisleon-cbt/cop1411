@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision diamonds</title>
+<meta name="description" content="COP1411 Week 2 interactive: Watch the Palmetto Parcel sorter decide a package&#x27;s lane one diamond at a time, then change the order of the checks and see why Copilot&#x27;s version sends a 60 lb fragile box to the wrong place.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Flip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<!-- Remove the library tags this page does not use. Pyodide loads lazily from the PySandbox kit on the first Run. -->
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS below (flowchart explorer). The stage holds the living flowchart; the HUD rows stay above and below it. */
+  .stage.flowstage{background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  .stage .flow{position:absolute;left:0;right:0;top:52px;height:calc(100% - 100px);width:100%}
+  @media(max-width:700px){.stage .flow{top:48px;height:calc(100% - 96px)}}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
+  .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:10px}
+  .field{display:flex;flex-direction:column;gap:4px;font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim)}
+  .field input,.field select{width:100%;text-transform:none;letter-spacing:0}
+  .hint{margin:8px 0 0;font-size:13px;color:var(--silk-dim)}
+  .hint code{font-family:var(--font-mono);color:#9FE7FF}
+  .order{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px;position:relative}
+  .order li{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);cursor:grab;touch-action:none;user-select:none}
+  .order li.dragging{border-color:var(--cbt-gold);box-shadow:0 6px 18px rgba(0,0,0,.4);z-index:2}
+  .order li .grip{color:var(--silk-dim);font:700 15px var(--font-mono);letter-spacing:-3px}
+  .order li .t{flex:1;font-size:14px}
+  .order li .n{font:700 12px var(--font-mono);color:var(--cbt-gold);width:1.4em}
+  .order li .ud{display:flex;gap:4px}
+  .order li .ud button{width:30px;height:28px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--silk);cursor:pointer;font-size:12px}
+  .order li .ud button:disabled{opacity:.35;cursor:default}
+  .dec{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:11px 13px;font-size:14px;line-height:1.5}
+  .dec code{font-family:var(--font-mono);font-size:13px;color:#9FE7FF}
+  .pill{display:inline-block;padding:1px 10px;border-radius:999px;font:700 12px var(--font-mono);border:1px solid var(--line);color:var(--silk-dim);vertical-align:1px}
+  .pill.t{background:rgba(111,212,155,.18);color:#6FD49B;border-color:#6FD49B}
+  .pill.f{background:rgba(169,180,255,.16);color:#A9B4FF;border-color:#A9B4FF}
+  .pill.x{background:rgba(240,120,106,.16);color:#F0786A;border-color:#F0786A}
+  .hud .views button.on{color:var(--cbt-gold)}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 2 · Interactive A</div>
+  </div>
+</header>
+
+<div class="app">
+  <header class="lab-head">
+    <p class="eyebrow">COP1411 · Week 2 · Explorer</p>
+    <h1>Decision diamonds</h1>
+    <p class="lede">Watch the Palmetto Parcel sorter decide a package's lane one diamond at a time, then change the order of the checks and see why Copilot's version sends a 60 lb fragile box to the wrong place.</p>
+  </header>
+  <section class="stage flowstage" id="stage" aria-label="Flowchart of the package sorter. Press Step to move the data token through the symbols; use the zoom buttons or scroll to zoom, drag to move.">
+    <div class="hud hud-top">
+      <ol class="phases" aria-label="Phase">
+        <li data-p="start" style="--c:var(--cbt-gold)">Start</li>
+        <li data-p="input" style="--c:var(--cbt-sky)">Input</li>
+        <li data-p="price" style="--c:var(--alu)">Price</li>
+        <li data-p="decide" style="--c:var(--oper)">Decide</li>
+        <li data-p="lane" style="--c:var(--cbt-gold)">Lane</li>
+        <li data-p="output" style="--c:var(--out)">Output</li>
+      </ol>
+      <div class="ticks">step <b id="hudStep">0</b></div>
+    </div>
+    <div class="hud hud-bottom">
+      <div class="legend" aria-label="Colors">
+        <span style="--c:var(--cbt-gold)"><i></i>the symbol running now</span>
+        <span style="--c:var(--cbt-sky)"><i></i>the data token</span>
+        <span style="--c:#6FD49B"><i></i>True, the Yes arrow</span>
+        <span style="--c:#A9B4FF"><i></i>False, the No arrow</span>
+        <span style="--c:#F0786A"><i></i>a lane dispatch did not expect</span>
+      </div>
+      <div class="views" aria-label="View"><button type="button" id="btnFollow" class="on" aria-pressed="true">Follow the token</button><button type="button" id="btnWhole">Whole chart</button></div>
+    </div>
+  </section>
+
+  <section class="guide" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How to use this lab</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Pick a <b>Reference package</b> below, or type your own weight, miles, city, and fragile answer.</li>
+      <li data-h="2">Press <b>Step</b>. The token leaves START and carries each value into the chart. At every diamond, read the comparison and its True or False in the Decisions box.</li>
+      <li data-h="3">Press <b>Step back</b> to see a decision again, or <b>Run</b> to play every step. Click any symbol for a plain-language note.</li>
+      <li data-h="4">Press <b>Copilot's order</b>, pick package PP-2026-0005, and run again: the token lands on FRAGILE and the narration names the diamond that was never reached. Drag the checks into any order you like and run again.</li>
+      <li data-h="5">Scroll down to <b>Try it</b>, change the code, and press <b>Run</b> there to run real Python with three tests.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Pick a package below, then press <b>Step</b>.</span></div>
+      <ul class="tips"><li>Keyboard: Space steps, B steps back, R runs or pauses. Over the flowchart: + and - zoom, drag to move, FIT shows everything. Follow the token keeps the running symbol in view.</li></ul>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <section class="narr" aria-live="polite">
+      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 14</span></div>
+      <p id="narration">Press Step to start, or Run to play every step.</p>
+    </section>
+    <div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="btnRun">Run</button>
+        <button type="button" class="btn" id="btnStep">Step</button>
+        <button type="button" class="btn" id="btnBack">Step back</button>
+        <button type="button" class="btn" id="btnReset">Reset</button>
+      </div>
+      <div class="speed" style="margin-top:12px"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="4" step="1" value="2"><output id="speedOut">1×</output></div>
+    </div>
+    <section>
+      <h2>Package</h2>
+      <label class="field">Reference package<select id="pkg"></select></label>
+      <div class="fields">
+        <label class="field">Weight (lb)<input type="number" id="inW" min="0" step="1" value="12"></label>
+        <label class="field">Miles<input type="number" id="inM" min="0" step="1" value="8"></label>
+        <label class="field">City<input type="text" id="inC" value="Hialeah" list="cities" autocomplete="off"></label>
+        <label class="field">Fragile<select id="inF"><option value="no">no</option><option value="yes">yes</option></select></label>
+      </div>
+      <datalist id="cities"><option value="Doral"></option><option value="Hialeah"></option><option value="Miami Gardens"></option><option value="Kendall"></option><option value="Homestead"></option><option value="Fort Lauderdale"></option></datalist>
+      <p class="hint">Changing a value resets the run. Python compares the city letter by letter, so "doral" is not "Doral".</p>
+    </section>
+    <section>
+      <h2>Order of the checks</h2>
+      <p class="hint" style="margin-top:0">The sorter asks these checks in order and stops at the first True one. Drag a check up or down, or use the arrows: the chart and the Python redraw in the new order.</p>
+      <ul class="order" id="orderList" aria-label="Order of the checks"></ul>
+      <div class="stepper"><button type="button" class="btn" id="btnDispatch">Dispatch order</button><button type="button" class="btn" id="btnCopilot">Copilot's order</button></div>
+      <p class="hint" id="orderNote"></p>
+    </section>
+    <section>
+      <h2>Memory</h2>
+      <div id="memory"></div>
+    </section>
+    <section>
+      <h2>Decisions this run</h2>
+      <div class="dec" id="decBox">No diamond reached yet. Each diamond asks one comparison; Python answers True or False.</div>
+      <div class="scroll-x" style="margin-top:10px"><table class="data" id="decTable"></table></div>
+    </section>
+    <section>
+      <h2>Screen</h2>
+      <div id="screen"></div>
+    </section>
+    <section class="span-all">
+      <h2>The same algorithm in Python: sorter.py</h2>
+      <pre class="code" id="code"></pre>
+    </section>
+    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any symbol in the flowchart to learn what it does and which line of Python it becomes.</div>
+    <section class="span-all">
+      <h2>Try it: edit and run the Python</h2>
+      <p class="hint" style="margin:0 0 10px">The lane chain sits inside a small function called <code>lane</code> so the three tests can call it with different packages (functions get their own week later in the course). Try moving the fragile check above the weight check, or changing <code>&gt;</code> to <code>&gt;=</code>, and watch which test fails.</p>
+      <div id="sandbox"></div>
+    </section>
+    <section>
+      <h2>Things to notice</h2>
+      <ul class="notice">
+        <li>Python runs only the first True branch of an if, elif, else chain. In dispatch order, PP-2026-0005 answers True at weight &gt; 50 and the fragile diamond is never asked.</li>
+        <li>Exactly 50 is not above 50: the comparison 50 &gt; 50 is False, so PP-2026-0006 stays in a van (lane B). A sorter written with &gt;= would send it to FREIGHT.</li>
+        <li>The surcharge decision is separate from the lane chain and has no else, so the price never depends on the order of the lane checks.</li>
+        <li>Seven of the eight reference packages land in the same lane in both orders. Only a test plan with one package per lane, the boundary, and the fragile-and-heavy case shows the difference.</li>
+      </ul>
+    </section>
+    <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+  </aside>
+</div>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+if (hasGSAP && window.Draggable) gsap.registerPlugin(Draggable);
+if (hasGSAP && window.Flip) gsap.registerPlugin(Flip);
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+// FLOWKIT START
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot), orthogonal arrows
+// with Yes/No labels and loop-back routes, a data token that travels the arrows carrying the real value, node highlighting,
+// memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows});
+//   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
+//   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
+//   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
+//   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
+//   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
+function FlowKit(stage, opts) {
+  'use strict';
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, nodes: [], edges: []}, opts || {});
+  const NS = 'http://www.w3.org/2000/svg';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
+    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#F4F5FA', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(238,240,248,.08)'},
+    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}};
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2;
+  const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const mk = el('marker', {id: 'fk-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.arrow}, mk);
+  const mk2 = el('marker', {id: 'fk-arrow-hot', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.active}, mk2);
+  const glow = el('filter', {id: 'fk-glow', x: '-20%', y: '-20%', width: '140%', height: '140%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: '#161c4d', stroke: '#2a3270'});
+  const grid = el('g', {opacity: .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: '#2a3270', 'stroke-dasharray': '3 6'}, grid);
+  const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
+  const nodes = {}, edges = {};
+  let pick = null;
+
+  function shape(n, g) {
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 26 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
+    let s;
+    if (n.type === 'terminal') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'io') { const k = 16; s = el('polygon', {points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'decision') s = el('polygon', {points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'call') { s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx - w / 2 + 8, y1: cy - h / 2, x2: cx - w / 2 + 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx + w / 2 - 8, y1: cy - h / 2, x2: cx + w / 2 - 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: fill, stroke: stroke, 'stroke-width': 1.5, 'stroke-dasharray': '6 5'}, g);
+    else s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke};
+  }
+  function text(n, g, geo) {
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11 : 12.5, lh = 15;
+    const t = el('text', {x: geo.cx, y: geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? '#aeb3c9' : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 600}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.cx, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    return t;
+  }
+  function addNode(n) {
+    const g = el('g', {class: 'fk-node', 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': (n.type + ': ' + (n.text || n.id)).replace(/\n/g, ' '), style: 'cursor:pointer'}, L.nodes);
+    const geo = shape(n, g); const t = text(n, g, geo);
+    const rec = Object.assign({}, n, {g: g, geo: geo, t: t, state: null});
+    const fire = () => pick && pick(n.id);
+    g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    nodes[n.id] = rec; return rec;
+  }
+  // anchor points on a node: top, bottom, left, right
+  function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
+  function route(e) {
+    const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
+    if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
+    const pts = [];
+    if (b.row > a.row && !e.side) {              // downward: bottom to top, with a jog when the columns differ
+      const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
+      if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
+      pts.push(t); return pts;
+    }
+    if (e.side) {                                 // a branch: leave sideways, go to the target column, then down into the target
+      const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
+      if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
+      else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
+      return pts;
+    }
+    // loop back: bottom, down a bit, over to the lane, up above the target, over, into the top
+    const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
+    pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
+    return pts;
+  }
+  function addEdge(e) {
+    const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+    const g = el('g', {class: 'fk-edge'}, L.edges);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.2, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    let lab = null;
+    if (e.label) { const p0 = pts[0], p1 = pts[1], lx = p0[0] + (p1[0] - p0[0]) * (e.side ? .18 : 0) + (e.side === 'left' ? -8 : e.side === 'right' ? 8 : 10), ly = p0[1] + (p1[1] - p0[1]) * (e.side ? 0 : .5) + (e.side ? -8 : 4);
+      lab = el('text', {x: lx, y: ly, fill: C.arrow, 'font-size': 11, 'font-weight': 700, 'font-family': 'Figtree, sans-serif', 'text-anchor': e.side === 'left' ? 'end' : 'start'}, L.labels); lab.textContent = e.label; }
+    const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
+  }
+  O.nodes.forEach(addNode); O.edges.forEach(addEdge);
+
+  function highlight(id, state) {
+    const r = nodes[id]; if (!r) return; r.state = state;
+    const base = r.geo.stroke;
+    r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4 : 2);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else r.geo.s.removeAttribute('filter');
+    r.g.setAttribute('opacity', state === 'done' ? .8 : 1);
+  }
+  function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), lh = 15; r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.cx, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 7}}, {attr: {'stroke-width': 4}, duration: .5}); }
+  function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
+  function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
+  // a token travels along one or more edges (keys "from>to"); the pill carries the value
+  function token(keys, label, color) {
+    const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
+    const g = el('g', {class: 'fk-token'}, L.tokens);
+    const tw = Math.max(28, String(label).length * 7.2 + 16);
+    el('circle', {r: 15, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -11, width: tw, height: 22, rx: 11, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1}, g);
+    const t = el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
+    const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
+    const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
+    list.forEach(e => { e.path.setAttribute('stroke', C.active); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+    place(0);
+    if (!hasGSAP || reduce) { place(1); setTimeout(() => g.remove(), 500); return null; }
+    const o = {u: 0};
+    return gsap.timeline({onComplete: () => g.remove()}).to(o, {u: 1, duration: Math.max(.5, total / 320), ease: 'none', onUpdate: () => place(o.u)});
+  }
+  // view: zoom and pan through the viewBox
+  const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
+  const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * home.h / home.w; V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), home.h * 1.1 - V.h); }
+  function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
+  function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  function fit() { go(home); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * home.h / home.w}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply();
+  if (!document.getElementById('flowkit-css')) {
+    const st = document.createElement('style'); st.id = 'flowkit-css';
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4}' +
+      '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
+      '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
+      '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
+      '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
+      '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}';
+    document.head.appendChild(st);
+  }
+  const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+  box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
+  stage.appendChild(box);
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fit(); });
+  let drag = null;
+  svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
+  svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
+  svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
+
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  window.__flows = window.__flows || []; window.__flows.push(api);
+  return api;
+}
+// memory boxes: FlowKit.memory(host, [{name, label}]) -> {set, get, reset}
+FlowKit.memory = function (host, vars) {
+  host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
+  const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+    get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
+};
+// the program's screen: FlowKit.console(host) -> {print, clear, lines}
+FlowKit.console = function (host) {
+  host.classList.add('fk-con'); const lines = []; const render = () => { host.textContent = lines.length ? lines.join('\n') : ''; const c = document.createElement('span'); c.className = 'cur'; host.appendChild(c); };
+  render();
+  return {print(t) { lines.push(String(t)); render(); }, clear() { lines.length = 0; render(); }, lines: () => lines.slice()};
+};
+// FLOWKIT END
+
+// PYSANDBOX START
+// CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
+// Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
+//   const sb = PySandbox(hostEl, {title, code, inputs, tests: [{expr, expect}], timeout: 15000, onRun(result), onTests(passed, total)});
+//   sb.run(); sb.setCode(s); sb.getCode(); sb.setInputs(s); sb.reset(); sb.output()
+// result: {ok, out, err, tests: [{expr, expect, got, pass}]}. Without the CDN the box shows a plain fallback message.
+function PySandbox(host, opts) {
+  'use strict';
+  const O = Object.assign({title: 'Try it: edit and run the Python', code: 'print("hello")', inputs: '', tests: [], timeout: 15000,
+    pyodideUrl: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', runLabel: 'Run', resetLabel: 'Reset code'}, opts || {});
+  if (!document.getElementById('pysandbox-css')) {
+    const st = document.createElement('style'); st.id = 'pysandbox-css';
+    st.textContent = '.pysb{border:1px solid var(--line,#2a3270);border-radius:8px;background:rgba(11,15,43,.6);overflow:hidden;font-family:Figtree,system-ui,sans-serif}' +
+      '.pysb-head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line,#2a3270);font-size:13px}' +
+      '.pysb-head b{font-family:Archivo,sans-serif;font-weight:700}.pysb-status{margin-left:auto;font:500 11px "Red Hat Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-grid{display:grid;grid-template-columns:1fr 200px;gap:0}@media(max-width:700px){.pysb-grid{grid-template-columns:1fr}}' +
+      '.pysb textarea{width:100%;box-sizing:border-box;border:0;background:#0b0f2b;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;padding:10px 12px;resize:vertical;min-height:160px;outline:none;tab-size:4}' +
+      '.pysb textarea:focus{box-shadow:inset 0 0 0 2px var(--cbt-gold,#E0B840)}' +
+      '.pysb-in{border-left:1px solid var(--line,#2a3270)}@media(max-width:700px){.pysb-in{border-left:0;border-top:1px solid var(--line,#2a3270)}}' +
+      '.pysb-in label,.pysb-out label{display:block;padding:6px 12px 0;font:500 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-in textarea{min-height:60px}' +
+      '.pysb-bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line,#2a3270);flex-wrap:wrap}' +
+      '.pysb-bar button{font:600 13px Figtree,sans-serif;padding:7px 14px;border-radius:6px;border:1px solid var(--line,#2a3270);background:#1b2140;color:#eef1fa;cursor:pointer}' +
+      '.pysb-bar button.primary{background:var(--cbt-gold,#E0B840);color:#1a1205;border-color:transparent}.pysb-bar button:disabled{opacity:.5;cursor:default}' +
+      '.pysb-bar .hint{font-size:12px;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-prog{height:3px;background:transparent;position:relative;overflow:hidden}.pysb-prog i{position:absolute;left:-40%;top:0;bottom:0;width:40%;background:var(--cbt-sky,#38B0E0);animation:pysbp 1.2s linear infinite}@keyframes pysbp{to{left:100%}}' +
+      '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
+      '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
+      '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}';
+    document.head.appendChild(st);
+  }
+  host.classList.add('pysb');
+  host.innerHTML = '<div class="pysb-head"><b></b><span class="pysb-status">Python not loaded yet</span></div><div class="pysb-prog"></div>' +
+    '<div class="pysb-grid"><div><textarea class="pysb-code" spellcheck="false" aria-label="Python code"></textarea></div>' +
+    '<div class="pysb-in"><label>Inputs (one per input() call)</label><textarea class="pysb-inputs" spellcheck="false" aria-label="Inputs, one per line"></textarea></div></div>' +
+    '<div class="pysb-bar"><button type="button" class="primary pysb-run"></button><button type="button" class="pysb-reset"></button><span class="hint">Ctrl+Enter runs. The first run downloads Python (about 10 MB) once.</span></div>' +
+    '<div class="pysb-out"><label>Output</label><pre class="pysb-pre">Nothing run yet.</pre><ul class="pysb-tests" hidden></ul></div>';
+  const q = s => host.querySelector(s);
+  q('.pysb-head b').textContent = O.title; q('.pysb-run').textContent = O.runLabel; q('.pysb-reset').textContent = O.resetLabel;
+  const code = q('.pysb-code'), inputs = q('.pysb-inputs'), pre = q('.pysb-pre'), status = q('.pysb-status'), prog = q('.pysb-prog'), tests = q('.pysb-tests'), btnRun = q('.pysb-run');
+  code.value = O.code; inputs.value = O.inputs;
+  let worker = null, ready = false, loading = false, timer = null, last = null, failed = false;
+  const WORKER_SRC = [
+    'var py = null, url = "' + O.pyodideUrl + '";',
+    'self.onmessage = async function (e) {',
+    '  var m = e.data;',
+    '  try {',
+    '    if (!py) { importScripts(url + "pyodide.js"); py = await loadPyodide({indexURL: url}); postMessage({type: "ready", version: py.version}); }',
+    '    if (m.type !== "run") return;',
+    '    var lines = m.inputs.split(/\\r?\\n/); var out = [];',
+    '    py.setStdout({batched: function (s) { out.push(s); }}); py.setStderr({batched: function (s) { out.push(s); }});',
+    '    py.setStdin({stdin: function () { var l = lines.length ? lines.shift() : ""; return l + "\\n"; }, isatty: false});',
+    '    var ns = py.globals.get("dict")(); var result = {type: "done", ok: true, out: "", err: "", tests: []};',
+    '    try { await py.runPythonAsync(m.code, {globals: ns}); }',
+    '    catch (err) { result.ok = false; result.err = String(err.message || err); }',
+    '    result.out = out.join("\\n");',
+    '    for (var i = 0; i < m.tests.length; i++) { var t = m.tests[i], got;',
+    '      try { got = py.runPython("repr(" + t.expr + ")", {globals: ns}); } catch (e2) { got = "error: " + String(e2.message || e2).trim().split("\\n").pop(); }',
+    '      result.tests.push({expr: t.expr, expect: t.expect, got: got, pass: got === t.expect}); }',
+    '    ns.destroy(); postMessage(result);',
+    '  } catch (err) { postMessage({type: "fatal", err: String(err.message || err)}); }',
+    '};'].join('\n');
+  function spawn() {
+    const blob = new Blob([WORKER_SRC], {type: 'application/javascript'});
+    worker = new Worker(URL.createObjectURL(blob)); ready = false;
+    worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') { ready = true; loading = false; prog.innerHTML = ''; status.textContent = 'Python ' + m.version + ' ready'; return; }
+      if (m.type === 'fatal') { fail(m.err); return; }
+      if (m.type === 'done') { clearTimeout(timer); btnRun.disabled = false; show(m); }
+    };
+    worker.onerror = e => { fail(e.message || 'worker error'); };
+  }
+  function fail(msg) {
+    clearTimeout(timer); loading = false; ready = false; failed = true; btnRun.disabled = false; prog.innerHTML = '';
+    status.textContent = 'Python could not load';
+    pre.className = 'pysb-pre err'; pre.textContent = 'Python could not load here (the network may block cdn.jsdelivr.net). Copy the code into IDLE on the lab PC and run it there.' + (msg ? '\nDetails: ' + msg : '');
+    if (worker) { worker.terminate(); worker = null; }
+  }
+  function trimTrace(err) {
+    // keep from the first line that mentions the student's code; Pyodide adds its own frames above it
+    const i = err.indexOf('File "<exec>"'); if (i < 0) return err.trim();
+    const head = err.slice(0, i).split('\n').filter(l => /^Traceback/.test(l)).join('\n');
+    return (head ? head + '\n  ' : '') + err.slice(i).trim();
+  }
+  function show(m) {
+    last = m; const err = m.err ? trimTrace(m.err) : '';
+    pre.className = 'pysb-pre' + (m.ok ? '' : ' err');
+    pre.textContent = (m.out ? m.out + (m.out.endsWith('\n') ? '' : '\n') : '') + (err ? err : '') || '(no output)';
+    if (O.tests && O.tests.length) {
+      tests.hidden = false; tests.innerHTML = m.tests.map(t => '<li class="' + (t.pass ? 'pass' : 'fail') + '"><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">got ' + esc(t.got) + '</span></li>').join('');
+      const passed = m.tests.filter(t => t.pass).length; status.textContent = passed + ' of ' + m.tests.length + ' tests pass';
+      if (O.onTests) O.onTests(passed, m.tests.length, m);
+    } else status.textContent = m.ok ? 'Ran without errors' : 'Stopped with an error';
+    if (O.onRun) O.onRun(m);
+  }
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  function run() {
+    if (failed) { failed = false; }
+    if (!worker) spawn();
+    btnRun.disabled = true; tests.hidden = true; pre.className = 'pysb-pre'; pre.textContent = ready ? 'Running...' : 'Loading Python (about 10 MB, once)...';
+    if (!ready) { loading = true; status.textContent = 'Loading Python...'; prog.innerHTML = '<i></i>'; }
+    worker.postMessage({type: 'run', code: code.value, inputs: inputs.value, tests: O.tests || []});
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ready && loading) return; // still downloading; the fatal handler covers real failures
+      worker.terminate(); worker = null; ready = false; btnRun.disabled = false;
+      pre.className = 'pysb-pre err'; pre.textContent = 'Stopped after ' + Math.round(O.timeout / 1000) + ' seconds: the program never finished. Look for a loop whose condition never becomes False.';
+      status.textContent = 'Stopped (infinite loop?)'; if (O.onRun) O.onRun({ok: false, out: '', err: 'timeout', tests: []});
+    }, O.timeout + (ready ? 0 : 60000));
+  }
+  btnRun.addEventListener('click', run);
+  q('.pysb-reset').addEventListener('click', () => { code.value = O.code; inputs.value = O.inputs; pre.className = 'pysb-pre'; pre.textContent = 'Code reset. Press Run.'; tests.hidden = true; });
+  code.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if (e.key === 'Tab') { e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '    ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 4; } });
+  const api = {run: run, setCode: s => { code.value = s; }, getCode: () => code.value, setInputs: s => { inputs.value = s; }, setTests: t => { O.tests = t; },
+    reset: () => q('.pysb-reset').click(), output: () => pre.textContent, last: () => last, isReady: () => ready, el: host};
+  window.__pysandboxes = window.__pysandboxes || []; window.__pysandboxes.push(api);
+  return api;
+}
+// PYSANDBOX END
+
+
+/// ---- Palmetto Parcel: the reference packages and the sorter's checks ----
+const PK = [
+  {t: 'PP-2026-0001', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 12, m: 8, f: 'no'},
+  {t: 'PP-2026-0002', who: 'Doral Dental Group', city: 'Doral', w: 3, m: 2, f: 'yes'},
+  {t: 'PP-2026-0003', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 55, m: 14, f: 'no'},
+  {t: 'PP-2026-0004', who: 'Kendall Office Supply', city: 'Kendall', w: 20, m: 19, f: 'no'},
+  {t: 'PP-2026-0005', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 60, m: 14, f: 'yes'},
+  {t: 'PP-2026-0006', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 50, m: 8, f: 'no'},
+  {t: 'PP-2026-0007', who: 'Casa Lopez Furniture', city: 'Homestead', w: 45, m: 30, f: 'yes'},
+  {t: 'PP-2026-0008', who: 'Blue Heron Clinic', city: 'Fort Lauderdale', w: 5, m: 25, f: 'no'}
+];
+const Q = s => '"' + s + '"';
+const fix = v => v.toFixed(2);
+const pyFloat = v => { const n = Number(v.toFixed(10)); return Number.isInteger(n) ? n.toFixed(1) : String(n); };  // what Python shows for the float
+const TF = b => b ? 'True' : 'False';
+const CHECKS = {
+  weight: {label: 'weight above 50 goes to FREIGHT', diamonds: [
+    {id: 'd_weight', text: 'weight > 50?', lane: 'FREIGHT', pid: 'p_freight', py: 'weight > 50', cond: s => s.weight > 50,
+      explain: s => pyFloat(s.weight) + ' > 50 is ' + TF(s.weight > 50) + (s.weight === 50 ? ' (exactly 50 is not above 50)' : '') + '.'}]},
+  fragile: {label: 'fragile goes to the FRAGILE shelf', diamonds: [
+    {id: 'd_fragile', text: 'fragile == "yes"?', lane: 'FRAGILE', pid: 'p_fragile', py: 'fragile == "yes"', cond: s => s.fragile === 'yes',
+      explain: s => Q(s.fragile) + ' == "yes" is ' + TF(s.fragile === 'yes') + '.'}]},
+  city: {label: 'city picks the zone lane (A, B, or C)', diamonds: [
+    {id: 'd_doral', text: 'city == "Doral"?', lane: 'A', pid: 'p_a', py: 'city == "Doral"', cond: s => s.city === 'Doral',
+      explain: s => Q(s.city) + ' == "Doral" is ' + TF(s.city === 'Doral') + '.'},
+    {id: 'd_b', text: 'Hialeah or\nMiami Gardens?', lane: 'B', pid: 'p_b', py: 'city == "Hialeah" or city == "Miami Gardens"', cond: s => s.city === 'Hialeah' || s.city === 'Miami Gardens',
+      explain: s => { const a = s.city === 'Hialeah', b = s.city === 'Miami Gardens'; return Q(s.city) + ' == "Hialeah" is ' + TF(a) + ' and ' + Q(s.city) + ' == "Miami Gardens" is ' + TF(b) + ', so ' + TF(a) + ' or ' + TF(b) + ' is ' + TF(a || b) + '.'; }},
+    {id: 'd_c', text: 'Kendall or\nHomestead?', lane: 'C', pid: 'p_c', py: 'city == "Kendall" or city == "Homestead"', cond: s => s.city === 'Kendall' || s.city === 'Homestead',
+      explain: s => { const a = s.city === 'Kendall', b = s.city === 'Homestead'; return Q(s.city) + ' == "Kendall" is ' + TF(a) + ' and ' + Q(s.city) + ' == "Homestead" is ' + TF(b) + ', so ' + TF(a) + ' or ' + TF(b) + ' is ' + TF(a || b) + '.'; }}]}
+};
+const DISPATCH = ['weight', 'fragile', 'city'], COPILOT = ['fragile', 'weight', 'city'];
+let order = DISPATCH.slice();
+const diamonds = ord => (ord || order).flatMap(k => CHECKS[k].diamonds);
+const laneFor = (s, ord) => { const d = diamonds(ord).find(x => x.cond(s)); return d ? d.lane : 'ASK DISPATCH'; };
+const dispatchWhy = s => s.weight > 50 ? pyFloat(s.weight) + ' is above 50, so FREIGHT comes first no matter what else is true' : s.fragile === 'yes' ? 'it is not above 50 and it is fragile' : 'it is not above 50, not fragile, and the city sets the zone';
+
+// ---- the Python beside the chart (lines 8 to 17 follow the order of the checks) ----
+function program() {
+  const L = ['weight = float(input("Weight in pounds: "))', 'miles = float(input("Miles: "))', 'city = input("City: ")', 'fragile = input("Fragile (yes/no): ")',
+    'price = 4.50 + 0.80 * weight + 0.25 * miles', 'if fragile == "yes":', '    price = price + 3.00'];
+  diamonds().forEach((d, i) => { L.push((i ? 'elif ' : 'if ') + d.py + ':'); L.push('    lane = "' + d.lane + '"'); });
+  L.push('else:', '    lane = "ASK DISPATCH"', 'print(f"Lane: {lane}")', 'print(f"Price: ${price:.2f}")');
+  return L;
+}
+function renderCode(active) {
+  const el = $('#code'); el.innerHTML = program().map((l, i) => '<span class="ln' + (i + 1 === active ? ' on' : '') + '"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' +
+    (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : l.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]))) + '</span>').join('');
+}
+
+// ---- the living flowchart: inputs across the top, the surcharge decision, then the lane chain left to right with Yes branches down ----
+const COLW = 220, NW = 170, DW = 180;
+const HALF = {decision: DW / 2, io: NW / 2 - 8, process: NW / 2, terminal: NW / 2};
+const INFO = {
+  start: '<b>START.</b> A terminal symbol (rounded). Every flowchart begins here with empty memory. In Python there is no line for it: the program simply starts at line 1.',
+  in_w: '<b>INPUT weight.</b> A parallelogram reads one value from the user and stores it in the box weight. Python line 1: <code>weight = float(input("Weight in pounds: "))</code>. input() gives text; float() turns it into a number.',
+  in_m: '<b>INPUT miles.</b> Reads the distance and stores it in the box miles. Python line 2.',
+  in_c: '<b>INPUT city.</b> Reads the city as text and stores it in the box city. Python line 3. Text stays text: no float() here.',
+  in_f: '<b>INPUT fragile.</b> Reads yes or no as text and stores it in the box fragile. Python line 4.',
+  p_price: '<b>PROCESS price.</b> A rectangle computes something. Here it is the week 1 formula: 4.50 plus 0.80 per pound plus 0.25 per mile. Python line 5.',
+  d_sur: '<b>DECISION fragile == "yes"?</b> A diamond asks one yes or no question. Two equal signs compare; one equal sign would assign. Yes adds the surcharge, No skips it. Python line 6: <code>if fragile == "yes":</code>. This if has no else, because when the package is not fragile nothing needs to happen.',
+  p_sur: '<b>PROCESS price = price + 3.00.</b> Runs only on the Yes branch of the surcharge decision. Python line 7 (indented under the if).',
+  d_weight: '<b>DECISION weight &gt; 50?</b> True sends the token down the Yes arrow to lane = "FREIGHT". False sends it right to the next diamond. The boundary matters: 50 &gt; 50 is False.',
+  d_fragile: '<b>DECISION fragile == "yes"?</b> The second time the program looks at fragile, now to pick a lane. In Python this is an <code>if</code> or an <code>elif</code> depending on its place in the chain.',
+  d_doral: '<b>DECISION city == "Doral"?</b> Compares two strings letter by letter. "Doral" matches; "doral" does not.',
+  d_b: '<b>DECISION city == "Hialeah" or city == "Miami Gardens"?</b> The boolean operator <code>or</code> is True when either comparison is True. Write each comparison in full: <code>city == "Hialeah" or "Miami Gardens"</code> is a classic mistake that is always True.',
+  d_c: '<b>DECISION city == "Kendall" or city == "Homestead"?</b> Same shape as the lane B diamond: two comparisons joined with <code>or</code>.',
+  p_freight: '<b>PROCESS lane = "FREIGHT".</b> A partner truck takes packages above 50 lb. Runs only when its diamond answers True.',
+  p_fragile: '<b>PROCESS lane = "FRAGILE".</b> The fragile shelf. Runs only when its diamond answers True and every diamond before it answered False.',
+  p_a: '<b>PROCESS lane = "A".</b> Zone A is Doral, local deliveries.',
+  p_b: '<b>PROCESS lane = "B".</b> Zone B is Hialeah and Miami Gardens.',
+  p_c: '<b>PROCESS lane = "C".</b> Zone C is Kendall and Homestead.',
+  p_ask: '<b>PROCESS lane = "ASK DISPATCH".</b> The else branch: it runs when every diamond in the chain answered False. An if, elif, else chain always ends here when nothing matched, so lane always gets a value. Python lines 18 and 19.',
+  out_lane: '<b>OUTPUT lane.</b> A parallelogram shows a value on the screen. Python line 20: <code>print(f"Lane: {lane}")</code>.',
+  out_price: '<b>OUTPUT price.</b> Python line 21: <code>print(f"Price: ${price:.2f}")</code>. The <code>:.2f</code> prints two decimals, so 16.1 appears as 16.10.',
+  end: '<b>END.</b> The program stops. Every path through the chart must reach END.'
+};
+let fk = null;
+function buildFlow() {
+  const stage = $('#stage'); stage.querySelectorAll('.flow, .fk-zoom').forEach(e => e.remove());
+  const D = diamonds();
+  const nodes = [
+    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0},
+    {id: 'in_w', type: 'io', text: 'INPUT weight', col: 1, row: 0},
+    {id: 'in_m', type: 'io', text: 'INPUT miles', col: 2, row: 0},
+    {id: 'in_c', type: 'io', text: 'INPUT city', col: 3, row: 0},
+    {id: 'in_f', type: 'io', text: 'INPUT fragile', col: 4, row: 0},
+    {id: 'p_price', type: 'process', text: 'price = 4.50\n+ 0.80 * weight\n+ 0.25 * miles', col: 5, row: 0},
+    {id: 'd_sur', type: 'decision', text: 'fragile == "yes"?', col: 6, row: 0, w: DW},
+    {id: 'p_sur', type: 'process', text: 'price = price + 3.00', col: 7, row: 1}
+  ];
+  D.forEach((d, i) => { nodes.push({id: d.id, type: 'decision', text: d.text, col: i, row: 2, w: DW}); nodes.push({id: d.pid, type: 'process', text: 'lane = "' + d.lane + '"', col: i, row: 3}); });
+  nodes.push({id: 'p_ask', type: 'process', text: 'lane =\n"ASK DISPATCH"', col: 5, row: 2},
+    {id: 'out_lane', type: 'io', text: 'OUTPUT\n"Lane: " & lane', col: 2, row: 4},
+    {id: 'out_price', type: 'io', text: 'OUTPUT\n"Price: $" & price', col: 3, row: 4},
+    {id: 'end', type: 'terminal', text: 'END', col: 4, row: 4});
+  const P = {}; nodes.forEach(n => { P[n.id] = n; });
+  const hz = (a, b, extra) => Object.assign({from: a, to: b, side: 'right', points: [[P[a].col + HALF[P[a].type] / COLW, P[a].row], [P[b].col - HALF[P[b].type] / COLW, P[b].row]]}, extra || {});
+  const edges = [hz('start', 'in_w'), hz('in_w', 'in_m'), hz('in_m', 'in_c'), hz('in_c', 'in_f'), hz('in_f', 'p_price'), hz('p_price', 'd_sur'),
+    {from: 'd_sur', to: 'p_sur', side: 'right', label: 'Yes'},
+    {from: 'd_sur', to: D[0].id, label: 'No', points: [[6, 0.42], [6, 1.5], [0, 1.5], [0, 2 - 0.417]]},
+    {from: 'p_sur', to: D[0].id, points: [[7, 1.28], [7, 1.5], [0, 1.5], [0, 2 - 0.417]]}];
+  D.forEach((d, i) => {
+    edges.push({from: d.id, to: d.pid, label: 'Yes'});
+    edges.push(hz(d.id, i < D.length - 1 ? D[i + 1].id : 'p_ask', {label: 'No'}));
+    edges.push({from: d.pid, to: 'out_lane', points: [[i, 3.28], [i, 3.6], [2, 3.6], [2, 3.72]]});
+  });
+  edges.push({from: 'p_ask', to: 'out_lane', points: [[5, 2.28], [5, 3.6], [2, 3.6], [2, 3.72]]}, hz('out_lane', 'out_price'), hz('out_price', 'end'));
+  fk = FlowKit(stage, {cols: 8, rows: 5, colW: COLW, nodeW: NW, nodes: nodes, edges: edges});
+  fk.onPick(id => { $('#info').innerHTML = INFO[id] || ''; });
+}
+const paint = (keys, color) => keys.forEach(k => { const e = fk.edges[k]; if (e) { e.path.setAttribute('stroke', color); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); } });
+const MEM = FlowKit.memory($('#memory'), [{name: 'weight', label: 'real, from input'}, {name: 'miles', label: 'real, from input'}, {name: 'city', label: 'string, from input'}, {name: 'fragile', label: 'string, yes or no'}, {name: 'price', label: 'real, computed'}, {name: 'lane', label: 'string, decided'}]);
+const CON = FlowKit.console($('#screen'));
+
+// ---- the explanation: one step per symbol the token visits; the plan depends on the package and the order of the checks ----
+const readInputs = () => ({weight: parseFloat($('#inW').value) || 0, miles: parseFloat($('#inM').value) || 0, city: $('#inC').value.trim(), fragile: $('#inF').value});
+const fresh = () => Object.assign(readInputs(), {step: 0, phase: null, mem: {}, lines: [], dec: {}});
+const SKY = '#38B0E0', GREEN = '#6FD49B', PERI = '#A9B4FF', CORAL = '#F0786A', ICE = '#9FE7FF';
+function plan(S) {
+  const D = diamonds(), steps = [], w = S.weight, m = S.miles, fr = S.fragile === 'yes';
+  const price0 = 4.5 + 0.8 * w + 0.25 * m, price = price0 + (fr ? 3 : 0);
+  steps.push({phase: 'start', node: 'start', line: 0, text: 'START. Memory is empty: the six boxes have no values yet. The token is about to carry each input into the chart.'});
+  steps.push({phase: 'input', node: 'in_w', line: 1, path: ['start>in_w'], label: '?', color: SKY, mem: {weight: pyFloat(w)}, text: 'INPUT weight: the user types ' + w + '. input() gives the text "' + w + '" and float() turns it into the number ' + pyFloat(w) + ', stored in the box weight.'});
+  steps.push({phase: 'input', node: 'in_m', line: 2, path: ['in_w>in_m'], label: pyFloat(w), color: SKY, mem: {miles: pyFloat(m)}, text: 'INPUT miles: the user types ' + m + '. The number ' + pyFloat(m) + ' goes into the box miles.'});
+  steps.push({phase: 'input', node: 'in_c', line: 3, path: ['in_m>in_c'], label: pyFloat(m), color: SKY, mem: {city: Q(S.city)}, text: 'INPUT city: the user types ' + S.city + '. It stays text (a string) in the box city, capital letters included.'});
+  steps.push({phase: 'input', node: 'in_f', line: 4, path: ['in_c>in_f'], label: S.city, color: SKY, mem: {fragile: Q(S.fragile)}, text: 'INPUT fragile: the user types ' + S.fragile + '. The string "' + S.fragile + '" goes into the box fragile.'});
+  steps.push({phase: 'price', node: 'p_price', line: 5, path: ['in_f>p_price'], label: S.fragile, color: SKY, mem: {price: pyFloat(price0)}, text: 'PROCESS price = 4.50 + 0.80 * ' + pyFloat(w) + ' + 0.25 * ' + pyFloat(m) + '. The parts: 0.80 * ' + pyFloat(w) + ' = ' + fix(0.8 * w) + ', 0.25 * ' + pyFloat(m) + ' = ' + fix(0.25 * m) + ', plus the base 4.50. Total ' + fix(price0) + ', stored in the box price.'});
+  steps.push({phase: 'decide', node: 'd_sur', line: 6, path: ['p_price>d_sur'], label: pyFloat(price0), color: SKY, dec: {id: 'd_sur', cond: 'fragile == "yes"', explain: Q(S.fragile) + ' == "yes" is ' + TF(fr) + '.', result: fr},
+    text: 'DECISION fragile == "yes"? Python compares ' + Q(S.fragile) + ' == "yes": ' + TF(fr) + '. ' + (fr ? 'The token takes the Yes arrow to add the surcharge.' : 'The token takes the No arrow: the price stays ' + fix(price0) + '.')});
+  let from = 'd_sur';
+  if (fr) { steps.push({phase: 'price', node: 'p_sur', line: 7, path: ['d_sur>p_sur'], label: 'True', color: GREEN, mem: {price: pyFloat(price)}, text: 'PROCESS price = price + 3.00 = ' + fix(price0) + ' + 3.00 = ' + fix(price) + '. The fragile surcharge. The box price changes; the token now heads for the lane chain.'}); from = 'p_sur'; }
+  let lane = null, laneNode = null, firedAt = -1;
+  for (let i = 0; i < D.length; i++) {
+    const d = D[i], r = d.cond(S), lab = i === 0 ? (fr ? pyFloat(price) : 'False') : 'False';
+    steps.push({phase: 'decide', node: d.id, line: 8 + 2 * i, path: [from + '>' + d.id], label: lab, color: i === 0 && fr ? SKY : PERI, long: i === 0, dec: {id: d.id, cond: d.py, explain: d.explain(S), result: r},
+      text: 'DECISION ' + (i + 1) + ' of ' + D.length + ': ' + d.text.replace('\n', ' ') + ' ' + d.explain(S) + (r ? ' True: the token takes the Yes arrow down to lane = "' + d.lane + '". The diamonds to the right will never be asked for this package.' : ' False: the token takes the No arrow to the next diamond.')});
+    if (r) { lane = d.lane; laneNode = d.pid; firedAt = i; steps.push({phase: 'lane', node: d.pid, line: 9 + 2 * i, path: [d.id + '>' + d.pid], label: 'True', color: GREEN, mem: {lane: Q(lane)}, text: 'PROCESS lane = "' + lane + '". The box lane gets its value.'}); break; }
+    from = d.id;
+  }
+  if (!lane) {
+    lane = 'ASK DISPATCH'; laneNode = 'p_ask';
+    const known = ['Doral', 'Hialeah', 'Miami Gardens', 'Kendall', 'Homestead'].find(c => c.toLowerCase() === S.city.toLowerCase() && c !== S.city);
+    steps.push({phase: 'lane', node: 'p_ask', line: 19, path: [D[D.length - 1].id + '>p_ask'], label: 'False', color: PERI, mem: {lane: Q(lane)}, text: 'Every diamond answered False, so the else branch runs: lane = "ASK DISPATCH".' + (known ? ' Note: ' + Q(S.city) + ' is not ' + Q(known) + '. Python compares letter by letter, capital letters included.' : ' Dispatch will decide by hand where ' + S.city + ' goes.')});
+  }
+  const expected = laneFor(S, DISPATCH), laneStep = steps[steps.length - 1];
+  if (lane !== expected) {
+    const missed = diamonds(DISPATCH).find(d => d.cond(S));
+    laneStep.err = true;
+    laneStep.text += ' Dispatch expected ' + expected + ': ' + dispatchWhy(S) + '. The diamond "' + missed.text.replace('\n', ' ') + '" was never reached, because Python stops at the first True condition and in this order it came too late.';
+  } else if (firedAt >= 0 && firedAt < D.length - 1 && order[0] !== 'city') laneStep.text += ' Dispatch agrees: ' + dispatchWhy(S) + '.';
+  const unreached = D.slice(firedAt >= 0 ? firedAt + 1 : D.length);
+  steps.push({phase: 'output', node: 'out_lane', line: 20, path: [laneNode + '>out_lane'], label: lane, color: ICE, long: true, print: ['Lane: ' + lane], text: 'OUTPUT: the screen prints Lane: ' + lane + '.' + (unreached.length ? ' ' + unreached.length + ' diamond' + (unreached.length > 1 ? 's were' : ' was') + ' never asked: ' + unreached.map(d => '"' + d.text.replace('\n', ' ') + '"').join(', ') + '.' : '')});
+  steps.push({phase: 'output', node: 'out_price', line: 21, path: ['out_lane>out_price'], label: '$' + fix(price), color: ICE, print: ['Price: $' + fix(price)], text: 'OUTPUT: the screen prints Price: $' + fix(price) + '. The box holds ' + pyFloat(price) + '; the f-string :.2f prints exactly two decimals.'});
+  steps.push({phase: 'output', node: 'end', line: 0, path: ['out_price>end'], label: 'done', color: GREEN, text: 'END. Package ' + (S.t || 'with these values') + ' goes to lane ' + lane + ' at $' + fix(price) + '.' + (lane !== expected ? ' That lane is wrong for dispatch: this is the branch a test plan must catch.' : ' Pick another package, or change the order of the checks, and run again.')});
+  return steps;
+}
+let S = fresh(), STEPS = plan(S), hist = [], tl = null, running = false, timer = null, speed = 1, follow = true;
+const SPEEDS = [0.25, 0.5, 1, 2, 4];
+function setPhase(p) { document.querySelectorAll('.phases li').forEach(li => li.classList.toggle('on', li.dataset.p === p)); const li = document.querySelector('.phases li[data-p="' + p + '"]'); $('#phaseTag').textContent = li ? li.textContent : 'Ready'; $('#phaseTag').style.setProperty('--pc', li ? getComputedStyle(li).getPropertyValue('--c') : 'var(--silk-dim)'); }
+function decBox(d) {
+  if (!d) { $('#decBox').innerHTML = 'No diamond reached yet. Each diamond asks one comparison; Python answers True or False.'; return; }
+  $('#decBox').innerHTML = 'Diamond <code>' + d.cond.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + '</code><br>' + d.explain.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + ' <span class="pill ' + (d.result ? 't' : 'f') + '">' + TF(d.result) + '</span> ' + (d.result ? 'Yes arrow' : 'No arrow');
+}
+function decTable() {
+  const all = [{id: 'd_sur', py: 'fragile == "yes"  (surcharge)'}].concat(diamonds());
+  $('#decTable').innerHTML = '<tr><th>Diamond</th><th>Result</th></tr>' + all.map(d => { const r = S.dec[d.id]; const done = S.step >= STEPS.length;
+    return '<tr><td>' + d.py.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + '</td><td>' + (r ? '<span class="pill ' + (r.result ? 't' : 'f') + '">' + TF(r.result) + '</span>' : done ? '<span class="pill x">never reached</span>' : '<span class="pill">not yet</span>') + '</td></tr>'; }).join('');
+}
+function restoreView() {   // after step back, reset, or a chart rebuild: redraw memory, screen, decisions, and highlights from the state
+  fk.clear(); MEM.reset(); CON.clear();
+  let last = null;
+  for (let i = 0; i < S.step; i++) { const m = STEPS[i]; if (m.mem) Object.keys(m.mem).forEach(k => MEM.set(k, m.mem[k], {pop: false})); if (m.print) m.print.forEach(l => CON.print(l)); if (m.path) paint(m.path, '#E0B840'); if (m.dec) last = m.dec; fk.highlight(m.node, i === S.step - 1 ? (m.err ? 'error' : 'active') : 'done'); }
+  decBox(last); decTable();
+  if (follow && S.step > 0) fk.focus(STEPS[S.step - 1].node); else fk.fit();
+}
+function render() { $('#hudStep').textContent = S.step; $('#ctx').textContent = 'Step ' + S.step + ' of ' + STEPS.length; $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = S.step >= STEPS.length; $('#btnRun').textContent = running ? 'Pause' : 'Run';
+  renderCode(S.step > 0 && S.step <= STEPS.length ? STEPS[S.step - 1].line : 0); decTable();
+  const copilot = order.join() === COPILOT.join(), is5 = S.weight === 60 && S.fragile === 'yes';
+  guide(S.step === 0 ? (copilot && !is5 ? 4 : 2) : S.step < STEPS.length ? 3 : (copilot ? 5 : 4),
+    S.step === 0 ? (copilot && !is5 ? 'Copilot\'s order is on. Pick package <b>PP-2026-0005</b> and press <b>Run</b>.' : 'Press <b>Step</b> to start, or <b>Run</b> to play every step.')
+    : S.step < STEPS.length ? 'Read the explanation, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + STEPS.length + '.'
+    : copilot ? 'You saw the unreached diamond. Scroll to <b>Try it</b> and run the Python, or press <b>Dispatch order</b> to go back.' : 'Done. Press <b>Copilot\'s order</b> and run PP-2026-0005, or pick another package.'); }
+function finish(m) { tl = null; if (m.mem) Object.assign(S.mem, m.mem); if (m.print) S.lines.push.apply(S.lines, m.print); if (m.dec) S.dec[m.dec.id] = m.dec; S.step++; render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed); } }
+function animate(t, m) {
+  t.call(() => { if (S.step > 0) fk.highlight(STEPS[S.step - 1].node, 'done'); if (follow) { if (m.long) fk.fit(); else fk.focus(m.node); } });
+  if (m.path) { const f = fk.token(m.path, m.label, m.color); if (f) { f.timeScale(Math.max(1, f.duration() / 2.2)); t.add(f); } }
+  t.call(() => { fk.highlight(m.node, m.err ? 'error' : 'active'); if (m.path) paint(m.path, '#E0B840'); if (follow && m.long) fk.focus(m.node); if (m.mem) Object.keys(m.mem).forEach(k => MEM.set(k, m.mem[k])); if (m.print) m.print.forEach(l => CON.print(l)); if (m.dec) decBox(m.dec); });
+  t.to({}, {duration: .35});
+}
+function stepFwd(animated) {
+  if (tl) { tl.progress(1); return; }
+  if (S.step >= STEPS.length) return;
+  hist.push(JSON.parse(JSON.stringify(S)));
+  const m = STEPS[S.step]; S.phase = m.phase; setPhase(m.phase); $('#narration').textContent = m.text; renderCode(m.line);
+  if (animated !== false && hasGSAP) { tl = gsap.timeline({onComplete: () => finish(m)}); animate(tl, m); tl.timeScale(speed); }
+  else { animate({call: f => f(), add: () => {}, to: () => {}}, m); finish(m); }
+}
+function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); setPhase(S.phase); restoreView(); $('#narration').textContent = 'Stepped back. Press Step to watch that step again.'; render(); }
+function run() { if (S.step >= STEPS.length) return; running = true; render(); stepFwd(); }
+function stop() { running = false; clearTimeout(timer); render(); }
+function reset(msg) { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); const p = PK.find(x => x.w === S.weight && x.m === S.miles && x.city === S.city && x.f === S.fragile); if (p) S.t = p.t; STEPS = plan(S); hist = []; setPhase(null); restoreView(); $('#narration').textContent = msg || 'Press Step to start, or Run to play every step.'; render(); }
+
+// ---- package picker ----
+const sel = $('#pkg'); sel.innerHTML = PK.map((p, i) => '<option value="' + i + '">' + p.t + ' · ' + p.city + ' · ' + p.w + ' lb · ' + p.m + ' mi · ' + (p.f === 'yes' ? 'fragile' : 'not fragile') + '</option>').join('') + '<option value="custom">Type your own values</option>';
+function loadPkg(i) { const p = PK[i]; if (!p) return; $('#inW').value = p.w; $('#inM').value = p.m; $('#inC').value = p.city; $('#inF').value = p.f; }
+sel.addEventListener('change', () => { loadPkg(+sel.value); reset(sel.value === 'custom' ? 'Type your own values, then press Step.' : 'Package ' + PK[sel.value].t + ' loaded. Press Step to start.'); });
+['#inW', '#inM', '#inC', '#inF'].forEach(s => $(s).addEventListener('input', () => { const v = readInputs(); const i = PK.findIndex(p => p.w === v.weight && p.m === v.miles && p.city === v.city && p.f === v.fragile); sel.value = i >= 0 ? String(i) : 'custom'; reset('Values changed. Press Step to start.'); }));
+
+// ---- order of the checks: a draggable list with up and down buttons; the chart and the Python redraw ----
+function setOrder(o, msg) { order = o.slice(); renderOrder(); buildFlow(); reset(msg || 'Order changed: the chart and the Python redrew. Press Step to start.');
+  const copilot = order.join() === COPILOT.join(), dispatch = order.join() === DISPATCH.join();
+  $('#orderNote').textContent = dispatch ? 'Dispatch order: the rule Dante gave. Weight first, because a freight truck takes anything above 50 lb no matter what else is true.' : copilot ? 'Copilot\'s order: fragile before weight. Run PP-2026-0005 (60 lb, fragile) and watch where it lands.' : order[0] === 'city' ? 'City first: a package from a known city gets its zone lane before anyone looks at the weight or the fragile answer. Run PP-2026-0003 (55 lb) and see it land in B.' : 'Your own order. Run every reference package and see which ones change lane.';
+  $('#btnDispatch').setAttribute('aria-pressed', dispatch); $('#btnCopilot').setAttribute('aria-pressed', copilot); }
+function renderOrder() {
+  const ul = $('#orderList');
+  ul.innerHTML = order.map((k, i) => '<li data-k="' + k + '"><span class="grip" aria-hidden="true">::</span><span class="n">' + (i + 1) + '</span><span class="t">' + CHECKS[k].label + '</span><span class="ud"><button type="button" data-up="' + i + '" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button><button type="button" data-down="' + i + '" aria-label="Move down"' + (i === order.length - 1 ? ' disabled' : '') + '>&#9660;</button></span></li>').join('');
+  if (hasGSAP && window.Draggable) Draggable.create(ul.querySelectorAll('li'), {type: 'y', bounds: ul, zIndexBoost: false,
+    onPress() { this.target.classList.add('dragging'); },
+    onRelease() { const me = this.target; me.classList.remove('dragging'); const items = Array.from(ul.children); const cy = me.getBoundingClientRect().top + me.offsetHeight / 2;
+      const others = items.filter(x => x !== me); const idx = others.filter(x => x.getBoundingClientRect().top + x.offsetHeight / 4 < cy).length;
+      gsap.set(me, {y: 0}); const o = others.map(x => x.dataset.k); o.splice(idx, 0, me.dataset.k); if (o.join() !== order.join()) setOrder(o); else renderOrder(); }});
+}
+$('#orderList').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const o = order.slice(); if (b.dataset.up != null) { const i = +b.dataset.up; [o[i - 1], o[i]] = [o[i], o[i - 1]]; } else { const i = +b.dataset.down; [o[i], o[i + 1]] = [o[i + 1], o[i]]; } setOrder(o); });
+$('#btnDispatch').addEventListener('click', () => setOrder(DISPATCH, 'Dispatch order: weight, fragile, city. Press Step to start.'));
+$('#btnCopilot').addEventListener('click', () => { setOrder(COPILOT, 'Copilot\'s order: fragile, weight, city. Pick PP-2026-0005 and press Run.'); });
+$('#btnFollow').addEventListener('click', () => { follow = true; $('#btnFollow').classList.add('on'); $('#btnFollow').setAttribute('aria-pressed', 'true'); $('#btnWhole').classList.remove('on'); if (S.step > 0) fk.focus(STEPS[S.step - 1].node); });
+$('#btnWhole').addEventListener('click', () => { follow = false; $('#btnFollow').classList.remove('on'); $('#btnFollow').setAttribute('aria-pressed', 'false'); $('#btnWhole').classList.add('on'); fk.fit(); });
+
+$('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
+$('#btnRun').addEventListener('click', () => running ? stop() : run());
+$('#btnBack').addEventListener('click', back);
+$('#btnReset').addEventListener('click', () => reset());
+$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
+document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
+  if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click(); });
+
+// ---- Try it: the same chain inside lane(weight, fragile, city), with package 0003 as the inputs and three tests ----
+const SANDBOX = ['# sorter.py: lane and price for one Palmetto Parcel package', 'def lane(weight, fragile, city):', '    if weight > 50:', '        return "FREIGHT"', '    elif fragile:', '        return "FRAGILE"',
+  '    elif city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "ASK DISPATCH"', '',
+  'weight = float(input("Weight in pounds: "))', 'miles = float(input("Miles: "))', 'city = input("City: ")', 'fragile = input("Fragile (yes/no): ") == "yes"', 'price = 4.50 + 0.80 * weight + 0.25 * miles', 'if fragile:', '    price = price + 3.00',
+  'print(f"Lane: {lane(weight, fragile, city)}")', 'print(f"Price: ${price:.2f}")'].join('\n');
+PySandbox($('#sandbox'), {code: SANDBOX, inputs: '55\n14\nMiami Gardens\nno', tests: [
+  {expr: 'lane(55, False, "Miami Gardens")', expect: "'FREIGHT'"}, {expr: 'lane(60, True, "Miami Gardens")', expect: "'FREIGHT'"}, {expr: 'lane(50, False, "Hialeah")', expect: "'B'"}]});
+
+loadPkg(0); sel.value = '0';
+setOrder(DISPATCH, 'Package PP-2026-0001 loaded. Press Step to start, or Run to play every step.');
+})();
+</script>
+</body>
+</html>

@@ -4,14 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trace race</title>
-<meta name="description" content="COP1411 Week 3 interactive: Predict every cell of the trace table before the loop runs, then watch each cell flip green or red. Ten rounds, 100 points.">
+<meta name="description" content="COP1411 Week 3 interactive: Fill the trace table before the loop runs, then watch every cell flip green or red. Catch an infinite loop, an off-by-one, and a wrong Copilot sentence.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Flip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
@@ -267,33 +266,41 @@
   @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
   /* ===== end of theme ===== */
 
-  /* page-specific CSS (scene challenge: Trace race) */
-  .scene{position:relative;width:100%;aspect-ratio:21/9;min-height:300px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
-  @media(max-width:860px){.scene{aspect-ratio:4/3;min-height:0}}
-  .scene canvas,.scene svg.flat{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .scene canvas{touch-action:none}
-  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9)}
-  .credit{position:absolute;right:14px;bottom:10px;z-index:3;margin:0;font:600 13px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6);pointer-events:none}
-  .code{margin:0 0 12px;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  /* page-specific CSS below (flowchart challenge) */
+  .flowcard{position:relative;width:100%;aspect-ratio:16/9;min-height:240px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  @media(max-width:640px){.flowcard{aspect-ratio:4/3}}
+  .flowcard .flow{position:absolute;inset:0;width:100%;height:100%}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
   .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
-  .code.pickable .ln{cursor:pointer}.code.pickable .ln:hover{background:rgba(56,176,224,.18)}.code.pickable .ln.sel{background:rgba(56,176,224,.3);box-shadow:inset 3px 0 0 var(--cbt-sky)}
-  .code .ln.good{background:rgba(111,212,155,.22);box-shadow:inset 3px 0 0 var(--alu)}.code .ln.poor{background:rgba(240,120,106,.22);box-shadow:inset 3px 0 0 var(--ctrl)}
   .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
-  table.trace{font:500 13px var(--font-mono);width:auto;min-width:60%}
-  table.trace th,table.trace td{white-space:nowrap;padding:5px 8px}
-  table.trace td.fixed{color:var(--silk-dim)}
-  table.trace input{width:5.5em;padding:5px 7px;font:600 13px var(--font-mono);text-align:center}
-  table.trace input.wide{width:7em}
-  table.trace .cell{display:inline-block;min-width:5.5em;padding:5px 7px;border-radius:5px;text-align:center;font-weight:600;border:1px solid transparent}
-  table.trace .cell.ok{background:rgba(111,212,155,.18);border-color:var(--alu);color:var(--alu)}
-  table.trace .cell.bad{background:rgba(240,120,106,.18);border-color:var(--ctrl);color:var(--ctrl)}
-  table.trace .cell.bad s{color:var(--silk-dim);font-weight:400;margin-right:6px}
-  .printrow{display:flex;align-items:center;gap:10px;margin:10px 0 4px;font:500 13px var(--font-mono)}
-  .printrow input{width:9em;padding:5px 7px;font:600 13px var(--font-mono)}
-  .inputs{font:500 12.5px var(--font-mono);color:var(--silk-dim);margin:0 0 10px}
-  .inputs b{color:var(--cbt-sky)}
-  .task h3{margin:12px 0 6px}
-  .opts.rows button{font-family:var(--font-mono);font-size:13.5px}
+  .rgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px;align-items:start;margin-top:10px}
+  @media(max-width:760px){.rgrid{grid-template-columns:1fr}}
+  .tt{font:500 13px var(--font-mono)}
+  .tt th,.tt td{text-align:center;padding:4px 6px}
+  .tt td.p{color:var(--silk-dim)}
+  .tt input{width:58px;box-sizing:border-box;padding:5px 4px;border-radius:5px;border:1px solid var(--line);background:#0b0f2b;color:#eef1fa;font:600 13px var(--font-mono);text-align:center}
+  .tt input.wide{width:120px}
+  .tt input:focus{outline:2px solid var(--cbt-gold);outline-offset:1px}
+  .tt input:disabled{opacity:.75}
+  .tt td .res,.prints .res{display:inline-block;min-width:58px;padding:5px 6px;border-radius:5px;font-weight:700}
+  .tt td .res.ok,.prints .res.ok{background:rgba(111,212,155,.18);color:#6FD49B;border:1px solid #6FD49B}
+  .tt td .res.bad,.prints .res.bad{background:rgba(240,120,106,.16);color:#F0786A;border:1px solid #F0786A}
+  .tt td .res .was,.prints .res .was{display:block;font-size:10.5px;font-weight:500;text-decoration:line-through;color:var(--silk-dim)}
+  .tt td .res.ok.blank,.tt td .res.bad.blank{font-style:italic;font-weight:500;font-size:11.5px}
+  .prints{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px}
+  .prints label{color:var(--silk-dim)}
+  .sym{display:grid;gap:6px;margin-top:8px}
+  .sym button,.opts button{text-align:left}
+  .sym button.on{border-color:var(--cbt-sky)}
+  .sym button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}.sym button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  .sym button{padding:9px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14px var(--font-mono);cursor:pointer}
+  .copi{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:10px 14px;font-size:14px;margin-top:8px}
+  .copi .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .copi ol{margin:4px 0 0 18px;padding:0}
+  .static{font:500 12.5px var(--font-mono);margin-top:8px}
+  .static th,.static td{text-align:center}
+  .qnote{font-size:13.5px;color:var(--silk-dim);margin:0 0 6px}
+  #btnStop{border-color:#F0786A;color:#F0786A}
 </style>
 </head>
 <body>
@@ -306,38 +313,37 @@
 
 <main class="wrap">
   <section class="hero split reveal" style="--i:0">
-    <div><span class="eyebrow">COP1411 · Week 3 · Challenge</span><h1>Trace race</h1><p class="lede">Predict every cell of the trace table before the loop runs, then watch each cell flip green or red. Ten rounds, 100 points.</p></div>
-    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit per cell</span></div><div><b>Shuffled</b><span>rounds 1 to 8</span></div></div>
+    <div><span class="eyebrow">COP1411 · Week 3 · Challenge</span><h1>Trace race</h1><p class="lede">Fill the trace table before the loop runs, then watch every cell flip green or red. Catch an infinite loop, an off-by-one, and a wrong Copilot sentence.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit per cell</span></div><div><b>Shuffled</b><span>every attempt</span></div></div>
   </section>
-  <aside class="card reveal" style="--i:1" data-ref="SCENE">
-    <h2>Watch it happen</h2>
-    <div class="scene" id="stage"></div>
-    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">Fill the trace table in the round below and press Run. The scene plays the loop with the real values.</p></div>
-    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
+  <aside class="card reveal" style="--i:1" data-ref="FLOWCHART">
+    <h2>Watch it on the flowchart</h2>
+    <div class="flowcard" id="stage"></div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">Fill the table in the round below, then press Run: the token walks the loop and the cells flip.</p></div>
+    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><button class="btn" id="btnStop" type="button" hidden>Stop</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
   </aside>
   <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
     <h2 id="guideTitle">How this challenge works</h2>
     <ol class="steps" id="howSteps">
-      <li data-h="1">Read the loop in the round below. In a trace round, <b>type a value in every cell</b> (one row per pass) and the printed output, before the loop runs.</li>
-      <li data-h="2">Press <b>Run</b> (or <b>Check</b> in a question round). The scene above plays the loop, and every cell flips green or red with the real value.</li>
-      <li data-h="3">Read the feedback. Press <b>Play the explanation</b> to watch the loop again.</li>
+      <li data-h="1">Read the round below. In a trace round, <b>type a value in every cell</b> of the table and in the "prints" box. In the other rounds, <b>pick one answer</b>.</li>
+      <li data-h="2">Press <b>Run</b> (trace rounds) or <b>Check</b>. The token walks the loop on the flowchart above and every cell flips green or red with the real value.</li>
+      <li data-h="3">Read the points and the explanation. Press <b>Play the explanation</b> to watch the token again.</li>
       <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> if you want a better score.</li>
     </ol>
     <div>
-      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and fill every cell.</span></div>
-      <ul class="tips"><li>Points per trace round: 10 times the share of correct cells. True or False cells accept T or F. A row the loop never reaches stays empty.</li><li>Rounds 1 to 8 are shuffled; rounds 9 and 10 (Copilot's explanation) always come last.</li></ul>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and fill the table.</span></div>
+      <ul class="tips"><li>Each round is worth 10 points. In a trace round, the points follow the share of right cells. Leave a cell empty only when the loop never reaches that pass.</li><li>Over the flowchart: + and - zoom, drag to move, FIT shows the whole chart.</li></ul>
     </div>
   </section>
   <section class="card reveal" style="--i:3" data-ref="ROUND">
     <div class="progress" id="prog"></div>
     <h2 id="qTitle">Round 1</h2>
-    <p id="qText" style="margin:0 0 10px"></p>
-    <pre class="code" id="codeBox"></pre>
-    <div class="task" id="task"></div>
-    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Run</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
+    <p id="qText" style="margin:0 0 6px"></p>
+    <div id="body"></div>
+    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
     <div id="fb"></div>
   </section>
-  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="U3 · RESULTS">
     <h2>Your results</h2>
     <div class="scroll-x"><table class="data" id="resTable"></table></div>
     <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
@@ -349,282 +355,605 @@
 (function () {
 "use strict";
 const hasGSAP = typeof window.gsap !== 'undefined';
-const hasTHREE = typeof window.THREE !== 'undefined';
-const hasFlip = hasGSAP && !!window.Flip; if (hasFlip) gsap.registerPlugin(Flip);
-const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (hasGSAP && window.Draggable) gsap.registerPlugin(Draggable);
+if (hasGSAP && window.Flip) gsap.registerPlugin(Flip);
+const hasFlip = hasGSAP && !!window.Flip;
 function guide(stepNo, nowHtml) {
   document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
   if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
 }
 const $ = s => document.querySelector(s);
-const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
-const hl = l => window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l);
+// FLOWKIT START
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot), orthogonal arrows
+// with Yes/No labels and loop-back routes, a data token that travels the arrows carrying the real value, node highlighting,
+// memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows});
+//   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
+//   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
+//   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
+//   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
+//   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
+function FlowKit(stage, opts) {
+  'use strict';
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, nodes: [], edges: []}, opts || {});
+  const NS = 'http://www.w3.org/2000/svg';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
+    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#F4F5FA', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(238,240,248,.08)'},
+    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}};
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2;
+  const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const mk = el('marker', {id: 'fk-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.arrow}, mk);
+  const mk2 = el('marker', {id: 'fk-arrow-hot', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.active}, mk2);
+  const glow = el('filter', {id: 'fk-glow', x: '-20%', y: '-20%', width: '140%', height: '140%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: '#161c4d', stroke: '#2a3270'});
+  const grid = el('g', {opacity: .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: '#2a3270', 'stroke-dasharray': '3 6'}, grid);
+  const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
+  const nodes = {}, edges = {};
+  let pick = null;
 
-// ---- rounds (every value below was computed by running the Python) ----
-// trace rounds: cols, rows of cells ({v} typed by the learner, {v, fixed: true} shown), print (what prints), scene (what the stage plays)
-const ROUNDS = [
-  {id: 'counter', kind: 'trace', name: 'Counter', q: 'A counter loop. For each pass, type the value of count at the end of the pass, then what the last line prints.',
-    code: ['count = 0', 'while count < 4:', '    count = count + 1', 'print(count)'],
-    cols: ['Pass', 'count at the end of the pass'], rows: [[{v: '1', fixed: true}, {v: '1'}], [{v: '2', fixed: true}, {v: '2'}], [{v: '3', fixed: true}, {v: '3'}], [{v: '4', fixed: true}, {v: '4'}]], print: '4',
-    scene: {type: 'dial', vals: [1, 2, 3, 4], label: 'count'}, why: 'count goes 1, 2, 3, 4. When count is 4, the test 4 < 4 is False and the loop ends, so print shows 4.'},
-  {id: 'accumulator', kind: 'trace', name: 'Accumulator', q: 'An accumulator over a list. For each pass, type the value of w and the value of total at the end of the pass, then what prints.',
-    code: ['total = 0', 'for w in [12, 3, 20]:', '    total = total + w', 'print(total)'],
-    cols: ['Pass', 'w', 'total at the end of the pass'], rows: [[{v: '1', fixed: true}, {v: '12'}, {v: '12'}], [{v: '2', fixed: true}, {v: '3'}, {v: '15'}], [{v: '3', fixed: true}, {v: '20'}, {v: '35'}]], print: '35',
-    scene: {type: 'load', weights: [12, 3, 20], label: 'total', vals: [12, 15, 35]}, why: 'w takes the items in order: 12, 3, 20. total adds each one: 12, 15, 35. The loop ends when the items run out and print shows 35.'},
-  {id: 'maximum', kind: 'trace', name: 'Maximum so far', q: 'The maximum-so-far pattern. For each pass, type the result of the test w > heaviest (True or False) and the value of heaviest at the end of the pass, then what prints.',
-    code: ['heaviest = 0', 'for w in [12, 3, 20, 50, 45]:', '    if w > heaviest:', '        heaviest = w', 'print(heaviest)'],
-    cols: ['Pass', 'w', 'w > heaviest', 'heaviest at the end of the pass'], rows: [[{v: '1', fixed: true}, {v: '12', fixed: true}, {v: 'True'}, {v: '12'}], [{v: '2', fixed: true}, {v: '3', fixed: true}, {v: 'False'}, {v: '12'}], [{v: '3', fixed: true}, {v: '20', fixed: true}, {v: 'True'}, {v: '20'}], [{v: '4', fixed: true}, {v: '50', fixed: true}, {v: 'True'}, {v: '50'}], [{v: '5', fixed: true}, {v: '45', fixed: true}, {v: 'False'}, {v: '50'}]], print: '50',
-    scene: {type: 'load', weights: [12, 3, 20, 50, 45], label: 'heaviest', vals: [12, 12, 20, 50, 50]}, why: 'heaviest changes only when the test is True: passes 1, 3, and 4. On pass 5, 45 > 50 is False, so heaviest stays 50.'},
-  {id: 'sentinel', kind: 'trace', name: 'Sentinel', q: 'A sentinel loop. The dispatcher types 30, 8, 125, and then -1. For each row, type the result of the test weight != -1, then count and total at the end of the pass. The exit row is the test that ends the loop. Then type what prints (two numbers with a space).',
-    code: ['count = 0', 'total = 0', 'weight = int(input())', 'while weight != -1:', '    count = count + 1', '    total = total + weight', '    weight = int(input())', 'print(count, total)'], inputs: '30, 8, 125, -1',
-    cols: ['Pass', 'weight', 'weight != -1', 'count', 'total'], rows: [[{v: '1', fixed: true}, {v: '30', fixed: true}, {v: 'True'}, {v: '1'}, {v: '30'}], [{v: '2', fixed: true}, {v: '8', fixed: true}, {v: 'True'}, {v: '2'}, {v: '38'}], [{v: '3', fixed: true}, {v: '125', fixed: true}, {v: 'True'}, {v: '3'}, {v: '163'}], [{v: 'exit', fixed: true}, {v: '-1', fixed: true}, {v: 'False'}, {v: '3'}, {v: '163'}]], print: '3 163',
-    scene: {type: 'load', weights: [30, 8, 125], label: 'total', vals: [30, 38, 163], close: true}, why: 'Three passes: count 1, 2, 3 and total 30, 38, 163. The -1 is read, fails the test, and is never counted or added: the exit row keeps 3 and 163, and that is what prints.'},
-  {id: 'range', kind: 'trace', name: 'For with range', q: 'A for loop with range(1, 5). For each pass, type i and total at the end of the pass. Five rows are given: leave a row empty if the loop never reaches that pass. Then type what prints.',
-    code: ['total = 0', 'for i in range(1, 5):', '    total = total + i', 'print(total)'],
-    cols: ['Pass', 'i', 'total at the end of the pass'], rows: [[{v: '1', fixed: true}, {v: '1'}, {v: '1'}], [{v: '2', fixed: true}, {v: '2'}, {v: '3'}], [{v: '3', fixed: true}, {v: '3'}, {v: '6'}], [{v: '4', fixed: true}, {v: '4'}, {v: '10'}], [{v: '5', fixed: true}, {v: ''}, {v: ''}]], print: '10',
-    scene: {type: 'dial', vals: [1, 2, 3, 4], label: 'i', sub: [1, 3, 6, 10], subLabel: 'total'}, why: 'range(1, 5) gives 1, 2, 3, 4: the stop value 5 is not included. Four passes, total 1, 3, 6, 10. Pass 5 never happens.'},
-  {id: 'list', kind: 'trace', name: 'List and index', q: 'A list, an append, and a loop by index. For each pass, type i, the value of weights[i], and total at the end of the pass. Then type what prints (two numbers with a space).',
-    code: ['weights = [12, 3, 20]', 'weights.append(50)', 'n = len(weights)', 'total = 0', 'for i in range(n):', '    total = total + weights[i]', 'print(n, total)'],
-    cols: ['Pass', 'i', 'weights[i]', 'total at the end of the pass'], rows: [[{v: '1', fixed: true}, {v: '0'}, {v: '12'}, {v: '12'}], [{v: '2', fixed: true}, {v: '1'}, {v: '3'}, {v: '15'}], [{v: '3', fixed: true}, {v: '2'}, {v: '20'}, {v: '35'}], [{v: '4', fixed: true}, {v: '3'}, {v: '50'}, {v: '85'}]], print: '4 85',
-    scene: {type: 'load', weights: [12, 3, 20, 50], label: 'total', vals: [12, 15, 35, 85], index: true}, why: 'After the append the list has 4 items, so n is 4 and range(4) gives i = 0, 1, 2, 3. weights[0] is 12 and weights[3] is 50 (the last index is n - 1). total ends at 85.'},
-  {id: 'infinite', kind: 'infinite', name: 'Infinite loop', q: 'This program never ends: the van spins on the turntable and never leaves. First click the line that was meant to count packages down but changes the wrong variable. Then pick the fix and press Check.',
-    code: ['packages = 3', 'loaded = 0', 'while packages > 0:', '    print("Loading a package")', '    loaded = loaded + 1', 'print(loaded, "loaded")'],
-    lines: {5: [5, 'Line 5 adds 1 to loaded, but the condition tests packages. Nothing in the body changes packages, so it stays 3 and 3 > 0 is True forever.'], 3: [2, 'The condition on line 3 is written correctly. The problem is that nothing in the body changes packages, so the test never becomes False: look at line 5.']},
-    fixes: [['Add packages = packages - 1 inside the loop, after line 5', 5, 'Now packages goes 3, 2, 1, 0 and the test 0 > 0 is False after three passes. The van leaves.'], ['Change line 3 to while packages >= 0:', 0, 'packages still never changes, so the test is still True forever.'], ['Change line 5 to loaded = loaded - 1', 0, 'loaded is not in the condition. The loop still tests packages, which never changes.'], ['Move print(loaded, "loaded") inside the loop', 0, 'That prints more often, but the loop still never ends.']],
-    scene: {type: 'spin', vals: [2, 1, 0], label: 'packages'}, why: 'A while loop needs something in its body to move the condition toward False. Here that something is packages = packages - 1.'},
-  {id: 'offbyone', kind: 'mc', name: 'Off by one', q: 'How many times does the body of this loop run (how many numbers print)?',
-    code: ['i = 1', 'while i <= 5:', '    print(i)', '    i = i + 1'],
-    opts: [['5 times: it prints 1, 2, 3, 4, 5', 10, 'i starts at 1 and the test uses <=, so i = 5 still passes. The body runs for 1, 2, 3, 4, and 5.'], ['4 times: it prints 1, 2, 3, 4', 3, 'That would be right for i < 5. With <= the pass for i = 5 also runs.'], ['6 times: it prints 1 to 6', 0, 'i becomes 6 after the fifth pass, but 6 <= 5 is False, so the body never runs for 6.'], ['Forever: i never reaches 5', 0, 'Line 4 adds 1 to i on every pass, so i reaches 6 and the test becomes False.']],
-    scene: {type: 'dial', vals: [1, 2, 3, 4, 5], label: 'i'}, why: 'i goes 1, 2, 3, 4, 5, 6. The body runs five times; the sixth test, 6 <= 5, is False.'},
-  {id: 'copilot-sentence', kind: 'mc', name: 'Copilot sentence', keep: true, q: 'A student asked Microsoft Copilot to explain this loop. It answered with the four sentences below. One of them is wrong. Pick it.',
-    code: ['weights = [12, 3, 20, 50, 45]', 'count = 0', 'total = 0', 'for w in weights:', '    if w > 40:', '        count = count + 1', '    total = total + w', 'print(count, total)'],
-    opts: [['Sentence 1: the for loop visits each weight in the list in order, 12 first and 45 last.', 0, 'This sentence is true: a for loop over a list takes the items in order.'], ['Sentence 2: total adds every weight, so it ends at 130.', 0, 'This sentence is true: 12 + 3 + 20 + 50 + 45 = 130.'], ['Sentence 3: count ends at 1, because 50 is the only weight above 40.', 10, 'This is the wrong one. 45 is also above 40, so count goes to 1 on pass 4 and to 2 on pass 5. The program prints 2 130.'], ['Sentence 4: line 7 runs on every pass, but line 6 runs only when the weight is above 40.', 0, 'This sentence is true: line 7 is outside the if, line 6 is inside it.']],
-    scene: {type: 'load', weights: [12, 3, 20, 50, 45], label: 'count', vals: [0, 0, 0, 1, 2], sub: [12, 15, 35, 85, 130], subLabel: 'total'}, why: 'Sentence 3 is wrong. Trace it: on pass 5, w is 45, 45 > 40 is True, and count becomes 2. The program prints 2 130.'},
-  {id: 'copilot-row', kind: 'mc', name: 'Copilot row', keep: true, q: 'Sentence 3 said: "count ends at 1, because 50 is the only weight above 40." Which trace table row proves it wrong? (Rows show w, count, and total at the end of the pass.)',
-    code: ['weights = [12, 3, 20, 50, 45]', 'count = 0', 'total = 0', 'for w in weights:', '    if w > 40:', '        count = count + 1', '    total = total + w', 'print(count, total)'],
-    opts: [['Row 1: w = 12, count = 0, total = 12', 0, 'This row agrees with the sentence: 12 is not above 40 and count is still 0.'], ['Row 3: w = 20, count = 0, total = 35', 0, 'This row agrees with the sentence: count is still 0.'], ['Row 4: w = 50, count = 1, total = 85', 3, 'This row shows count reaching 1, which is what the sentence claims. It does not disprove anything; the next row does.'], ['Row 5: w = 45, count = 2, total = 130', 10, 'Row 5 is the proof: 45 > 40 is True, so count goes from 1 to 2. The sentence said count ends at 1.']],
-    rowsOpts: true, scene: {type: 'load', weights: [12, 3, 20, 50, 45], label: 'count', vals: [0, 0, 0, 1, 2], sub: [12, 15, 35, 85, 130], subLabel: 'total'}, why: 'A sentence is a claim; a row is the proof. Row 5 shows count going from 1 to 2 on the 45 lb package.'}
-];
-const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
-const norm = v => { v = String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, ' '); if (['t', 'true', 'yes', 'y'].includes(v)) return 'true'; if (['f', 'false', 'no', 'n'].includes(v)) return 'false'; if (['', '-', 'x', 'none', 'no pass', 'empty', 'skip'].includes(v)) return ''; if (/^-?\d+(\.\d+)?$/.test(v)) return String(Number(v)); return v; };
-let order = [], r = 0, picked = null, pickedLine = null, total = 0, log = [], G = null, lastTL = null;
-
-// ---- the scene: a dock, VAN-1, a counter dial, and a turntable (Three.js, or a flat SVG with the same objects) ----
-const pkgSize = w => 0.4 + 0.6 * Math.sqrt(Math.min(Math.max(w, 1), 400) / 400);
-function Scene(stage) {
-  const api = {setup(R) {}, run(R) { return null; }, fixed(ok) { return null; }};
-  if (hasTHREE && window.WebGLRenderingContext) {
-    try {
-      const r = new THREE.WebGLRenderer({antialias: true, alpha: true}); r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-      r.setSize(stage.clientWidth, stage.clientHeight); stage.appendChild(r.domElement);
-      const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0b0f2b, 20, 44);
-      const cam = new THREE.PerspectiveCamera(40, stage.clientWidth / stage.clientHeight, 0.1, 100); cam.position.set(0.5, 6.2, 12.5); cam.lookAt(0.8, 1.0, 0);
-      scene.add(new THREE.HemisphereLight(0xffffff, 0x223366, 1.0)); const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(5, 10, 7); scene.add(sun);
-      const mat = (c, o) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: .7, metalness: .1}, o || {}));
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 26), mat(0x141a45)); floor.rotation.x = -Math.PI / 2; scene.add(floor);
-      const grid = new THREE.GridHelper(40, 40, 0x2a3470, 0x1b2258); grid.position.y = 0.01; scene.add(grid);
-      function sprite(text, color, w, h) {
-        const c = document.createElement('canvas'); c.width = 256; c.height = 96; const ctx = c.getContext('2d'); const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false})); sp.scale.set(w || 1.7, h || 0.64, 1);
-        sp.userData.set = (t, col) => { ctx.clearRect(0, 0, 256, 96); ctx.fillStyle = 'rgba(11,15,43,.82)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(8, 14, 240, 68, 14) : ctx.rect(8, 14, 240, 68); ctx.fill(); ctx.fillStyle = col || color || '#eef1fa'; ctx.font = '600 38px "Red Hat Mono", Consolas, monospace'; if (ctx.measureText(t).width > 226) ctx.font = '600 ' + Math.floor(38 * 226 / ctx.measureText(t).width) + 'px "Red Hat Mono", Consolas, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, 128, 50); tex.needsUpdate = true; };
-        sp.userData.set(text); scene.add(sp); return sp;
-      }
-      const dock = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.6, 4.2), mat(0x2a3470)); dock.position.set(-4.2, 0.3, 0.3); scene.add(dock);
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.62, 4.2), mat(0xE0B840)); stripe.position.set(-1.6, 0.31, 0.3); scene.add(stripe);
-      // the turntable under the van (shown only in the infinite loop round)
-      const table = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, 0.12, 48), mat(0x1B2150, {emissive: 0x0d1240})); table.position.set(4, 0.06, 0); table.visible = false; scene.add(table);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.06, 8, 64), mat(0xF0786A, {emissive: 0x7a2a22})); ring.rotation.x = Math.PI / 2; ring.position.set(4, 0.13, 0); ring.visible = false; scene.add(ring);
-      // the van
-      const van = new THREE.Group(); van.position.set(4, 0, 0); scene.add(van);
-      const vb = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); van.add(b); return b; };
-      const glass = mat(0x38B0E0, {transparent: true, opacity: .2, side: THREE.DoubleSide});
-      vb(5, 0.14, 2.5, mat(0x1B2150), 0, 0.77, 0); vb(5, 2.2, 0.05, glass, 0, 1.95, 1.25); vb(5, 2.2, 0.05, glass, 0, 1.95, -1.25); vb(5, 0.05, 2.5, glass, 0, 3.05, 0); vb(0.1, 2.3, 2.5, mat(0x283068), 2.5, 1.95, 0);
-      vb(1.7, 1.7, 2.4, mat(0x283068), 3.4, 1.55, 0); vb(0.1, 0.75, 2.0, mat(0x9FE7FF, {emissive: 0x1a4a60}), 4.25, 1.95, 0);
-      const wheelG = new THREE.CylinderGeometry(0.44, 0.44, 0.32, 24); [[-1.6, 1.3], [-1.6, -1.3], [2.9, 1.3], [2.9, -1.3]].forEach(p => { const w = new THREE.Mesh(wheelG, mat(0x0d1026)); w.rotation.x = Math.PI / 2; w.position.set(p[0], 0.44, p[1]); van.add(w); });
-      const doors = [1, -1].map(side => { const g = new THREE.Group(); g.position.set(-2.5, 1.95, side * 1.25); const d = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.2, 1.25), mat(0x283068)); d.position.set(0, 0, -side * 0.625); g.add(d); van.add(g); g.userData.open = side * 1.95; g.rotation.y = g.userData.open; return g; });
-      const vanTag = sprite('VAN-1', '#E0B840', 1.4, 0.56); vanTag.position.set(4, 3.7, 0);
-      const valTag = sprite('', '#9FE7FF', 2.4, 0.7); valTag.position.set(4, 4.5, 0); valTag.visible = false;
-      // the counter dial at the front left
-      const dial = new THREE.Group(); dial.position.set(-5.2, 1.6, 3.2); scene.add(dial);
-      const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.12, 40), mat(0x0b0f2b, {emissive: 0x05081a})); disc.rotation.x = Math.PI / 2; dial.add(disc);
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.06, 8, 48), mat(0xE0B840)); dial.add(rim);
-      for (let i = 0; i < 8; i++) { const a = -Math.PI * 0.75 + i * (Math.PI * 1.5 / 7); const t = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.04), mat(0xaeb3c9)); t.position.set(Math.sin(a) * 0.92, Math.cos(a) * 0.92, 0.08); t.rotation.z = -a; dial.add(t); }
-      const needleG = new THREE.BoxGeometry(0.06, 0.95, 0.05); needleG.translate(0, 0.42, 0); const needle = new THREE.Mesh(needleG, mat(0xF0786A, {emissive: 0x7a2a22})); needle.position.z = 0.1; needle.rotation.z = Math.PI * 0.75; dial.add(needle);
-      const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.1, 0.16), mat(0x2a3470)); post.position.set(-5.2, 0.5, 3.2); scene.add(post);
-      const dialTag = sprite('', '#eef1fa', 1.9, 0.6); dialTag.position.set(-5.2, 3.2, 3.2); dialTag.visible = false;
-      const needleAngle = (v, max) => Math.PI * 0.75 - (Math.max(0, Math.min(v, max)) / max) * Math.PI * 1.5;
-      let pk = [], spinTween = null;
-      const dockPos = k => ({x: -6.2 + (k % 5) * 0.95, z: 1.3 - Math.floor(k / 5) * 1.1});
-      const vanPos = k => ({x: 4 - 1.7 + (k % 5) * 0.86, z: -0.6 + Math.floor(k / 5) * 1.0});
-      const place = (p, k, inVan) => { const s = p.userData.s; const a = inVan ? vanPos(k) : dockPos(k); p.position.set(a.x, (inVan ? 0.84 : 0.6) + s / 2, a.z); p.rotation.set(0, 0, 0); };
-      api.setup = R => {
-        if (spinTween) { spinTween.kill(); spinTween = null; }
-        pk.forEach(p => scene.remove(p)); pk = []; van.rotation.y = 0; van.position.set(4, 0, 0); table.visible = ring.visible = false; valTag.visible = dialTag.visible = false;
-        doors.forEach(g => { g.rotation.y = g.userData.open; }); needle.rotation.z = needleAngle(0, 1);
-        const sc = R.scene;
-        if (sc.type === 'load') { sc.weights.forEach((w, k) => { const s = pkgSize(w); const m = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), mat(0xC8A165, {emissive: 0x000000})); m.userData.s = s; const tag = sprite((sc.index ? '[' + k + '] ' : '') + w, '#eef1fa', 1.1, 0.42); scene.remove(tag); tag.position.set(0, s / 2 + 0.3, 0); m.add(tag); place(m, k, false); scene.add(m); pk.push(m); }); valTag.visible = true; valTag.userData.set(sc.label + ' 0'); }
-        if (sc.type === 'dial') { dialTag.visible = true; dialTag.userData.set(sc.label + ' 0'); }
-        if (sc.type === 'spin') { table.visible = ring.visible = true; dialTag.visible = true; dialTag.userData.set('packages 3'); needle.rotation.z = needleAngle(3, 5); if (hasGSAP && !REDUCED) spinTween = gsap.to(van.rotation, {y: Math.PI * 2, duration: 4, repeat: -1, ease: 'none'}); }
-      };
-      api.run = R => {
-        if (!hasGSAP) return null; const sc = R.scene, tl = gsap.timeline();
-        if (sc.type === 'load') {
-          pk.forEach((p, k) => { const a = vanPos(k), s = p.userData.s; const y1 = 0.84 + s / 2;
-            tl.to(p.material.emissive, {r: 0.11, g: 0.43, b: 0.56, duration: .15});
-            tl.to(p.position, {y: 3.2, duration: .35, ease: 'power2.out'}, '<'); tl.to(p.position, {x: a.x, z: a.z, duration: .5, ease: 'power1.inOut'}); tl.to(p.position, {y: y1, duration: .3, ease: 'power2.in'});
-            tl.to(p.material.emissive, {r: 0, g: 0, b: 0, duration: .15}); tl.call(() => valTag.userData.set(sc.label + ' ' + sc.vals[k] + (sc.sub ? '  ' + sc.subLabel + ' ' + sc.sub[k] : ''))); tl.to({}, {duration: .25}); });
-          if (sc.close) tl.to(doors.map(g => g.rotation), {y: 0, duration: .7, ease: 'power2.inOut'});
-          tl.to(van.position, {y: 0.1, duration: .2, yoyo: true, repeat: 1});
-        } else if (sc.type === 'dial') {
-          sc.vals.forEach((v, k) => { tl.to(needle.rotation, {z: needleAngle(v, Math.max(5, sc.vals.length)), duration: .45, ease: 'back.out(2)'}); tl.call(() => dialTag.userData.set(sc.label + ' ' + v + (sc.sub ? '  ' + sc.subLabel + ' ' + sc.sub[k] : ''))); tl.to({}, {duration: .3}); });
-        } else if (sc.type === 'spin') { tl.to({}, {duration: .6}); }
-        lastTL = tl; return tl;
-      };
-      api.fixed = ok => {
-        if (!hasGSAP) return null; const tl = gsap.timeline();
-        if (!ok) { tl.to(ring.material.emissive, {r: 0.9, g: 0.3, b: 0.2, duration: .25, yoyo: true, repeat: 3}); return tl; }
-        if (spinTween) { spinTween.kill(); spinTween = null; }
-        tl.to(van.rotation, {y: 0, duration: .6, ease: 'power2.out'});
-        [2, 1, 0].forEach(v => { tl.to(needle.rotation, {z: needleAngle(v, 5), duration: .4, ease: 'back.out(2)'}); tl.call(() => dialTag.userData.set('packages ' + v)); tl.to({}, {duration: .25}); });
-        tl.call(() => { ring.visible = false; }); tl.to(doors.map(g => g.rotation), {y: 0, duration: .5}); tl.to(van.position, {x: 18, duration: 1.4, ease: 'power2.in'}); return tl;
-      };
-      const tick = () => { r.render(scene, cam); requestAnimationFrame(tick); }; tick();
-      const resize = () => { r.setSize(stage.clientWidth, stage.clientHeight); cam.aspect = stage.clientWidth / stage.clientHeight; cam.updateProjectionMatrix(); };
-      if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
-      return api;
-    } catch (e) { console.warn('3D scene unavailable, using the flat view', e); }
+  function shape(n, g) {
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 26 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
+    let s;
+    if (n.type === 'terminal') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'io') { const k = 16; s = el('polygon', {points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'decision') s = el('polygon', {points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'call') { s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx - w / 2 + 8, y1: cy - h / 2, x2: cx - w / 2 + 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx + w / 2 - 8, y1: cy - h / 2, x2: cx + w / 2 - 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: fill, stroke: stroke, 'stroke-width': 1.5, 'stroke-dasharray': '6 5'}, g);
+    else s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke};
   }
-  const note = document.createElement('div'); note.className = 'nogl'; note.textContent = 'Flat view: 3D is not available on this device. Every round still works.'; stage.appendChild(note);
-  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 800 360'); svg.setAttribute('class', 'flat'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet'); stage.appendChild(svg);
-  const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const a in attrs) n.setAttribute(a, attrs[a]); (parent || svg).appendChild(n); return n; };
-  const txt = (x, y, s, attrs, parent) => { const t = el('text', Object.assign({x: x, y: y, 'font-family': 'Red Hat Mono, Consolas, monospace', 'font-size': 13, fill: '#eef1fa', 'text-anchor': 'middle'}, attrs || {}), parent); t.textContent = s; return t; };
-  el('rect', {x: 0, y: 0, width: 800, height: 360, fill: '#141a45'}); el('line', {x1: 0, y1: 300, x2: 800, y2: 300, stroke: '#2a3470', 'stroke-width': 2});
-  el('rect', {x: 20, y: 255, width: 250, height: 45, rx: 4, fill: '#2a3470'}); el('rect', {x: 266, y: 253, width: 6, height: 47, fill: '#E0B840'});
-  const table = el('ellipse', {cx: 575, cy: 300, rx: 190, ry: 26, fill: '#1B2150', stroke: '#F0786A', 'stroke-width': 3, visibility: 'hidden'});
-  const vanG = el('g', {transform: 'translate(0 0)'});
-  el('rect', {x: 440, y: 120, width: 250, height: 155, rx: 6, fill: '#283068', 'fill-opacity': .45, stroke: '#38B0E0', 'stroke-width': 2}, vanG);
-  el('rect', {x: 690, y: 165, width: 80, height: 110, rx: 8, fill: '#283068', stroke: '#3a4690'}, vanG); el('rect', {x: 730, y: 175, width: 36, height: 36, rx: 4, fill: '#9FE7FF'}, vanG);
-  el('circle', {cx: 490, cy: 285, r: 22, fill: '#0d1026', stroke: '#3a4690'}, vanG); el('circle', {cx: 720, cy: 285, r: 22, fill: '#0d1026', stroke: '#3a4690'}, vanG);
-  txt(565, 110, 'VAN-1', {fill: '#E0B840', 'font-weight': 600}, vanG);
-  const door1 = el('g', {}, vanG), door2 = el('g', {}, vanG); el('rect', {x: 436, y: 120, width: 8, height: 78, fill: '#283068', stroke: '#38B0E0'}, door1); el('rect', {x: 436, y: 198, width: 8, height: 77, fill: '#283068', stroke: '#38B0E0'}, door2);
-  const openDoors = o => { door1.setAttribute('transform', o ? 'rotate(-110 440 120)' : ''); door2.setAttribute('transform', o ? 'rotate(110 440 275)' : ''); };
-  const valT = txt(565, 92, '', {fill: '#9FE7FF', 'font-size': 15, 'font-weight': 600});
-  const dialG = el('g', {transform: 'translate(120 150)'}); el('circle', {cx: 0, cy: 0, r: 62, fill: '#0b0f2b', stroke: '#E0B840', 'stroke-width': 4}, dialG);
-  for (let i = 0; i < 8; i++) { const a = -Math.PI * 0.75 + i * (Math.PI * 1.5 / 7); el('line', {x1: Math.sin(a) * 50, y1: -Math.cos(a) * 50, x2: Math.sin(a) * 58, y2: -Math.cos(a) * 58, stroke: '#aeb3c9', 'stroke-width': 2}, dialG); }
-  const needle = el('line', {x1: 0, y1: 8, x2: 0, y2: -50, stroke: '#F0786A', 'stroke-width': 4, 'stroke-linecap': 'round', transform: 'rotate(-135)'}, dialG); el('circle', {cx: 0, cy: 0, r: 6, fill: '#F0786A'}, dialG);
-  el('rect', {x: 112, y: 212, width: 16, height: 43, fill: '#2a3470'});
-  const dialT = txt(120, 72, '', {'font-size': 14, 'font-weight': 600});
-  const deg = (v, max) => -135 + (Math.max(0, Math.min(v, max)) / max) * 270;
-  const pkG = el('g'); let pk = [], spinTween = null;
-  const dockPos = k => ({x: 50 + (k % 5) * 44, y: 255 - Math.floor(k / 5) * 48}); const vanPos = k => ({x: 470 + (k % 5) * 44, y: 273 - Math.floor(k / 5) * 44});
-  const setXY = (g, p) => { if (hasGSAP) gsap.set(g, {x: p.x, y: p.y}); else g.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ')'); };
-  api.setup = R => {
-    if (spinTween) { spinTween.kill(); spinTween = null; } pkG.innerHTML = ''; pk = []; if (hasGSAP) gsap.set(vanG, {x: 0, rotation: 0, scaleX: 1, transformOrigin: '565px 200px'}); table.setAttribute('visibility', 'hidden'); valT.textContent = ''; dialT.textContent = ''; openDoors(true); needle.setAttribute('transform', 'rotate(-135)');
-    const sc = R.scene;
-    if (sc.type === 'load') { pk = sc.weights.map((w, k) => { const s = Math.round(pkgSize(w) * 40); const g = el('g', {}, pkG); el('rect', {x: -s / 2, y: -s, width: s, height: s, rx: 3, fill: '#C8A165', stroke: '#5a4320'}, g); txt(0, -s - 5, (sc.index ? '[' + k + '] ' : '') + w, {'font-size': 11}, g); setXY(g, dockPos(k)); return g; }); valT.textContent = sc.label + ' 0'; }
-    if (sc.type === 'dial') dialT.textContent = sc.label + ' 0';
-    if (sc.type === 'spin') { table.setAttribute('visibility', 'visible'); dialT.textContent = 'packages 3'; needle.setAttribute('transform', 'rotate(' + deg(3, 5) + ')'); if (hasGSAP && !REDUCED) spinTween = gsap.to(vanG, {scaleX: -1, duration: 1.2, repeat: -1, yoyo: true, ease: 'sine.inOut'}); }
-  };
-  api.run = R => {
-    if (!hasGSAP) return null; const sc = R.scene, tl = gsap.timeline();
-    if (sc.type === 'load') { pk.forEach((g, k) => { const a = vanPos(k); tl.to(g, {y: 60, duration: .35, ease: 'power2.out'}); tl.to(g, {x: a.x, duration: .5}); tl.to(g, {y: a.y, duration: .3, ease: 'power2.in'}); tl.call(() => { valT.textContent = sc.label + ' ' + sc.vals[k] + (sc.sub ? '  ' + sc.subLabel + ' ' + sc.sub[k] : ''); }); tl.to({}, {duration: .25}); });
-      if (sc.close) { tl.to(door1, {attr: {transform: 'rotate(0 440 120)'}, duration: .6}); tl.to(door2, {attr: {transform: 'rotate(0 440 275)'}, duration: .6}, '<'); } }
-    else if (sc.type === 'dial') sc.vals.forEach((v, k) => { tl.to(needle, {attr: {transform: 'rotate(' + deg(v, Math.max(5, sc.vals.length)) + ')'}, duration: .45}); tl.call(() => { dialT.textContent = sc.label + ' ' + v + (sc.sub ? '  ' + sc.subLabel + ' ' + sc.sub[k] : ''); }); tl.to({}, {duration: .3}); });
-    else tl.to({}, {duration: .6});
-    lastTL = tl; return tl;
-  };
-  api.fixed = ok => { if (!hasGSAP) return null; const tl = gsap.timeline(); if (!ok) { tl.to(table, {attr: {'stroke-width': 8}, duration: .2, yoyo: true, repeat: 3}); return tl; }
-    if (spinTween) { spinTween.kill(); spinTween = null; } tl.to(vanG, {scaleX: 1, duration: .4}); [2, 1, 0].forEach(v => { tl.to(needle, {attr: {transform: 'rotate(' + deg(v, 5) + ')'}, duration: .4}); tl.call(() => { dialT.textContent = 'packages ' + v; }); tl.to({}, {duration: .25}); });
-    tl.call(() => table.setAttribute('visibility', 'hidden')); tl.to(door1, {attr: {transform: 'rotate(0 440 120)'}, duration: .4}); tl.to(door2, {attr: {transform: 'rotate(0 440 275)'}, duration: .4}, '<'); tl.to(vanG, {x: 500, duration: 1.2, ease: 'power2.in'}); return tl; };
+  function text(n, g, geo) {
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11 : 12.5, lh = 15;
+    const t = el('text', {x: geo.cx, y: geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? '#aeb3c9' : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 600}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.cx, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    return t;
+  }
+  function addNode(n) {
+    const g = el('g', {class: 'fk-node', 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': (n.type + ': ' + (n.text || n.id)).replace(/\n/g, ' '), style: 'cursor:pointer'}, L.nodes);
+    const geo = shape(n, g); const t = text(n, g, geo);
+    const rec = Object.assign({}, n, {g: g, geo: geo, t: t, state: null});
+    const fire = () => pick && pick(n.id);
+    g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    nodes[n.id] = rec; return rec;
+  }
+  // anchor points on a node: top, bottom, left, right
+  function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
+  function route(e) {
+    const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
+    if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
+    const pts = [];
+    if (b.row > a.row && !e.side) {              // downward: bottom to top, with a jog when the columns differ
+      const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
+      if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
+      pts.push(t); return pts;
+    }
+    if (e.side) {                                 // a branch: leave sideways, go to the target column, then down into the target
+      const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
+      if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
+      else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
+      return pts;
+    }
+    // loop back: bottom, down a bit, over to the lane, up above the target, over, into the top
+    const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
+    pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
+    return pts;
+  }
+  function addEdge(e) {
+    const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+    const g = el('g', {class: 'fk-edge'}, L.edges);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.2, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    let lab = null;
+    if (e.label) { const p0 = pts[0], p1 = pts[1], lx = p0[0] + (p1[0] - p0[0]) * (e.side ? .18 : 0) + (e.side === 'left' ? -8 : e.side === 'right' ? 8 : 10), ly = p0[1] + (p1[1] - p0[1]) * (e.side ? 0 : .5) + (e.side ? -8 : 4);
+      lab = el('text', {x: lx, y: ly, fill: C.arrow, 'font-size': 11, 'font-weight': 700, 'font-family': 'Figtree, sans-serif', 'text-anchor': e.side === 'left' ? 'end' : 'start'}, L.labels); lab.textContent = e.label; }
+    const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
+  }
+  O.nodes.forEach(addNode); O.edges.forEach(addEdge);
+
+  function highlight(id, state) {
+    const r = nodes[id]; if (!r) return; r.state = state;
+    const base = r.geo.stroke;
+    r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4 : 2);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else r.geo.s.removeAttribute('filter');
+    r.g.setAttribute('opacity', state === 'done' ? .8 : 1);
+  }
+  function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), lh = 15; r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.cx, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 7}}, {attr: {'stroke-width': 4}, duration: .5}); }
+  function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
+  function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
+  // a token travels along one or more edges (keys "from>to"); the pill carries the value
+  function token(keys, label, color) {
+    const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
+    const g = el('g', {class: 'fk-token'}, L.tokens);
+    const tw = Math.max(28, String(label).length * 7.2 + 16);
+    el('circle', {r: 15, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -11, width: tw, height: 22, rx: 11, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1}, g);
+    const t = el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
+    const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
+    const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
+    list.forEach(e => { e.path.setAttribute('stroke', C.active); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+    place(0);
+    if (!hasGSAP || reduce) { place(1); setTimeout(() => g.remove(), 500); return null; }
+    const o = {u: 0};
+    return gsap.timeline({onComplete: () => g.remove()}).to(o, {u: 1, duration: Math.max(.5, total / 320), ease: 'none', onUpdate: () => place(o.u)});
+  }
+  // view: zoom and pan through the viewBox
+  const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
+  const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * home.h / home.w; V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), home.h * 1.1 - V.h); }
+  function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
+  function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  function fit() { go(home); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * home.h / home.w}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply();
+  if (!document.getElementById('flowkit-css')) {
+    const st = document.createElement('style'); st.id = 'flowkit-css';
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4}' +
+      '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
+      '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
+      '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
+      '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
+      '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}';
+    document.head.appendChild(st);
+  }
+  const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+  box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
+  stage.appendChild(box);
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fit(); });
+  let drag = null;
+  svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
+  svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
+  svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
+
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  window.__flows = window.__flows || []; window.__flows.push(api);
   return api;
 }
+// memory boxes: FlowKit.memory(host, [{name, label}]) -> {set, get, reset}
+FlowKit.memory = function (host, vars) {
+  host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
+  const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+    get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
+};
+// the program's screen: FlowKit.console(host) -> {print, clear, lines}
+FlowKit.console = function (host) {
+  host.classList.add('fk-con'); const lines = []; const render = () => { host.textContent = lines.length ? lines.join('\n') : ''; const c = document.createElement('span'); c.className = 'cur'; host.appendChild(c); };
+  render();
+  return {print(t) { lines.push(String(t)); render(); }, clear() { lines.length = 0; render(); }, lines: () => lines.slice()};
+};
+// FLOWKIT END
 
-// ---- the round card ----
-function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
-function renderCode(R, pickable) { $('#codeBox').className = 'code' + (pickable ? ' pickable' : ''); $('#codeBox').innerHTML = R.code.map((l, i) => '<span class="ln" data-l="' + (i + 1) + '"' + (pickable ? ' role="button" tabindex="0" aria-label="Line ' + (i + 1) + '"' : '') + '><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' + hl(l) + '</span>').join(''); }
-function cellsOf(R) { const c = []; R.rows.forEach((row, ri) => row.forEach((cell, ci) => { if (!cell.fixed) c.push({ri, ci, v: cell.v}); })); return c; }
-function showRound() {
-  const R = ROUNDS[order[r]]; picked = null; pickedLine = null;
-  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.name; $('#qText').textContent = R.q; $('#fb').innerHTML = '';
-  renderCode(R, R.kind === 'infinite');
-  let h = '';
-  if (R.kind === 'trace') {
-    h += R.inputs ? '<p class="inputs">The dispatcher types: <b>' + esc(R.inputs) + '</b> (one value per input() call).</p>' : '';
-    h += '<div class="scroll-x"><table class="data trace" id="tt"><tr>' + R.cols.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr>' +
-      R.rows.map((row, ri) => '<tr>' + row.map((cell, ci) => cell.fixed ? '<td class="fixed">' + esc(cell.v) + '</td>' : '<td><input type="text" data-ri="' + ri + '" data-ci="' + ci + '" aria-label="' + esc(R.cols[ci]) + ', pass ' + esc(row[0].v) + '" autocomplete="off"></td>').join('') + '</tr>').join('') + '</table></div>';
-    h += '<div class="printrow"><label for="printCell">What prints:</label><input type="text" id="printCell" autocomplete="off" aria-label="What prints"></div>';
-    guide(1, 'Type a value in every cell of round ' + (r + 1) + ' (' + (cellsOf(R).length + 1) + ' cells), then press <b>Run</b>.');
-  } else if (R.kind === 'infinite') {
-    h += '<h3>1. Click the line above that should count packages down but changes the wrong variable</h3><p class="hint" id="lineHint">No line picked yet.</p>';
-    h += '<h3>2. Pick the fix</h3><div class="opts" id="opts">' + shuffle(R.fixes.map((o, i) => [o, i])).map(p => '<button type="button" data-i="' + p[1] + '">' + esc(p[0][0]) + '</button>').join('') + '</div>';
-    guide(1, 'Click a line in the code, pick the fix, then press <b>Check</b>.');
-  } else {
-    const list = R.keep ? R.opts.map((o, i) => [o, i]) : shuffle(R.opts.map((o, i) => [o, i]));
-    h += '<div class="opts' + (R.rowsOpts ? ' rows' : '') + '" id="opts">' + list.map(p => '<button type="button" data-i="' + p[1] + '">' + esc(p[0][0]) + '</button>').join('') + '</div>';
-    guide(1, 'Read round ' + (r + 1) + ' and <b>pick one answer</b>, then press <b>Check</b>.');
+// PYSANDBOX START
+// CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
+// Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
+//   const sb = PySandbox(hostEl, {title, code, inputs, tests: [{expr, expect}], timeout: 15000, onRun(result), onTests(passed, total)});
+//   sb.run(); sb.setCode(s); sb.getCode(); sb.setInputs(s); sb.reset(); sb.output()
+// result: {ok, out, err, tests: [{expr, expect, got, pass}]}. Without the CDN the box shows a plain fallback message.
+function PySandbox(host, opts) {
+  'use strict';
+  const O = Object.assign({title: 'Try it: edit and run the Python', code: 'print("hello")', inputs: '', tests: [], timeout: 15000,
+    pyodideUrl: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', runLabel: 'Run', resetLabel: 'Reset code'}, opts || {});
+  if (!document.getElementById('pysandbox-css')) {
+    const st = document.createElement('style'); st.id = 'pysandbox-css';
+    st.textContent = '.pysb{border:1px solid var(--line,#2a3270);border-radius:8px;background:rgba(11,15,43,.6);overflow:hidden;font-family:Figtree,system-ui,sans-serif}' +
+      '.pysb-head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line,#2a3270);font-size:13px}' +
+      '.pysb-head b{font-family:Archivo,sans-serif;font-weight:700}.pysb-status{margin-left:auto;font:500 11px "Red Hat Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-grid{display:grid;grid-template-columns:1fr 200px;gap:0}@media(max-width:700px){.pysb-grid{grid-template-columns:1fr}}' +
+      '.pysb textarea{width:100%;box-sizing:border-box;border:0;background:#0b0f2b;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;padding:10px 12px;resize:vertical;min-height:160px;outline:none;tab-size:4}' +
+      '.pysb textarea:focus{box-shadow:inset 0 0 0 2px var(--cbt-gold,#E0B840)}' +
+      '.pysb-in{border-left:1px solid var(--line,#2a3270)}@media(max-width:700px){.pysb-in{border-left:0;border-top:1px solid var(--line,#2a3270)}}' +
+      '.pysb-in label,.pysb-out label{display:block;padding:6px 12px 0;font:500 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-in textarea{min-height:60px}' +
+      '.pysb-bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line,#2a3270);flex-wrap:wrap}' +
+      '.pysb-bar button{font:600 13px Figtree,sans-serif;padding:7px 14px;border-radius:6px;border:1px solid var(--line,#2a3270);background:#1b2140;color:#eef1fa;cursor:pointer}' +
+      '.pysb-bar button.primary{background:var(--cbt-gold,#E0B840);color:#1a1205;border-color:transparent}.pysb-bar button:disabled{opacity:.5;cursor:default}' +
+      '.pysb-bar .hint{font-size:12px;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-prog{height:3px;background:transparent;position:relative;overflow:hidden}.pysb-prog i{position:absolute;left:-40%;top:0;bottom:0;width:40%;background:var(--cbt-sky,#38B0E0);animation:pysbp 1.2s linear infinite}@keyframes pysbp{to{left:100%}}' +
+      '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
+      '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
+      '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}';
+    document.head.appendChild(st);
   }
-  $('#task').innerHTML = h;
-  $('#btnCheck').textContent = R.kind === 'trace' ? 'Run' : 'Check'; $('#btnCheck').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true;
-  $('#capT').textContent = 'Round ' + (r + 1); $('#capB').textContent = R.kind === 'trace' ? 'Fill the table, then press Run: the scene plays the loop with the real values.' : R.kind === 'infinite' ? 'The van is stuck on the turntable: the loop never ends. Find the line and the fix.' : 'Pick an answer and press Check; then play the explanation here.';
-  G.setup(R); drawProgress();
-  const first = $('#task input'); if (first && window.innerWidth > 860) first.focus();
+  host.classList.add('pysb');
+  host.innerHTML = '<div class="pysb-head"><b></b><span class="pysb-status">Python not loaded yet</span></div><div class="pysb-prog"></div>' +
+    '<div class="pysb-grid"><div><textarea class="pysb-code" spellcheck="false" aria-label="Python code"></textarea></div>' +
+    '<div class="pysb-in"><label>Inputs (one per input() call)</label><textarea class="pysb-inputs" spellcheck="false" aria-label="Inputs, one per line"></textarea></div></div>' +
+    '<div class="pysb-bar"><button type="button" class="primary pysb-run"></button><button type="button" class="pysb-reset"></button><span class="hint">Ctrl+Enter runs. The first run downloads Python (about 10 MB) once.</span></div>' +
+    '<div class="pysb-out"><label>Output</label><pre class="pysb-pre">Nothing run yet.</pre><ul class="pysb-tests" hidden></ul></div>';
+  const q = s => host.querySelector(s);
+  q('.pysb-head b').textContent = O.title; q('.pysb-run').textContent = O.runLabel; q('.pysb-reset').textContent = O.resetLabel;
+  const code = q('.pysb-code'), inputs = q('.pysb-inputs'), pre = q('.pysb-pre'), status = q('.pysb-status'), prog = q('.pysb-prog'), tests = q('.pysb-tests'), btnRun = q('.pysb-run');
+  code.value = O.code; inputs.value = O.inputs;
+  let worker = null, ready = false, loading = false, timer = null, last = null, failed = false;
+  const WORKER_SRC = [
+    'var py = null, url = "' + O.pyodideUrl + '";',
+    'self.onmessage = async function (e) {',
+    '  var m = e.data;',
+    '  try {',
+    '    if (!py) { importScripts(url + "pyodide.js"); py = await loadPyodide({indexURL: url}); postMessage({type: "ready", version: py.version}); }',
+    '    if (m.type !== "run") return;',
+    '    var lines = m.inputs.split(/\\r?\\n/); var out = [];',
+    '    py.setStdout({batched: function (s) { out.push(s); }}); py.setStderr({batched: function (s) { out.push(s); }});',
+    '    py.setStdin({stdin: function () { var l = lines.length ? lines.shift() : ""; return l + "\\n"; }, isatty: false});',
+    '    var ns = py.globals.get("dict")(); var result = {type: "done", ok: true, out: "", err: "", tests: []};',
+    '    try { await py.runPythonAsync(m.code, {globals: ns}); }',
+    '    catch (err) { result.ok = false; result.err = String(err.message || err); }',
+    '    result.out = out.join("\\n");',
+    '    for (var i = 0; i < m.tests.length; i++) { var t = m.tests[i], got;',
+    '      try { got = py.runPython("repr(" + t.expr + ")", {globals: ns}); } catch (e2) { got = "error: " + String(e2.message || e2).trim().split("\\n").pop(); }',
+    '      result.tests.push({expr: t.expr, expect: t.expect, got: got, pass: got === t.expect}); }',
+    '    ns.destroy(); postMessage(result);',
+    '  } catch (err) { postMessage({type: "fatal", err: String(err.message || err)}); }',
+    '};'].join('\n');
+  function spawn() {
+    const blob = new Blob([WORKER_SRC], {type: 'application/javascript'});
+    worker = new Worker(URL.createObjectURL(blob)); ready = false;
+    worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') { ready = true; loading = false; prog.innerHTML = ''; status.textContent = 'Python ' + m.version + ' ready'; return; }
+      if (m.type === 'fatal') { fail(m.err); return; }
+      if (m.type === 'done') { clearTimeout(timer); btnRun.disabled = false; show(m); }
+    };
+    worker.onerror = e => { fail(e.message || 'worker error'); };
+  }
+  function fail(msg) {
+    clearTimeout(timer); loading = false; ready = false; failed = true; btnRun.disabled = false; prog.innerHTML = '';
+    status.textContent = 'Python could not load';
+    pre.className = 'pysb-pre err'; pre.textContent = 'Python could not load here (the network may block cdn.jsdelivr.net). Copy the code into IDLE on the lab PC and run it there.' + (msg ? '\nDetails: ' + msg : '');
+    if (worker) { worker.terminate(); worker = null; }
+  }
+  function trimTrace(err) {
+    // keep from the first line that mentions the student's code; Pyodide adds its own frames above it
+    const i = err.indexOf('File "<exec>"'); if (i < 0) return err.trim();
+    const head = err.slice(0, i).split('\n').filter(l => /^Traceback/.test(l)).join('\n');
+    return (head ? head + '\n  ' : '') + err.slice(i).trim();
+  }
+  function show(m) {
+    last = m; const err = m.err ? trimTrace(m.err) : '';
+    pre.className = 'pysb-pre' + (m.ok ? '' : ' err');
+    pre.textContent = (m.out ? m.out + (m.out.endsWith('\n') ? '' : '\n') : '') + (err ? err : '') || '(no output)';
+    if (O.tests && O.tests.length) {
+      tests.hidden = false; tests.innerHTML = m.tests.map(t => '<li class="' + (t.pass ? 'pass' : 'fail') + '"><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">got ' + esc(t.got) + '</span></li>').join('');
+      const passed = m.tests.filter(t => t.pass).length; status.textContent = passed + ' of ' + m.tests.length + ' tests pass';
+      if (O.onTests) O.onTests(passed, m.tests.length, m);
+    } else status.textContent = m.ok ? 'Ran without errors' : 'Stopped with an error';
+    if (O.onRun) O.onRun(m);
+  }
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  function run() {
+    if (failed) { failed = false; }
+    if (!worker) spawn();
+    btnRun.disabled = true; tests.hidden = true; pre.className = 'pysb-pre'; pre.textContent = ready ? 'Running...' : 'Loading Python (about 10 MB, once)...';
+    if (!ready) { loading = true; status.textContent = 'Loading Python...'; prog.innerHTML = '<i></i>'; }
+    worker.postMessage({type: 'run', code: code.value, inputs: inputs.value, tests: O.tests || []});
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ready && loading) return; // still downloading; the fatal handler covers real failures
+      worker.terminate(); worker = null; ready = false; btnRun.disabled = false;
+      pre.className = 'pysb-pre err'; pre.textContent = 'Stopped after ' + Math.round(O.timeout / 1000) + ' seconds: the program never finished. Look for a loop whose condition never becomes False.';
+      status.textContent = 'Stopped (infinite loop?)'; if (O.onRun) O.onRun({ok: false, out: '', err: 'timeout', tests: []});
+    }, O.timeout + (ready ? 0 : 60000));
+  }
+  btnRun.addEventListener('click', run);
+  q('.pysb-reset').addEventListener('click', () => { code.value = O.code; inputs.value = O.inputs; pre.className = 'pysb-pre'; pre.textContent = 'Code reset. Press Run.'; tests.hidden = true; });
+  code.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if (e.key === 'Tab') { e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '    ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 4; } });
+  const api = {run: run, setCode: s => { code.value = s; }, getCode: () => code.value, setInputs: s => { inputs.value = s; }, setTests: t => { O.tests = t; },
+    reset: () => q('.pysb-reset').click(), output: () => pre.textContent, last: () => last, isReady: () => ready, el: host};
+  window.__pysandboxes = window.__pysandboxes || []; window.__pysandboxes.push(api);
+  return api;
 }
-$('#task').addEventListener('click', e => { const b = e.target.closest('#opts button'); if (!b || b.disabled) return; picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); guide(2, 'Press <b>Check</b> to see your points.'); });
-$('#codeBox').addEventListener('click', e => { const ln = e.target.closest('.ln'); if (!ln || !$('#codeBox').classList.contains('pickable') || $('#btnCheck').disabled) return; pickedLine = +ln.dataset.l; document.querySelectorAll('#codeBox .ln').forEach(x => x.classList.toggle('sel', x === ln)); $('#lineHint').textContent = 'You picked line ' + pickedLine + '.'; });
-$('#codeBox').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('ln')) { e.preventDefault(); e.target.click(); } });
-$('#task').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); const all = Array.from(document.querySelectorAll('#task input')); const i = all.indexOf(e.target); if (i < all.length - 1) all[i + 1].focus(); else $('#btnCheck').click(); } });
+// PYSANDBOX END
 
-function flipCells(R, results) {
-  const inputs = Array.from(document.querySelectorAll('#task input'));
-  const state = hasFlip ? Flip.getState(inputs.map(i => i.parentElement)) : null;
-  inputs.forEach((inp, i) => { const res = results[i]; const span = document.createElement('span'); span.className = 'cell ' + (res.ok ? 'ok' : 'bad'); span.setAttribute('role', 'status');
-    span.innerHTML = (res.ok ? '' : '<s>' + esc(res.typed === '' ? '(empty)' : res.typed) + '</s>') + esc(res.v === '' ? '(no pass)' : res.v); inp.replaceWith(span); });
-  const cells = document.querySelectorAll('#task .cell');
-  if (state && !REDUCED) { Flip.from(state, {duration: .45, ease: 'power1.inOut', stagger: .04}); gsap.from(cells, {rotationX: -90, transformOrigin: '50% 50%', duration: .5, stagger: .05, ease: 'back.out(1.6)'}); }
+const SKY = '#38B0E0', CORAL = '#F0786A', ICE = '#9FE7FF', GREEN = '#6FD49B';
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const py = lines => '<pre class="code">' + lines.map((l, i) => '<span class="ln"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' + (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('') + '</pre>';
+
+// ------------------------------------------------ chart helpers (grid: main column 1, Yes branches at column 0, the exit at column 2, loop lane at -0.5) ----
+const RH = 80, NH = 50, DH = NH + 26;
+const N = (id, type, text, col, row, w) => Object.assign({id: id, type: type, text: text, col: col, row: row}, w ? {w: w} : {});
+const E = (from, to, x) => Object.assign({from: from, to: to}, x || {});
+const chart = (nodes, edges, rows) => ({cols: 3, rows: rows, colW: 230, rowH: RH, nodeH: NH, nodeW: 180, pad: 40, nodes: nodes, edges: edges});
+// loop back from the bottom of a node to the main line just above the test diamond
+const LB = (from, col, row, h, testRow, bottom) => ({from: from, to: 'test', points: [[col, row + h / 2 / RH], [col, bottom], [-0.5, bottom], [-0.5, testRow - 0.58], [1, testRow - 0.58]]});
+const exitNodes = (outText, testRow) => [N('out', 'io', outText, 2, testRow + 1), N('end', 'terminal', 'END', 2, testRow + 2)];
+const exitEdges = () => [E('test', 'out', {label: 'No', side: 'right'}), E('out', 'end')];
+function simpleLoop(initTexts, testText, bodyTexts, outText) {   // one column of body symbols, the loop back from the last one
+  const nodes = [N('start', 'terminal', 'START', 1, 0)], edges = [];
+  initTexts.forEach((t, i) => { const id = 'init' + (i || ''); nodes.push(N(id, t[0] === '!' ? 'io' : 'process', t.replace(/^!/, ''), 1, 1 + i, t.length > 26 ? 220 : 0)); edges.push(E(i ? 'init' + (i - 1 || '') : 'start', id)); });
+  const t = 1 + initTexts.length; nodes.push(N('test', 'decision', testText, 1, t)); edges.push(E(initTexts.length > 1 ? 'init' + (initTexts.length - 1) : 'init', 'test'));
+  bodyTexts.forEach((b, i) => { const id = 'b' + (i + 1); nodes.push(N(id, b[0] === '!' ? 'io' : 'process', b.replace(/^!/, ''), 1, t + 1 + i, b.length > 24 ? 212 : 0)); edges.push(E(i ? 'b' + i : 'test', id, i ? {} : {label: 'Yes'})); });
+  const last = 'b' + bodyTexts.length, lastRow = t + bodyTexts.length;
+  edges.push(LB(last, 1, lastRow, NH, t, lastRow + 0.62));
+  if (outText) { nodes.push(...exitNodes(outText, t)); edges.push(...exitEdges()); }
+  else { nodes.push(N('end', 'terminal', 'END', 2, t + 1)); edges.push(E('test', 'end', {label: 'No', side: 'right'})); }
+  return chart(nodes, edges, Math.max(lastRow + 1.1, t + 2.6));
+}
+
+// --------------------------------------------------------------- rounds ----
+// trace rounds: cols are the headers; rows hold cells: {f: text} fixed, {a: answer} to fill ('' means the loop never reaches it); passes drive the token
+const T = s => ({f: s}), A = v => ({a: String(v)});
+const ROUNDS = [
+  {kind: 'trace', name: 'Counter', q: 'A counter loop. Fill the count column after each pass, and what the program prints.',
+    code: ['count = 0', 'while count < 4:', '    count = count + 1', 'print(count)'],
+    chart: () => simpleLoop(['count = 0'], 'count < 4?', ['count = count + 1'], 'OUTPUT count'),
+    cols: ['pass', 'count < 4?', 'count after the pass'],
+    rows: [{p: '1', c: [T('True'), A(1)]}, {p: '2', c: [T('True'), A(2)]}, {p: '3', c: [T('True'), A(3)]}, {p: '4', c: [T('True'), A(4)]}, {p: 'exit', c: [T('False'), T('4')]}],
+    prints: '4',
+    passes: () => [1, 2, 3, 4].map((v, k) => ({enter: k ? ['b1>test'] : ['init>test'], label: 'count = ' + (v - 1), body: [{edges: ['test>b1'], node: 'b1', label: 'count = ' + v}], row: k, cap: 'Pass ' + v + ': ' + (v - 1) + ' < 4 is True, count becomes ' + v + '.'})),
+    exit: {enter: ['b1>test'], label: 'count = 4', row: 4, cap: '4 < 4 is False: the loop ends after 4 passes and the program prints 4.'},
+    why: 'count < 4 is True for 0, 1, 2, and 3, so the body runs 4 times. After the fourth pass count is 4, 4 < 4 is False, and print(count) shows 4.'},
+  {kind: 'trace', name: 'Accumulator', q: 'An accumulator over a list. Fill w and total for each pass, and what the program prints.',
+    code: ['total = 0', 'for w in [12, 3, 20]:', '    total = total + w', 'print(total)'],
+    chart: () => simpleLoop(['total = 0'], 'next w in\n[12, 3, 20]?', ['total = total + w'], 'OUTPUT total'),
+    cols: ['pass', 'w', 'total after the pass'],
+    rows: [{p: '1', c: [A(12), A(12)]}, {p: '2', c: [A(3), A(15)]}, {p: '3', c: [A(20), A(35)]}, {p: 'exit', c: [T('none left'), T('35')]}],
+    prints: '35',
+    passes: () => { let t = 0; return [12, 3, 20].map((w, k) => { t += w; return {enter: k ? ['b1>test'] : ['init>test'], label: 'w = ' + w, body: [{edges: ['test>b1'], node: 'b1', label: 'total = ' + t}], row: k, cap: 'Pass ' + (k + 1) + ': w = ' + w + ', total = ' + (t - w) + ' + ' + w + ' = ' + t + '.'}; }); },
+    exit: {enter: ['b1>test'], label: 'none left', row: 3, cap: 'No item left: the for loop ends after 3 passes and the program prints 35.'},
+    why: 'The for loop takes 12, then 3, then 20. total grows 12, 15, 35. It prints 35.'},
+  {kind: 'trace', name: 'Maximum so far', q: 'The maximum-so-far pattern. For each pass, fill the result of the test w > heaviest (True or False) and the value of heaviest after the pass, then what the program prints.',
+    code: ['heaviest = 0', 'for w in [12, 3, 20, 50, 45]:', '    if w > heaviest:', '        heaviest = w', 'print(heaviest)'],
+    chart: () => chart([N('start', 'terminal', 'START', 1, 0), N('init', 'process', 'heaviest = 0', 1, 1), N('test', 'decision', 'next w in\n[12, 3, 20, 50, 45]?', 1, 2), N('hq', 'decision', 'w > heaviest?', 1, 3), N('hset', 'process', 'heaviest = w', 0, 4)].concat(exitNodes('OUTPUT heaviest', 2)),
+      [E('start', 'init'), E('init', 'test'), E('test', 'hq', {label: 'Yes'}), E('hq', 'hset', {label: 'Yes', side: 'left'}), Object.assign(LB('hq', 1, 3, DH, 2, 4.72), {label: 'No'}), LB('hset', 0, 4, NH, 2, 4.72)].concat(exitEdges()), 5.6),
+    cols: ['pass', 'w', 'w > heaviest?', 'heaviest after the pass'],
+    rows: [{p: '1', c: [T('12'), A('True'), A(12)]}, {p: '2', c: [T('3'), A('False'), A(12)]}, {p: '3', c: [T('20'), A('True'), A(20)]}, {p: '4', c: [T('50'), A('True'), A(50)]}, {p: '5', c: [T('45'), A('False'), A(50)]}, {p: 'exit', c: [T('none left'), T(''), T('50')]}],
+    prints: '50',
+    passes: () => { let h = 0, prevBig = false; return [12, 3, 20, 50, 45].map((w, k) => { const big = w > h, enter = k ? [prevBig ? 'hset>test' : 'hq>test'] : ['init>test'], h0 = h; if (big) h = w; prevBig = big;
+      return {enter: enter, label: 'w = ' + w, body: big ? [{edges: ['test>hq'], node: 'hq', label: w + ' > ' + h0}, {edges: ['hq>hset'], node: 'hset', label: 'heaviest = ' + w}] : [{edges: ['test>hq'], node: 'hq', label: w + ' > ' + h0}], row: k, cap: 'Pass ' + (k + 1) + ': w = ' + w + ', ' + w + ' > ' + h0 + ' is ' + (big ? 'True, heaviest becomes ' + w : 'False, heaviest stays ' + h0) + '.'}; }); },
+    exit: {enter: ['hq>test'], label: 'none left', row: 5, cap: 'No item left: the loop ends and the program prints 50.'},
+    why: 'heaviest changes only when the test is True: 12 > 0, 20 > 12, 50 > 20. For 3 and 45 the test is False. It prints 50.'},
+  {kind: 'trace', name: 'Sentinel', q: 'A sentinel loop. The dispatcher types 30, 8, 125, and then -1. Fill the test result, count, and total for each pass and for the exit row, then what the program prints (two numbers separated by a space).',
+    code: ['count = 0', 'total = 0', 'w = int(input())', 'while w != -1:', '    count = count + 1', '    total = total + w', '    w = int(input())', 'print(count, total)'],
+    chart: () => simpleLoop(['count = 0  total = 0', '!INPUT w'], 'w != -1?', ['count = count + 1', 'total = total + w', '!INPUT w'], 'OUTPUT count, total'),
+    cols: ['pass', 'w', 'w != -1?', 'count', 'total'],
+    rows: [{p: '1', c: [T('30'), A('True'), A(1), A(30)]}, {p: '2', c: [T('8'), A('True'), A(2), A(38)]}, {p: '3', c: [T('125'), A('True'), A(3), A(163)]}, {p: 'exit', c: [T('-1'), A('False'), A(3), A(163)]}],
+    prints: '3 163',
+    passes: () => { let c = 0, t = 0; const seq = [30, 8, 125, -1]; return [30, 8, 125].map((w, k) => { c++; t += w; return {enter: k ? ['b3>test'] : ['init1>test'], label: 'w = ' + w, body: [{edges: ['test>b1'], node: 'b1', label: 'count = ' + c}, {edges: ['b1>b2'], node: 'b2', label: 'total = ' + t}, {edges: ['b2>b3'], node: 'b3', label: 'w = ' + seq[k + 1]}], row: k, cap: 'Pass ' + (k + 1) + ': ' + w + ' != -1 is True, count = ' + c + ', total = ' + t + ', then the next read gives ' + seq[k + 1] + '.'}; }); },
+    exit: {enter: ['b3>test'], label: 'w = -1', row: 3, cap: '-1 != -1 is False: the exit row keeps count 3 and total 163. The sentinel is never counted or added. The program prints 3 163.'},
+    pre: ['start>init', 'init>init1'],
+    why: 'Three weights pass the test; the -1 fails it. On the exit row count stays 3 and total stays 163 because the body never runs for the sentinel. It prints 3 163.'},
+  {kind: 'trace', name: 'For with range', q: 'A for loop with range(1, 5). Fill i and total for each pass. If the loop never reaches a pass, leave both cells of that row empty. Then fill what the program prints.',
+    code: ['total = 0', 'for i in range(1, 5):', '    total = total + i', 'print(total)'],
+    chart: () => simpleLoop(['total = 0'], 'next i in\nrange(1, 5)?', ['total = total + i'], 'OUTPUT total'),
+    cols: ['pass', 'i', 'total after the pass'],
+    rows: [{p: '1', c: [A(1), A(1)]}, {p: '2', c: [A(2), A(3)]}, {p: '3', c: [A(3), A(6)]}, {p: '4', c: [A(4), A(10)]}, {p: '5', c: [A(''), A('')]}],
+    prints: '10',
+    passes: () => { let t = 0; return [1, 2, 3, 4].map((i, k) => { t += i; return {enter: k ? ['b1>test'] : ['init>test'], label: 'i = ' + i, body: [{edges: ['test>b1'], node: 'b1', label: 'total = ' + t}], row: k, cap: 'Pass ' + (k + 1) + ': i = ' + i + ', total = ' + (t - i) + ' + ' + i + ' = ' + t + '.'}; }); },
+    exit: {enter: ['b1>test'], label: 'none left', row: 4, cap: 'range(1, 5) gives 1, 2, 3, 4: the 5 is not included. There is no pass 5. The program prints 10.'},
+    why: 'range(1, 5) stops before 5, so i takes 1, 2, 3, 4: four passes, total 10. Row 5 stays empty.'},
+  {kind: 'trace', name: 'List and index', q: 'A list, an append, len, and an index loop. Fill i, weights[i], and total for each pass, then what the program prints (two numbers separated by a space).',
+    code: ['weights = [12, 3, 20]', 'weights.append(50)', 'n = len(weights)', 'total = 0', 'for i in range(n):', '    total = total + weights[i]', 'print(n, total)'],
+    chart: () => simpleLoop(['weights = [12, 3, 20]\nweights.append(50)', 'n = len(weights)  total = 0'], 'next i in\nrange(n)?', ['total = total + weights[i]'], 'OUTPUT n, total'),
+    cols: ['pass', 'i', 'weights[i]', 'total after the pass'],
+    rows: [{p: '1', c: [A(0), A(12), A(12)]}, {p: '2', c: [A(1), A(3), A(15)]}, {p: '3', c: [A(2), A(20), A(35)]}, {p: '4', c: [A(3), A(50), A(85)]}, {p: 'exit', c: [T('none left'), T(''), T('85')]}],
+    prints: '4 85',
+    passes: () => { let t = 0; const W = [12, 3, 20, 50]; return W.map((w, i) => { t += w; return {enter: i ? ['b1>test'] : ['init1>test'], label: 'i = ' + i, body: [{edges: ['test>b1'], node: 'b1', label: 'total = ' + t}], row: i, cap: 'Pass ' + (i + 1) + ': i = ' + i + ', weights[' + i + '] = ' + w + ', total = ' + (t - w) + ' + ' + w + ' = ' + t + '.'}; }); },
+    exit: {enter: ['b1>test'], label: 'none left', row: 4, cap: 'range(4) gives 0, 1, 2, 3. The loop ends and the program prints 4 85.'},
+    pre: ['start>init', 'init>init1'],
+    why: 'After the append the list is [12, 3, 20, 50], so n is 4 and range(4) gives i = 0, 1, 2, 3. Indexes start at 0. total ends at 85 and it prints 4 85.'},
+  {kind: 'infinite', name: 'Infinite loop', q: 'This program never ends: watch the token circle the loop. Press Stop, then click the symbol that never changes the loop variable (on the flowchart above, or in the list below). Then pick the fix.',
+    code: ['packages = 5', 'loaded = 0', 'while packages > 0:', '    loaded = loaded + 1', 'print(loaded)'],
+    chart: () => simpleLoop(['packages = 5  loaded = 0'], 'packages > 0?', ['loaded = loaded + 1'], 'OUTPUT loaded'),
+    symbols: [['init', 'packages = 5  loaded = 0', 0, 'This symbol runs once, before the loop. It sets packages to 5, which is fine.'], ['test', 'packages > 0?', 2, 'Close: this is where the symptom shows (5 > 0 stays True forever), but the test is not wrong. The body never gives it a new value to test.'],
+      ['b1', 'loaded = loaded + 1', 5, 'Right. The body changes loaded, never packages. The condition tests packages, so it stays True forever.'], ['out', 'OUTPUT loaded', 0, 'This symbol is never reached: the loop never ends.']],
+    fixes: [['Add packages = packages - 1 inside the loop body', 5, 'Right. Each pass now brings packages closer to 0; after 5 passes 0 > 0 is False and the program prints 5.'], ['Change the condition to packages >= 0', 0, 'The condition still tests a variable that never changes; the loop is still infinite.'],
+      ['Set packages = 0 before the loop', 0, 'Then 0 > 0 is False right away: the body never runs and the program prints 0. The packages were never loaded.'], ['Change the body to loaded = loaded + 5', 0, 'loaded is not the variable in the condition. The loop is still infinite.']],
+    why: 'The body changes loaded, never packages. The fix: add packages = packages - 1 inside the loop; after 5 passes 0 > 0 is False and the program prints 5.'},
+  {kind: 'choice', name: 'Off by one', q: 'How many times does the body of this loop run?',
+    code: ['i = 1', 'while i <= 5:', '    print(i)', '    i = i + 1'],
+    chart: () => simpleLoop(['i = 1'], 'i <= 5?', ['!OUTPUT i', 'i = i + 1'], null),
+    opts: [['5 times (it prints 1, 2, 3, 4, 5)', 10, 'Right. i starts at 1 and the test is i <= 5, so 5 itself passes. The body runs for i = 1, 2, 3, 4, 5; then i is 6 and 6 <= 5 is False.'], ['4 times (it prints 1, 2, 3, 4)', 3, 'That would be the count for i < 5. The test is i <= 5, so i = 5 also passes.'], ['6 times (it prints 1 to 6)', 0, 'When i is 6 the test 6 <= 5 is False and the body does not run.'], ['0 times (i is already 1)', 0, '1 <= 5 is True, so the body runs on the first pass.']],
+    explain: () => ({pre: ['start>init'], passes: [1, 2, 3, 4, 5].map((i, k) => ({enter: k ? ['b2>test'] : ['init>test'], label: 'i = ' + i, body: [{edges: ['test>b1'], node: 'b1', label: 'prints ' + i}, {edges: ['b1>b2'], node: 'b2', label: 'i = ' + (i + 1)}], cap: 'Pass ' + i + ': ' + i + ' <= 5 is True, it prints ' + i + ', then i becomes ' + (i + 1) + '.'})), exit: {enter: ['b2>test'], label: 'i = 6', cap: '6 <= 5 is False: the body ran 5 times.', end: ['test>end']}})},
+  {kind: 'choice', name: 'Copilot sentence', q: 'You asked Microsoft Copilot to explain this loop. One of its four sentences is wrong. Which one?',
+    code: ['count = 0', 'total = 0', 'for w in [12, 3, 20, 50, 45]:', '    if w > 40:', '        count = count + 1', '    total = total + w', 'print(count, total)'],
+    chart: () => chart([N('start', 'terminal', 'START', 1, 0), N('init', 'process', 'count = 0  total = 0', 1, 1), N('test', 'decision', 'next w in\n[12, 3, 20, 50, 45]?', 1, 2), N('cq', 'decision', 'w > 40?', 1, 3), N('cinc', 'process', 'count = count + 1', 0, 4), N('tot', 'process', 'total = total + w', 1, 5)].concat(exitNodes('OUTPUT count, total', 2)),
+      [E('start', 'init'), E('init', 'test'), E('test', 'cq', {label: 'Yes'}), E('cq', 'cinc', {label: 'Yes', side: 'left'}), E('cq', 'tot', {label: 'No'}), E('cinc', 'tot'), LB('tot', 1, 5, NH, 2, 5.62)].concat(exitEdges()), 6.4),
+    copilot: ['count and total both start at 0.', 'The if adds 1 to count only when w is above 40.', 'count ends at 1, because 50 is the only weight above 40.', 'total ends at 130, the sum of all five weights.'],
+    opts: [['Sentence 3', 10, 'Right. 45 is also above 40, so count goes to 2 on pass 5. Copilot forgot one package.'], ['Sentence 1', 0, 'Sentence 1 is true: lines 1 and 2 set both to 0.'], ['Sentence 2', 0, 'Sentence 2 is true: line 4 tests w > 40 and line 5 runs only then.'], ['Sentence 4', 0, 'Sentence 4 is true: 12 + 3 + 20 + 50 + 45 = 130.']],
+    explain: () => copilotExplain(),
+    why: 'The trace table shows count going from 1 to 2 on pass 5 (w = 45). Sentence 3 is wrong.'},
+  {kind: 'choice', name: 'Copilot row', q: 'Sentence 3 ("count ends at 1, because 50 is the only weight above 40") is wrong. Which row of the trace table proves it wrong?',
+    code: ['count = 0', 'total = 0', 'for w in [12, 3, 20, 50, 45]:', '    if w > 40:', '        count = count + 1', '    total = total + w', 'print(count, total)'],
+    chart: () => ROUNDS[8].chart(),
+    table: {cols: ['pass', 'w', 'w > 40?', 'count', 'total'], rows: [['1', '12', 'False', '0', '12'], ['2', '3', 'False', '0', '15'], ['3', '20', 'False', '0', '35'], ['4', '50', 'True', '1', '85'], ['5', '45', 'True', '2', '130']]},
+    opts: [['Row 5: w = 45, count goes from 1 to 2', 10, 'Right. Row 5 shows a second weight above 40 and count reaching 2. One row that contradicts the sentence is enough.'], ['Row 4: w = 50, count goes from 0 to 1', 3, 'Row 4 agrees with the sentence (50 is above 40). It does not disprove it; row 5 does.'], ['Row 1: w = 12, count stays 0', 0, 'Row 1 says nothing about weights above 40.'], ['Row 3: w = 20, total reaches 35', 0, 'Row 3 is about total, and the sentence is about count.']],
+    explain: () => copilotExplain(),
+    why: 'Row 5 (w = 45) shows count going from 1 to 2: the sentence said it ends at 1.'}
+];
+function copilotExplain() { let c = 0, t = 0; return {pre: ['start>init'], passes: [12, 3, 20, 50, 45].map((w, k) => { const big = w > 40; if (big) c++; t += w;
+  return {enter: k ? ['tot>test'] : ['init>test'], label: 'w = ' + w, body: big ? [{edges: ['test>cq'], node: 'cq', label: w + ' > 40'}, {edges: ['cq>cinc'], node: 'cinc', label: 'count = ' + c}, {edges: ['cinc>tot'], node: 'tot', label: 'total = ' + t}] : [{edges: ['test>cq'], node: 'cq', label: w + ' > 40'}, {edges: ['cq>tot'], node: 'tot', label: 'total = ' + t}],
+    cap: 'Pass ' + (k + 1) + ': w = ' + w + ', ' + w + ' > 40 is ' + (big ? 'True, count becomes ' + c : 'False, count stays ' + c) + ', total = ' + t + '.'}; }), exit: {enter: ['tot>test'], label: 'none left', cap: 'The loop ends: count is 2, total is 130. It prints 2 130.'}}; }
+
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+let order = [], r = 0, picked = null, total = 0, log = [], fk = null, playing = null, spin = null, cur = null, stage2 = null;
+
+// ------------------------------------------------------ the flowchart card ----
+function loadChart(spec) { const stage = $('#stage'); stage.querySelectorAll('svg.flow, .fk-zoom').forEach(e => e.remove()); fk = FlowKit(stage, spec); fk.onPick(id => onPick(id)); }
+function killPlay() { if (playing) { playing.kill(); playing = null; } if (spin) { spin.kill(); spin = null; } }
+// walk the loop: pre edges, then every pass (enter the test, the body symbols), then the exit; onRow(k) and onExit() fire when a pass ends
+function walk(plan, hooks) {
+  killPlay(); fk.clear();
+  const t = hasGSAP ? gsap.timeline() : null, call = f => t ? t.call(f) : f();
+  const tok = (edges, label, color) => {   // the token is built now but stays hidden (and its arrows unlit) until its turn in the timeline
+    if (!t) { fk.token(edges, label, color); return; }
+    const f = fk.token(edges, label, color), g = fk.layers.tokens.lastElementChild, keys = edges.filter(k => fk.edges[k]);
+    if (!f) return;
+    g.setAttribute('opacity', 0); keys.forEach(k => { fk.edges[k].path.setAttribute('stroke', '#5f6aa8'); fk.edges[k].path.setAttribute('marker-end', 'url(#fk-arrow)'); });
+    t.call(() => { g.setAttribute('opacity', 1); keys.forEach(k => { fk.edges[k].path.setAttribute('stroke', '#E0B840'); fk.edges[k].path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); }); });
+    t.add(f);
+  };
+  const cap = s => call(() => { $('#capB').textContent = s; });
+  call(() => fk.highlight('start', 'done'));
+  (plan.pre || ['start>init']).forEach(e => { tok([e], 'go', '#E0B840'); call(() => fk.highlight(e.split('>')[1], 'done')); });
+  plan.passes.forEach((P, k) => {
+    tok(P.enter, P.label, SKY); call(() => { fk.highlight('test', 'active'); });
+    if (P.cap) cap(P.cap);
+    P.body.forEach(b => { tok(b.edges, b.label || P.label, SKY); call(() => { fk.highlight('test', 'done'); fk.highlight(b.node, 'active'); }); });
+    call(() => { P.body.forEach(b => fk.highlight(b.node, 'done')); if (hooks && hooks.onRow) hooks.onRow(k, P); });
+    if (t) t.to({}, {duration: .25});
+  });
+  const X = plan.exit;
+  tok(X.enter, X.label, CORAL); call(() => { fk.highlight('test', 'active'); if (X.cap) $('#capB').textContent = X.cap; if (hooks && hooks.onExit) hooks.onExit(); });
+  if (fk.edges['test>out']) { tok(['test>out'], X.label, CORAL); call(() => { fk.highlight('test', 'done'); fk.highlight('out', 'active'); if (hooks && hooks.onOut) hooks.onOut(); }); tok(['out>end'], 'done', GREEN); call(() => { fk.highlight('out', 'done'); fk.highlight('end', 'done'); }); }
+  else { tok(X.end || ['test>end'], 'done', GREEN); call(() => { fk.highlight('test', 'done'); fk.highlight('end', 'done'); if (hooks && hooks.onOut) hooks.onOut(); }); }
+  if (t) t.call(() => { playing = null; if (hooks && hooks.onDone) hooks.onDone(); }); else if (hooks && hooks.onDone) hooks.onDone();
+  if (t && window.__traceRaceFast) t.timeScale(8);
+  playing = t; return t;
+}
+// the infinite round: a token that circles test > body > test until Stop
+function startSpin() {
+  killPlay(); fk.clear(); fk.highlight('start', 'done'); fk.highlight('init', 'done');
+  const e1 = fk.edges['test>b1'], e2 = fk.edges['b1>test']; if (!e1 || !e2) return;
+  [e1, e2].forEach(e => { e.path.setAttribute('stroke', '#E0B840'); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+  if (!hasGSAP) { fk.highlight('test', 'error'); fk.highlight('b1', 'error'); $('#capB').textContent = 'Without animation: the token would circle test > body > test forever, because packages stays 5.'; return; }
+  const g = fk.el('g', {class: 'fk-token'}, fk.layers.tokens);
+  fk.el('circle', {r: 15, fill: CORAL, opacity: .28}, g); fk.el('rect', {x: -46, y: -11, width: 92, height: 22, rx: 11, fill: CORAL, stroke: '#0e1230'}, g);
+  const tx = fk.el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); tx.textContent = 'packages = 5';
+  const L1 = e1.path.getTotalLength(), L2 = e2.path.getTotalLength(), o = {u: 0};
+  const place = () => { const d = o.u * (L1 + L2); const p = d <= L1 ? e1.path.getPointAtLength(d) : e2.path.getPointAtLength(d - L1); g.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')'); fk.highlight('test', d <= L1 ? 'active' : null); fk.highlight('b1', d > L1 ? 'active' : null); };
+  let laps = 0;
+  spin = gsap.timeline({repeat: -1, onRepeat: () => { laps++; $('#capB').textContent = 'Lap ' + laps + ': packages is still 5, so 5 > 0 is still True. loaded keeps growing. Press Stop.'; }}).to(o, {u: 1, duration: Math.max(1.6, (L1 + L2) / 300), ease: 'none', onUpdate: place});
+  spin.eventCallback('onInterrupt', () => g.remove()); spin.gRef = g;
+}
+function stopSpin() { if (spin) { if (spin.gRef) spin.gRef.remove(); spin.kill(); spin = null; } fk.highlight('test', 'error'); fk.highlight('b1', 'error'); $('#btnStop').hidden = true; }
+
+// ---------------------------------------------------------------- rounds UI ----
+function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+function cellInput(ri, ci, wide) { return '<input type="text" class="cell' + (wide ? ' wide' : '') + '" data-r="' + ri + '" data-c="' + ci + '" autocomplete="off" spellcheck="false" aria-label="row ' + (ri + 1) + ' column ' + (ci + 2) + '">'; }
+function traceTable(R) {
+  return '<div class="scroll-x"><table class="data tt" id="tt"><tr><th>' + R.cols.map(esc).join('</th><th>') + '</th></tr>' + R.rows.map((row, ri) => '<tr><td class="p">' + esc(row.p) + '</td>' + row.c.map((c, ci) => '<td>' + (c.f !== undefined ? esc(c.f) : cellInput(ri, ci)) + '</td>').join('') + '</tr>').join('') + '</table></div>' +
+    '<div class="prints"><label for="prints">The program prints:</label><span class="pcell"><input type="text" id="prints" class="cell wide" style="width:140px;padding:6px 8px;border-radius:5px;border:1px solid var(--line);background:#0b0f2b;color:#eef1fa;font:600 13px var(--font-mono)" autocomplete="off" spellcheck="false"></span></div>';
+}
+function showRound() {
+  cur = ROUNDS[order[r]]; picked = null; stage2 = null; killPlay();
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + cur.name; $('#qText').textContent = cur.q; $('#fb').innerHTML = '';
+  $('#btnCheck').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true; $('#btnStop').hidden = true; $('#capT').textContent = 'Round ' + (r + 1); drawProgress();
+  loadChart(cur.chart());
+  let html = '<div class="rgrid"><div>' + py(cur.code) + (cur.copilot ? '<div class="copi"><span class="k">Copilot said</span><ol>' + cur.copilot.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol></div>' : '') + (cur.table ? '<div class="scroll-x"><table class="data static"><tr><th>' + cur.table.cols.map(esc).join('</th><th>') + '</th></tr>' + cur.table.rows.map(row => '<tr><td>' + row.map(esc).join('</td><td>') + '</td></tr>').join('') + '</table></div>' : '') + '</div><div>';
+  if (cur.kind === 'trace') { html += '<p class="qnote">Type a number, True or False (T or F also works), or leave the cell empty when the loop never gets there. Then press Run.</p>' + traceTable(cur); $('#btnCheck').textContent = 'Run'; $('#capB').textContent = 'Fill the table, then press Run: the token walks the loop and every cell flips green or red.'; guide(1, 'Fill every cell of round ' + (r + 1) + ' and the "prints" box, then press <b>Run</b>.'); }
+  else if (cur.kind === 'infinite') { html += '<p class="qnote">Which symbol never changes the loop variable packages?</p><div class="sym" id="sym">' + cur.symbols.map((s, i) => '<button type="button" data-i="' + i + '">' + esc(s[1]) + '</button>').join('') + '</div><div id="fixes"></div>'; $('#btnCheck').textContent = 'Check'; $('#btnCheck').disabled = true; $('#btnStop').hidden = false; $('#capB').textContent = 'The token circles: packages stays 5, so 5 > 0 stays True. Press Stop when you have seen enough.'; guide(1, 'Watch the token on the flowchart, press <b>Stop</b>, then <b>click the symbol</b> that never changes packages.'); setTimeout(startSpin, 50); }
+  else { html += '<div class="opts" id="opts">' + shuffle(cur.opts.map((o, i) => [o, i])).map(p => '<button type="button" data-i="' + p[1] + '">' + esc(p[0][0]) + '</button>').join('') + '</div>'; $('#btnCheck').textContent = 'Check'; $('#capB').textContent = 'Pick an answer, press Check, then Play the explanation to watch the loop.'; guide(1, 'Read round ' + (r + 1) + ' and <b>pick one answer</b>, then press <b>Check</b>.'); }
+  html += '</div></div>';
+  $('#body').innerHTML = html;
+  if (cur.kind === 'trace') { const first = $('#tt input'); if (first && window.innerWidth > 860) first.focus(); }
+}
+function onPick(id) {   // a click on a flowchart symbol: only the infinite round uses it
+  if (!cur || cur.kind !== 'infinite' || stage2) return;
+  const i = cur.symbols.findIndex(s => s[0] === id); if (i < 0) return;
+  pickSymbol(i);
+}
+function pickSymbol(i) {
+  if (stage2) return; stopSpin(); stage2 = {sym: i};
+  const s = cur.symbols[i], best = cur.symbols.find(x => x[2] === 5);
+  document.querySelectorAll('#sym button').forEach((b, k) => { b.disabled = true; b.classList.toggle('right', cur.symbols[k][2] === 5); b.classList.toggle('wrong', k === i && s[2] !== 5); });
+  fk.highlight(best[0], 'error'); if (s[2] !== 5) fk.highlight(s[0], null);
+  $('#fb').innerHTML = '<div class="feedback ' + (s[2] === 5 ? 'ok' : s[2] ? 'info' : 'bad') + '"><b>' + s[2] + ' of 5 points for the symbol.</b> ' + esc(s[3]) + (s[2] === 5 ? '' : ' The symbol to blame: ' + esc(best[1]) + '.') + '</div>';
+  $('#fixes').innerHTML = '<p class="qnote" style="margin-top:12px">Now pick the fix (5 points), then press Check.</p><div class="opts" id="opts">' + shuffle(cur.fixes.map((o, k) => [o, k])).map(p => '<button type="button" data-i="' + p[1] + '">' + esc(p[0][0]) + '</button>').join('') + '</div>';
+  guide(1, 'Pick the fix below, then press <b>Check</b>.');
+}
+$('#body').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.closest('#sym')) { pickSymbol(+b.dataset.i); return; }
+  if (b.closest('#opts')) { picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); $('#btnCheck').disabled = false; guide(2, 'Press <b>Check</b> to see your points.'); }
+});
+$('#body').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('cell')) { e.preventDefault(); const all = Array.from(document.querySelectorAll('#body input.cell')); const i = all.indexOf(e.target); if (i < all.length - 1) all[i + 1].focus(); else $('#btnCheck').click(); } });
+$('#btnStop').addEventListener('click', () => { stopSpin(); $('#capB').textContent = 'Stopped. The condition packages > 0 was tested again and again with the same value. Click the symbol that never changes packages.'; guide(1, '<b>Click the symbol</b> that never changes packages (on the flowchart or in the list).'); });
+
+// ---------------------------------------------------------------- scoring ----
+const norm = v => String(v).trim().toLowerCase().replace(/\s+/g, ' ');
+function same(answer, expect) {
+  const a = norm(answer), x = norm(expect);
+  if (x === '') return a === '';
+  if (x === 'true' || x === 'false') return a === x || a === x[0];
+  if (/^-?\d+( -?\d+)*$/.test(x)) return a.replace(/,/g, ' ').replace(/\s+/g, ' ') === x;
+  return a === x;
+}
+function flipCell(td, html) {
+  if (hasFlip) { const st = Flip.getState(td); td.innerHTML = html; Flip.from(st, {duration: .35, ease: 'power1.inOut', scale: true}); gsap.fromTo(td.firstElementChild, {rotationX: 90, opacity: .2}, {rotationX: 0, opacity: 1, duration: .4}); }
+  else if (hasGSAP) { td.innerHTML = html; gsap.fromTo(td.firstElementChild, {rotationX: 90, opacity: .2}, {rotationX: 0, opacity: 1, duration: .4}); }
+  else td.innerHTML = html;
+}
+function resHtml(c) { return '<span class="res ' + (c.ok ? 'ok' : 'bad') + (c.expect === '' ? ' blank' : '') + '">' + (c.expect === '' ? '(empty)' : esc(c.expect)) + (c.ok ? '' : '<span class="was">you: ' + (c.got === '' ? '(empty)' : esc(c.got)) + '</span>') + '</span>'; }
+function checkTrace(R) {
+  const cells = []; let right = 0;
+  R.rows.forEach((row, ri) => row.c.forEach((c, ci) => { if (c.a === undefined) return; const inp = $('#tt input[data-r="' + ri + '"][data-c="' + ci + '"]'); const got = inp.value, ok = same(got, c.a); right += ok; cells.push({ri: ri, ci: ci, got: got, expect: c.a, ok: ok, td: inp.parentNode}); inp.disabled = true; }));
+  const pin = $('#prints'), pok = same(pin.value, R.prints); right += pok; pin.disabled = true;
+  const n = cells.length + 1, pts = Math.round(10 * right / n);
+  return {cells: cells, prints: {got: pin.value, expect: R.prints, ok: pok, td: pin.parentNode}, right: right, n: n, pts: pts};
+}
+function playTrace(R, res) {
+  return walk({pre: R.pre, passes: R.passes(), exit: R.exit}, {
+    onRow: k => res.cells.filter(c => c.ri === k).forEach(c => flipCell(c.td, resHtml(c))),
+    onExit: () => { if (R.exit.row != null) res.cells.filter(c => c.ri === R.exit.row).forEach(c => flipCell(c.td, resHtml(c))); },
+    onOut: () => { const p = res.prints; const html = '<span class="res ' + (p.ok ? 'ok' : 'bad') + '">' + esc(p.expect) + (p.ok ? '' : '<span class="was">you: ' + (p.got === '' ? '(empty)' : esc(p.got)) + '</span>') + '</span>'; flipCell(p.td, html); },
+    onDone: () => { $('#capT').textContent = 'Done'; }
+  });
 }
 $('#btnCheck').addEventListener('click', () => {
-  const R = ROUNDS[order[r]]; let pts = 0, answer = '', why = R.why, max = 10;
+  const R = cur; let pts = 0, max = 10, answer = '', fb = '';
   if (R.kind === 'trace') {
-    const cells = cellsOf(R); const inputs = Array.from(document.querySelectorAll('#task input')); const results = [];
-    inputs.forEach(inp => { const exp = inp.id === 'printCell' ? R.print : cells.find(c => c.ri === +inp.dataset.ri && c.ci === +inp.dataset.ci).v; const typed = inp.value; results.push({v: exp, typed: typed, ok: norm(typed) === norm(exp)}); });
-    const n = results.length, ok = results.filter(x => x.ok).length; pts = Math.round(10 * ok / n); answer = ok + ' of ' + n + ' cells';
-    const tl = G.run(R);
-    const after = () => { flipCells(R, results); $('#fb').innerHTML = '<div class="feedback ' + (pts === 10 ? 'ok' : pts > 0 ? 'info' : 'bad') + '"><b>' + pts + ' of 10 points</b> (' + ok + ' of ' + n + ' cells right). ' + esc(why) + (ok < n ? ' Red cells show your value crossed out and the real value.' : '') + '</div>'; $('#btnPlay').disabled = false; };
-    if (tl) { $('#btnCheck').disabled = true; tl.eventCallback('onComplete', after); } else after();
-    $('#capT').textContent = 'Running the loop'; $('#capB').textContent = 'Watch the ' + (R.scene.type === 'dial' ? 'dial' : 'van') + ': each pass updates ' + R.scene.label + '.';
+    const res = checkTrace(R); pts = res.pts; answer = res.right + ' of ' + res.n + ' cells right';
+    fb = '<b>' + pts + ' of 10 points</b> (' + res.right + ' of ' + res.n + ' cells right). Why: ' + esc(R.why) + (res.right < res.n ? ' Red cells show the real value and, below it, what you typed.' : '');
+    $('#capT').textContent = 'Running'; playTrace(R, res); R._res = res;
   } else if (R.kind === 'infinite') {
-    if (!pickedLine || picked === null) { guide(1, (pickedLine ? '' : 'Click a line in the code. ') + (picked === null ? 'Pick the fix. ' : '') + 'Then press <b>Check</b>.'); return; }
-    const lp = R.lines[pickedLine] ? R.lines[pickedLine][0] : 0; const fx = R.fixes[picked]; pts = lp + fx[1]; answer = 'line ' + pickedLine + ', ' + fx[0];
-    document.querySelectorAll('#codeBox .ln').forEach(x => { x.classList.remove('sel'); if (+x.dataset.l === 5) x.classList.add('good'); else if (+x.dataset.l === pickedLine) x.classList.add('poor'); }); $('#codeBox').classList.remove('pickable');
-    document.querySelectorAll('#opts button').forEach(b => { b.disabled = true; b.style.borderColor = ''; if (+b.dataset.i === 0) b.classList.add('right'); else if (+b.dataset.i === picked) b.classList.add('wrong'); });
-    $('#fb').innerHTML = '<div class="feedback ' + (pts === 10 ? 'ok' : pts > 0 ? 'info' : 'bad') + '"><b>' + pts + ' of 10 points.</b> Line: ' + esc(R.lines[pickedLine] ? R.lines[pickedLine][1] : 'Line ' + pickedLine + ' is not the problem. Line 5 changes loaded, but the condition tests packages, which nothing changes.') + ' Fix: ' + esc(fx[2]) + (fx[1] ? '' : ' The best fix: ' + esc(R.fixes[0][0]) + '. ' + esc(R.fixes[0][2])) + '</div>';
-    G.fixed(fx[1] > 0); $('#capT').textContent = fx[1] > 0 ? 'Fixed' : 'Still spinning'; $('#capB').textContent = fx[1] > 0 ? 'packages goes 3, 2, 1, 0. The test 0 > 0 is False, the loop ends, the van leaves.' : 'The condition still never becomes False. Pick the fix that changes packages inside the loop.';
-    $('#btnPlay').disabled = false;
+    if (!stage2) { guide(1, 'Press <b>Stop</b> and <b>click the symbol</b> that never changes packages.'); return; }
+    if (picked === null) { guide(1, 'Pick the fix first, then press <b>Check</b>.'); return; }
+    const s = R.symbols[stage2.sym], f = R.fixes[picked], best = R.fixes.find(x => x[1] === 5); pts = s[2] + f[1]; answer = 'symbol: ' + s[1] + '; fix: ' + f[0];
+    document.querySelectorAll('#opts button').forEach((b, i) => { b.disabled = true; b.style.borderColor = ''; if (R.fixes[+b.dataset.i] === best) b.classList.add('right'); else if (+b.dataset.i === picked) b.classList.add('wrong'); });
+    fb = '<b>' + pts + ' of 10 points</b> (' + s[2] + ' for the symbol, ' + f[1] + ' for the fix). ' + esc(f[2]) + (f === best ? '' : ' The fix: ' + esc(best[0]) + '. ' + esc(best[2]));
+    $('#capB').textContent = 'Press Play the explanation to watch the fixed loop end after 5 passes.';
   } else {
     if (picked === null) { guide(1, 'Pick an answer first, then press <b>Check</b>.'); return; }
-    const o = R.opts[picked], best = R.opts.reduce((a, b) => b[1] > a[1] ? b : a); pts = o[1]; answer = o[0];
+    const o = R.opts[picked], best = R.opts.find(x => x[1] === 10); pts = o[1]; answer = o[0];
     document.querySelectorAll('#opts button').forEach(b => { b.disabled = true; b.style.borderColor = ''; if (R.opts[+b.dataset.i] === best) b.classList.add('right'); else if (+b.dataset.i === picked) b.classList.add('wrong'); });
-    $('#fb').innerHTML = '<div class="feedback ' + (pts === max ? 'ok' : pts > 0 ? 'info' : 'bad') + '"><b>' + pts + ' of ' + max + ' points.</b> ' + esc(o[2]) + (o === best ? '' : ' The best answer: ' + esc(best[0]) + '. ' + esc(best[2])) + '</div>';
-    $('#btnPlay').disabled = false;
+    fb = '<b>' + pts + ' of 10 points.</b> ' + esc(o[2]) + (o === best ? '' : ' The best answer: ' + esc(best[0]) + '. ' + esc(best[2]));
+    $('#capB').textContent = 'Press Play the explanation to watch the loop on the flowchart.';
   }
-  total += pts; log[r] = {name: R.name, a: answer, pts: pts, max: max};
-  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
-  guide(3, 'Read the feedback. Press <b>Play the explanation</b> to watch the loop again, then <b>Next round</b>.');
+  total += pts; log[r] = {q: R.name, a: answer, pts: pts, max: max};
+  $('#fb').innerHTML = '<div class="feedback ' + (pts === max ? 'ok' : pts > 0 ? 'info' : 'bad') + '">' + fb + '</div>';
+  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
+  guide(3, 'Read the points and the explanation. Press <b>Play the explanation</b> to watch again, then <b>Next round</b>.');
 });
-$('#btnPlay').addEventListener('click', () => { const R = ROUNDS[order[r]]; $('#capT').textContent = 'Explanation'; $('#capB').textContent = R.why; if (R.kind === 'infinite') { G.setup(R); const l = log[r]; if (l && l.pts >= 5 + (l.a.indexOf(R.fixes[0][0]) >= 0 ? 0 : 0) && l.a.indexOf(R.fixes[0][0]) >= 0) G.fixed(true); } else { G.setup(R); G.run(R); } });
-$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); $('#qTitle').scrollIntoView({behavior: 'smooth', block: 'start'}); } else finishAll(); });
+$('#btnPlay').addEventListener('click', () => {
+  const R = cur; $('#capT').textContent = 'Explanation';
+  if (R.kind === 'trace') { R._res.cells.forEach(c => { c.td.innerHTML = '<span class="res" style="color:var(--silk-dim);border:1px dashed var(--line)">?</span>'; }); R._res.prints.td.innerHTML = '<span class="res" style="color:var(--silk-dim);border:1px dashed var(--line)">?</span>'; playTrace(R, R._res); }
+  else if (R.kind === 'infinite') { fk.setText('b1', 'loaded = loaded + 1\npackages = packages - 1'); let p = 5; walk({pre: ['start>init'], passes: [1, 2, 3, 4, 5].map((k, i) => { p--; return {enter: i ? ['b1>test'] : ['init>test'], label: 'packages = ' + (p + 1), body: [{edges: ['test>b1'], node: 'b1', label: 'packages = ' + p}], cap: 'Pass ' + k + ': ' + (p + 1) + ' > 0 is True; loaded becomes ' + k + ' and packages becomes ' + p + '.'}; }), exit: {enter: ['b1>test'], label: 'packages = 0', cap: '0 > 0 is False: with the fix the loop ends after 5 passes and prints 5.'}}); }
+  else { walk(R.explain()); }
+});
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); } else finishAll(); });
 function finishAll() {
-  guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
-  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.'; $('#task').innerHTML = ''; $('#codeBox').innerHTML = ''; $('#btnCheck').disabled = true; $('#btnNext').disabled = true;
-  $('#resTable').innerHTML = '<tr><th>Round</th><th>Task</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(l.name) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="3"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
-  if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
+  killPlay(); guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent tracing.' : total >= 70 ? ' Good. Replay the rounds you missed.' : ' Try again: fill row 0 in your head first, then one row per pass.'); $('#body').innerHTML = ''; $('#btnCheck').disabled = true; $('#btnNext').disabled = true; $('#btnPlay').disabled = true;
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + ': ' + esc(l.q) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  if (total >= 90 && window.confetti) confetti({particleCount: 140, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
   drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
-function start() { const first = shuffle(ROUNDS.map((_, i) => i).filter(i => ROUNDS[i].kind !== 'mc' || !ROUNDS[i].keep)); order = first.concat(ROUNDS.map((_, i) => i).filter(i => ROUNDS[i].keep)); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+function start() { order = shuffle([0, 1, 2, 3, 4, 5, 6, 7]).concat([8, 9]); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
 $('#btnAgain').addEventListener('click', start);
-G = Scene($('#stage'));
+window.__traceRace = {rounds: ROUNDS, order: () => order, current: () => cur, playing: () => !!playing, spinning: () => !!spin, total: () => total};
 start();
-window.__race = {rounds: ROUNDS, order: () => order, current: () => ROUNDS[order[r]], total: () => total, log: () => log, lastTL: () => lastTL, norm: norm};
 })();
 </script>
 </body>

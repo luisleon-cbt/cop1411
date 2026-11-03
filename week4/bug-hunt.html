@@ -4,12 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bug hunt</title>
-<meta name="description" content="COP1411 Week 4 interactive: Ten Copilot-style functions, one bug each. Read the symptom, fix the code, and run real Python until every test passes.">
+<meta name="description" content="COP1411 Week 4 interactive: Ten Copilot-style functions, each with one bug. Read the real symptom, click the symbol that is wrong, then fix the Python and run the tests.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
@@ -264,34 +263,25 @@
   @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
   /* ===== end of theme ===== */
 
-  /* page-specific CSS (scene challenge: bug hunt) */
-  .scene{position:relative;width:100%;aspect-ratio:16/9;min-height:240px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
-  @media(max-width:640px){.scene{aspect-ratio:4/3}}
-  .scene canvas,.scene svg.flat{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .scene .credit{position:absolute;left:14px;top:10px;z-index:3;margin:0;pointer-events:none}
-  .card .scene.wide{aspect-ratio:21/9;min-height:300px}
-  @media(max-width:860px){.card .scene.wide{aspect-ratio:4/3;min-height:0}}
+  /* page-specific CSS (flowchart challenge: a bug to find on the chart, then a fix to run on real Python) */
+  .flowcard{position:relative;width:100%;aspect-ratio:16/9;min-height:240px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  @media(max-width:640px){.flowcard{aspect-ratio:4/3}}
+  .flowcard .flow{position:absolute;inset:0;width:100%;height:100%}
+  .symptom{margin:8px 0 14px;padding:10px 12px;background:#060917;border:1px solid var(--line);border-left:4px solid #F0786A;border-radius:6px;font:13px/1.5 var(--font-mono);color:#eef1fa;white-space:pre-wrap;word-break:break-word}
+  .symptom .k{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#F0786A;margin-bottom:4px}
+  .part{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-top:12px;background:rgba(11,15,43,.4)}
+  .part.locked{opacity:.45;pointer-events:none}
+  .part.done{border-color:rgba(111,212,155,.5)}
+  .part h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:6px}
+  .part h3 .pts{font:500 11px var(--font-mono);color:var(--cbt-gold);letter-spacing:.06em}
+  .part .hint{margin-bottom:8px}
   .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
   .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
-  .code button.ln{width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;white-space:pre}
-  .code button.ln:hover{background:rgba(56,176,224,.14)}.code button.ln[aria-pressed=true]{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
-  .code button.ln.right{background:rgba(111,212,155,.18);box-shadow:inset 3px 0 0 var(--ok)}.code button.ln.wrong{background:rgba(240,120,106,.18);box-shadow:inset 3px 0 0 var(--bad)}
-  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
-  .symptom{margin:8px 0 0;padding:10px 12px;background:#060917;border:1px solid var(--line);border-radius:6px;font:13px/1.5 var(--font-mono);white-space:pre-wrap;word-break:break-word;color:var(--out)}
-  .symptom.err{color:var(--bad)}
-  .lab{display:block;font:600 10.5px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cbt-sky);margin:14px 0 4px}
-  .tests{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:4px;font:12.5px var(--font-mono);color:var(--silk-dim)}
-  .tests li::before{content:"\25CB";color:var(--cbt-gold);margin-right:8px}
-  .pysb .pysb-reset{display:none}
-  .rbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
-  .mode{font-size:12.5px;color:var(--silk-dim);margin:8px 0 0}
-  .mode button{background:none;border:0;color:var(--cbt-sky);text-decoration:underline;cursor:pointer;padding:0;font:inherit}
-  .fixes{display:grid;gap:8px;margin-top:8px}
-  .fixes button{text-align:left;padding:10px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14px var(--font-body);cursor:pointer}
-  .fixes button code{font-size:.92em}
-  .fixes button[aria-pressed=true]{border-color:var(--cbt-sky)}.fixes button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}.fixes button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
-  .fixes button:disabled{cursor:default}
-  .pts{display:inline-block;font:600 11px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;border:1px solid var(--line);color:var(--silk-dim);margin-left:6px}
+  .code .ln .no{color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}.token.boolean{color:#E0B840}
+  .picked{font:500 12.5px var(--font-mono);color:var(--cbt-gold)}
+  .spec b.py{font-size:13px}
+  .feedback code{background:rgba(238,241,250,.1)}
 </style>
 </head>
 <body>
@@ -304,52 +294,52 @@
 
 <main class="wrap">
   <section class="hero split reveal" style="--i:0">
-    <div><span class="eyebrow">COP1411 · Week 4 · Challenge</span><h1>Bug hunt</h1><p class="lede">Ten Copilot-style functions, one bug each. Read the symptom, fix the code, and run real Python until every test passes. Dante Reyes, the Palmetto Parcel dispatcher, asked Microsoft Copilot for these functions; your job is the part Copilot cannot do: prove they work.</p></div>
-    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>10 · 6 · 3</b><span>first run · later run · shown fix</span></div><div><b>Real</b><span>Python 3.12 in the browser</span></div></div>
+    <div><span class="eyebrow">COP1411 · Week 4 · Challenge</span><h1>Bug hunt</h1><p class="lede">Ten Copilot-style functions, each with one bug. Read the real symptom, click the symbol that is wrong, then fix the Python and run the tests.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b class="py">Real Python</b><span>your fix runs on Python 3.12</span></div><div><b>Shuffled</b><span>every attempt</span></div></div>
   </section>
-  <aside class="card reveal" style="--i:1" data-ref="SCENE">
-    <h2>Watch it happen</h2>
-    <div class="scene wide" id="stage"></div>
-    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">When your tests pass, the fixed call plays here: the frame rises, the right value flies back to MAIN.</p></div>
-    <div class="stepper"><span class="score"><span class="big" id="score">0</span><span>points so far</span></span></div>
+  <aside class="card reveal" style="--i:1" data-ref="FLOWCHART">
+    <h2>The function as a flowchart</h2>
+    <div class="flowcard" id="stage"></div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Copilot's version</div><p id="capB" style="margin:0">Click the symbol you think is wrong, then press Check symbol below. After your fix passes the tests, the chart plays the fixed function.</p></div>
+    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the fixed function</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
   </aside>
   <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
     <h2 id="guideTitle">How this challenge works</h2>
     <ol class="steps" id="howSteps">
-      <li data-h="1">Read the <b>symptom</b>: the real output or error the function produced. Then read the code and find the one line that causes it.</li>
-      <li data-h="2">Edit the code in the box and press <b>Run</b>. Real Python runs your version and the tests under it. All tests pass on your first Run: 10 points. On a later Run: 6 points.</li>
-      <li data-h="3">Stuck? Press <b>Show the fix</b>, read why, and Run it: 3 points.</li>
-      <li data-h="4">Press <b>Next round</b>. After round 10, review your results. 90 or more earns confetti.</li>
+      <li data-h="1">Read the situation and the symptom (the real output or error) in the round below. Read the Python in the box.</li>
+      <li data-h="2">On the flowchart above, <b>click the symbol</b> that causes the symptom, then press <b>Check symbol</b> (4 points; 2 on a second try).</li>
+      <li data-h="3">Fix the Python in the box and press <b>Run</b>. The tests run on real Python: 6 points when they all pass on your first Run, 4 on a later Run, 2 after <b>Show the fix</b>.</li>
+      <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> if you want.</li>
     </ol>
     <div>
-      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read the symptom in round 1 below.</span></div>
-      <ul class="tips"><li>Rounds are shuffled every attempt. The first Run downloads Python (about 10 MB) once. Ctrl+Enter in the code box also runs.</li></ul>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below, then click the wrong symbol on the chart.</span></div>
+      <ul class="tips"><li>The first Run downloads Python (about 10 MB) once. If Python cannot load, press <b>Pick the fix instead</b> under the box for the same points. Over the flowchart: + and - zoom, drag to move, FIT shows everything.</li></ul>
     </div>
   </section>
   <section class="card reveal" style="--i:3" data-ref="ROUND">
     <div class="progress" id="prog"></div>
     <h2 id="qTitle">Round 1</h2>
     <p id="qText" style="margin:0 0 6px"></p>
-    <span class="lab">The symptom (Python 3.12)</span>
     <pre class="symptom" id="symptom"></pre>
-    <div id="sbWrap">
-      <span class="lab">Fix the code, then Run</span>
-      <div id="sandbox"></div>
-      <p class="mode" id="modeNote">Python will not load here? <button type="button" id="toPick">Switch this round to pick-the-line mode</button> (same points).</p>
+    <div class="part" id="part1">
+      <h3>Part 1: the wrong symbol <span class="pts">4 points</span></h3>
+      <p class="hint">On the flowchart above, click the symbol that causes the symptom. It lights gold. Then press Check symbol.</p>
+      <div class="stepper"><span class="picked" id="pickMsg">No symbol picked yet.</span><button class="btn primary" id="btnSym" type="button" style="margin-left:auto">Check symbol</button></div>
+      <div id="fb1"></div>
     </div>
-    <div id="pickWrap" hidden>
-      <span class="lab">Pick the line that causes the symptom</span>
-      <pre class="code" id="pickCode"></pre>
-      <span class="lab">Pick the fix</span>
-      <div class="fixes" id="fixes"></div>
-      <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button></div>
+    <div class="part locked" id="part2">
+      <h3>Part 2: fix the Python <span class="pts">6 points</span></h3>
+      <p class="hint">Edit the code in the box so every test passes, then press Run. The tests compare your function's answers with the expected ones.</p>
+      <div id="sb"></div>
+      <div class="stepper"><button class="btn" id="btnShow" type="button">Show the fix</button><button class="btn" id="btnFallback" type="button">Pick the fix instead</button></div>
+      <div id="fallback" hidden>
+        <p class="hint" style="margin-top:10px">Python is not running here, so pick the change that fixes the function:</p>
+        <div class="opts" id="opts"></div>
+        <div class="stepper"><button class="btn primary" id="btnCheckFix" type="button">Check fix</button></div>
+      </div>
+      <div id="fb2"></div>
     </div>
-    <div class="rbar">
-      <button class="btn" id="btnFix" type="button">Show the fix</button>
-      <button class="btn" id="btnResetCode" type="button">Reset this round's code</button>
-      <button class="btn primary" id="btnNext" type="button" disabled>Next round</button>
-    </div>
-    <div id="fb"></div>
+    <div class="stepper"><button class="btn primary" id="btnNext" type="button" disabled>Next round</button></div>
   </section>
   <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
     <h2>Your results</h2>
@@ -363,15 +353,192 @@
 (function () {
 "use strict";
 const hasGSAP = typeof window.gsap !== 'undefined';
-const hasTHREE = typeof window.THREE !== 'undefined';
-const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function guide(stepNo, nowHtml) {
   document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
   if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
 }
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
-const hl = l => window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l);
+// FLOWKIT START
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot), orthogonal arrows
+// with Yes/No labels and loop-back routes, a data token that travels the arrows carrying the real value, node highlighting,
+// memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows});
+//   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
+//   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
+//   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
+//   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
+//   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
+function FlowKit(stage, opts) {
+  'use strict';
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, nodes: [], edges: []}, opts || {});
+  const NS = 'http://www.w3.org/2000/svg';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
+    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#F4F5FA', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(238,240,248,.08)'},
+    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}};
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2;
+  const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const mk = el('marker', {id: 'fk-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.arrow}, mk);
+  const mk2 = el('marker', {id: 'fk-arrow-hot', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.active}, mk2);
+  const glow = el('filter', {id: 'fk-glow', x: '-20%', y: '-20%', width: '140%', height: '140%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: '#161c4d', stroke: '#2a3270'});
+  const grid = el('g', {opacity: .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: '#2a3270', 'stroke-dasharray': '3 6'}, grid);
+  const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
+  const nodes = {}, edges = {};
+  let pick = null;
+
+  function shape(n, g) {
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 26 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
+    let s;
+    if (n.type === 'terminal') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'io') { const k = 16; s = el('polygon', {points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'decision') s = el('polygon', {points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'call') { s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx - w / 2 + 8, y1: cy - h / 2, x2: cx - w / 2 + 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx + w / 2 - 8, y1: cy - h / 2, x2: cx + w / 2 - 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: fill, stroke: stroke, 'stroke-width': 1.5, 'stroke-dasharray': '6 5'}, g);
+    else s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke};
+  }
+  function text(n, g, geo) {
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11 : 12.5, lh = 15;
+    const t = el('text', {x: geo.cx, y: geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? '#aeb3c9' : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 600}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.cx, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    return t;
+  }
+  function addNode(n) {
+    const g = el('g', {class: 'fk-node', 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': (n.type + ': ' + (n.text || n.id)).replace(/\n/g, ' '), style: 'cursor:pointer'}, L.nodes);
+    const geo = shape(n, g); const t = text(n, g, geo);
+    const rec = Object.assign({}, n, {g: g, geo: geo, t: t, state: null});
+    const fire = () => pick && pick(n.id);
+    g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    nodes[n.id] = rec; return rec;
+  }
+  // anchor points on a node: top, bottom, left, right
+  function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
+  function route(e) {
+    const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
+    if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
+    const pts = [];
+    if (b.row > a.row && !e.side) {              // downward: bottom to top, with a jog when the columns differ
+      const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
+      if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
+      pts.push(t); return pts;
+    }
+    if (e.side) {                                 // a branch: leave sideways, go to the target column, then down into the target
+      const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
+      if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
+      else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
+      return pts;
+    }
+    // loop back: bottom, down a bit, over to the lane, up above the target, over, into the top
+    const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
+    pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
+    return pts;
+  }
+  function addEdge(e) {
+    const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+    const g = el('g', {class: 'fk-edge'}, L.edges);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.2, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    let lab = null;
+    if (e.label) { const p0 = pts[0], p1 = pts[1], lx = p0[0] + (p1[0] - p0[0]) * (e.side ? .18 : 0) + (e.side === 'left' ? -8 : e.side === 'right' ? 8 : 10), ly = p0[1] + (p1[1] - p0[1]) * (e.side ? 0 : .5) + (e.side ? -8 : 4);
+      lab = el('text', {x: lx, y: ly, fill: C.arrow, 'font-size': 11, 'font-weight': 700, 'font-family': 'Figtree, sans-serif', 'text-anchor': e.side === 'left' ? 'end' : 'start'}, L.labels); lab.textContent = e.label; }
+    const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
+  }
+  O.nodes.forEach(addNode); O.edges.forEach(addEdge);
+
+  function highlight(id, state) {
+    const r = nodes[id]; if (!r) return; r.state = state;
+    const base = r.geo.stroke;
+    r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4 : 2);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else r.geo.s.removeAttribute('filter');
+    r.g.setAttribute('opacity', state === 'done' ? .8 : 1);
+  }
+  function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), lh = 15; r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.cx, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 7}}, {attr: {'stroke-width': 4}, duration: .5}); }
+  function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
+  function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
+  // a token travels along one or more edges (keys "from>to"); the pill carries the value
+  function token(keys, label, color) {
+    const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
+    const g = el('g', {class: 'fk-token'}, L.tokens);
+    const tw = Math.max(28, String(label).length * 7.2 + 16);
+    el('circle', {r: 15, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -11, width: tw, height: 22, rx: 11, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1}, g);
+    const t = el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
+    const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
+    const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
+    list.forEach(e => { e.path.setAttribute('stroke', C.active); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+    place(0);
+    if (!hasGSAP || reduce) { place(1); setTimeout(() => g.remove(), 500); return null; }
+    const o = {u: 0};
+    return gsap.timeline({onComplete: () => g.remove()}).to(o, {u: 1, duration: Math.max(.5, total / 320), ease: 'none', onUpdate: () => place(o.u)});
+  }
+  // view: zoom and pan through the viewBox
+  const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
+  const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * home.h / home.w; V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), home.h * 1.1 - V.h); }
+  function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
+  function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  function fit() { go(home); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * home.h / home.w}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply();
+  if (!document.getElementById('flowkit-css')) {
+    const st = document.createElement('style'); st.id = 'flowkit-css';
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4}' +
+      '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
+      '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
+      '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
+      '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
+      '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}';
+    document.head.appendChild(st);
+  }
+  const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+  box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
+  stage.appendChild(box);
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fit(); });
+  let drag = null;
+  svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
+  svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
+  svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
+
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  window.__flows = window.__flows || []; window.__flows.push(api);
+  return api;
+}
+// memory boxes: FlowKit.memory(host, [{name, label}]) -> {set, get, reset}
+FlowKit.memory = function (host, vars) {
+  host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
+  const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+    get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
+};
+// the program's screen: FlowKit.console(host) -> {print, clear, lines}
+FlowKit.console = function (host) {
+  host.classList.add('fk-con'); const lines = []; const render = () => { host.textContent = lines.length ? lines.join('\n') : ''; const c = document.createElement('span'); c.className = 'cur'; host.appendChild(c); };
+  render();
+  return {print(t) { lines.push(String(t)); render(); }, clear() { lines.length = 0; render(); }, lines: () => lines.slice()};
+};
+// FLOWKIT END
+
 // PYSANDBOX START
 // CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
 // Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
@@ -496,216 +663,250 @@ function PySandbox(host, opts) {
 // PYSANDBOX END
 
 
-// ---- the ten rounds: buggy code, the real symptom (Python 3.12), tests, the bad line, four fixes ----
+// ---- chart helpers (grid units; the function in column 0, side branches in column 1, loop lanes at LANE on the left) ----
+const LANE = -0.55, PAD = 70;
+const hwOf = n => (n.w || (n.type === 'decision' ? 210 : 180)) / 2 / 230;
+const hhOf = n => (n.type === 'decision' ? 80 : 54) / 2 / 96;
+const AN = (n, side) => side === 'right' ? [n.col + hwOf(n), n.row] : side === 'left' ? [n.col - hwOf(n), n.row] : side === 'top' ? [n.col, n.row - hhOf(n)] : [n.col, n.row + hhOf(n)];
+const N = (id, type, text, col, row, w) => ({id: id, type: type, text: text, col: col, row: row, w: w});
+const E = (from, to, o) => Object.assign({from: from, to: to}, o || {});
+const byId = (nodes, id) => nodes.find(n => n.id === id);
+const loop = (nodes, from, to, lane, topRow) => { const a = byId(nodes, from), b = byId(nodes, to); return [AN(a, 'bottom'), [a.col, a.row + 0.5], [lane, a.row + 0.5], [lane, topRow], [b.col, topRow], AN(b, 'top')]; };
+const PKG = 'packages = ["PP-2026-0001", "PP-2026-0002", "PP-2026-0003", "PP-2026-0004", "PP-2026-0005"]';
+const rep = (path, times) => { let out = []; for (let i = 0; i < times; i++) out = out.concat(path); return out; };
+
+function priceChart(early, w) {
+  const nodes = [N('s', 'terminal', 'START price', 0, 0), N('p', 'process', 'p = 4.50 + 0.80 * weight\n+ 0.25 * miles', 0, 1, 210)];
+  if (early) { nodes.push(N('r1', 'terminal', 'RETURN p', 0, 2), N('d', 'decision', 'fragile?', 0, 3), N('a', 'process', 'p = p + 3.00', 1, 4), N('r2', 'terminal', 'RETURN p', 0, 5));
+    return {cols: 2, rows: 6, pad: PAD, nodes: nodes, edges: [E('s', 'p'), E('p', 'r1'), E('r1', 'd'), E('d', 'a', {label: 'Yes', side: 'right'}), E('d', 'r2', {label: 'No'}), E('a', 'r2')]}; }
+  nodes.push(N('d', 'decision', 'fragile?', 0, 2), N('a', 'process', 'p = p + 3.00', 1, 3), N('r', 'terminal', 'RETURN p', 0, 4));
+  return {cols: 2, rows: 5, pad: PAD, nodes: nodes, edges: [E('s', 'p'), E('p', 'd'), E('d', 'a', {label: 'Yes', side: 'right'}), E('d', 'r', {label: 'No'}), E('a', 'r')]};
+}
+function zoneChart(kendallInB, noElse) {
+  const nodes = [N('s', 'terminal', 'START zone', 0, 0), N('d1', 'decision', 'city == "Doral"?', 0, 1, 230), N('rA', 'terminal', 'RETURN "A"', 1, 1.5),
+    N('d2', 'decision', kendallInB ? 'city == "Hialeah" or\n"Miami Gardens"\nor "Kendall"?' : 'city == "Hialeah" or\n"Miami Gardens"?', 0, 2, kendallInB ? 270 : 250), N('rB', 'terminal', 'RETURN "B"', 1, 2.5),
+    N('d3', 'decision', kendallInB ? 'city == "Homestead"?' : 'city == "Kendall" or\n"Homestead"?', 0, 3, 250), N('rC', 'terminal', 'RETURN "C"', 1, 3.5),
+    noElse ? N('end', 'terminal', 'END (no return)', 0, 4) : N('rAsk', 'terminal', 'RETURN "Ask dispatch"', 0, 4, 210)];
+  return {cols: 2, rows: 5, pad: PAD, nodes: nodes, edges: [E('s', 'd1'), E('d1', 'rA', {label: 'Yes', side: 'right'}), E('d1', 'd2', {label: 'No'}), E('d2', 'rB', {label: 'Yes', side: 'right'}), E('d2', 'd3', {label: 'No'}), E('d3', 'rC', {label: 'Yes', side: 'right'}), E('d3', noElse ? 'end' : 'rAsk', {label: 'No'})]};
+}
+function totalChart(start, prints) {
+  const nodes = [N('s', 'terminal', 'START manifest_total', 0, 0, 200), N('t', 'process', 'total = ' + start, 0, 1), N('d', 'decision', 'more weights?', 0, 2), N('w', 'process', 'w = next weight', 0, 3), N('add', 'process', 'total = total + w', 0, 4)];
+  const edges = [E('s', 't'), E('t', 'd'), E('d', 'w', {label: 'Yes'}), E('w', 'add'), E('add', 'd', {points: loop(nodes, 'add', 'd', LANE, 1.45)})];
+  if (prints) { nodes.push(N('out', 'io', 'OUTPUT total', 1, 3), N('end', 'terminal', 'END (no return)', 1, 4)); edges.push(E('d', 'out', {label: 'No', side: 'right'}), E('out', 'end')); }
+  else { nodes.push(N('r', 'terminal', 'RETURN total', 1, 3)); edges.push(E('d', 'r', {label: 'No', side: 'right'})); }
+  return {cols: 2, rows: 5, pad: PAD, nodes: nodes, edges: edges};
+}
+function findChart(item) {
+  const nodes = [N('s', 'terminal', 'START find_package', 0, 0, 200), N('i0', 'process', 'i = 0', 0, 1), N('d1', 'decision', 'i < len(packages)?', 0, 2, 230), N('rm', 'terminal', 'RETURN -1', 1, 2.5), N('d2', 'decision', 'packages[i] ==\ntracking?', 0, 3, 230), N('ri', 'terminal', item ? 'RETURN packages[i]' : 'RETURN i', 1, 4), N('inc', 'process', 'i = i + 1', 0, 4)];
+  return {cols: 2, rows: 5, pad: PAD, nodes: nodes, edges: [E('s', 'i0'), E('i0', 'd1'), E('d1', 'rm', {label: 'No', side: 'right'}), E('d1', 'd2', {label: 'Yes'}), E('d2', 'ri', {label: 'Yes', side: 'right'}), E('d2', 'inc', {label: 'No'}), E('inc', 'd1', {points: loop(nodes, 'inc', 'd1', LANE, 1.45)})]};
+}
+function sortChart(bug) {
+  const nodes = [N('s', 'terminal', 'START sort_by_weight', 0, 0, 200), N('n', 'process', 'n = len(weights)', 0, 1), N('d1', 'decision', 'i < n - 1?\n(more passes)', 0, 2, 230), N('d2', 'decision', (bug ? 'j < n - i?' : 'j < n - 1 - i?') + '\n(more pairs)', 0, 3, 230),
+    N('d3', 'decision', 'weights[j] >\nweights[j + 1]?', 0, 4, 230), N('sw', 'process', 'swap weights[j]\nand weights[j + 1]', 0, 5, 210), N('rw', 'terminal', 'RETURN weights', 1, 6.2)];
+  const d1 = byId(nodes, 'd1'), d2 = byId(nodes, 'd2'), d3 = byId(nodes, 'd3'), sw = byId(nodes, 'sw'), rw = byId(nodes, 'rw');
+  return {cols: 2, rows: 7.2, pad: PAD, nodes: nodes, edges: [E('s', 'n'), E('n', 'd1'), E('d1', 'rw', {label: 'No', side: 'right', points: [AN(d1, 'right'), [1.6, 2], [1.6, 6.2], AN(rw, 'right')]}), E('d1', 'd2', {label: 'Yes'}),
+    E('d2', 'd1', {label: 'No', side: 'left', points: [AN(d2, 'left'), [LANE, 3], [LANE, 1.45], [0, 1.45], AN(d1, 'top')]}), E('d2', 'd3', {label: 'Yes'}), E('d3', 'sw', {label: 'Yes'}),
+    E('d3', 'd2', {label: 'No', side: 'right', points: [AN(d3, 'right'), [1.35, 4], [1.35, 2.5], [0, 2.5], AN(d2, 'top')]}), E('sw', 'd2', {points: [AN(sw, 'bottom'), [0, 5.6], [1.35, 5.6], [1.35, 2.5], [0, 2.5], AN(d2, 'top')]})]};
+}
+function labelChart(swapped) {
+  const nodes = [N('s', 'terminal', 'START (MAIN)', 0, 0), N('w', 'process', 'weight = 12', 0, 1), N('m', 'process', 'miles = 8', 0, 2), N('c', 'call', swapped ? 'label = price(miles,\nweight, False)' : 'label = price(weight,\nmiles, False)', 0, 3, 210), N('o', 'io', 'OUTPUT "Package\nprice: $" label', 0, 4, 230), N('e', 'terminal', 'END', 0, 5)];
+  return {cols: 1.2, rows: 6, pad: PAD, nodes: nodes, edges: [E('s', 'w'), E('w', 'm'), E('m', 'c'), E('c', 'o'), E('o', 'e')]};
+}
+function countChart(bug) {
+  const nodes = [N('s', 'terminal', 'START count_fragile', 1, 0, 200), N('c0', 'process', 'count = 0', 1, 1), N('i0', 'process', 'i = 0', 1, 2), N('d1', 'decision', 'i < len(flags)?', 1, 3, 230), N('rc', 'terminal', 'RETURN count', 0, 4), N('d2', 'decision', 'flags[i]?', 1, 4),
+    N('cnt', 'process', 'count = count + 1', bug ? 1 : 2, 5), N('inc', 'process', 'i = i + 1', 1, 6)];
+  const d1 = byId(nodes, 'd1'), d2 = byId(nodes, 'd2'), inc = byId(nodes, 'inc');
+  const edges = [E('s', 'c0'), E('c0', 'i0'), E('i0', 'd1'), E('d1', 'rc', {label: 'No', side: 'left'}), E('d1', 'd2', {label: 'Yes'})];
+  if (bug) edges.push(E('d2', 'cnt', {label: 'Yes'}), E('d2', 'd1', {label: 'No', side: 'right', points: [AN(d2, 'right'), [2.0, 4], [2.0, 2.45], [1, 2.45], AN(d1, 'top')]}), E('cnt', 'inc'), E('inc', 'd1', {points: [AN(inc, 'bottom'), [1, 6.5], [2.2, 6.5], [2.2, 2.45], [1, 2.45], AN(d1, 'top')]}));
+  else edges.push(E('d2', 'cnt', {label: 'Yes', side: 'right'}), E('d2', 'inc', {label: 'No'}), E('cnt', 'inc'), E('inc', 'd1', {points: [AN(inc, 'bottom'), [1, 6.5], [2.5, 6.5], [2.5, 2.45], [1, 2.45], AN(d1, 'top')]}));
+  return {cols: 3, rows: 7, pad: PAD, nodes: nodes, edges: edges};
+}
+const findPlay = ['s>i0', 'i0>d1'].concat(rep(['d1>d2', 'd2>inc', 'inc>d1'], 3), ['d1>d2', 'd2>ri']);
+const totalPlay = ['s>t', 't>d'].concat(rep(['d>w', 'w>add', 'add>d'], 5), ['d>r']);
+
+// ---- the ten rounds: a Copilot-style function, the real symptom (Python 3.12), the chart, the bug, the tests, the fix ----
 const ROUNDS = [
-  {title: 'The surcharge that never happens', fn: 'price', value: '10.4',
-    q: 'price(weight, miles, fragile) must return 4.50 + 0.80 per pound + 0.25 per mile, plus 3.00 when fragile is True. Package 0002 (3 lb, 2 miles, fragile) should cost 10.40.',
-    code: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    return p\n    if fragile:\n        p = p + 3.00\n\nprint(f"{price(3, 2, True):.2f}")\n',
-    fixed: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n        p = p + 3.00\n    return p\n\nprint(f"{price(3, 2, True):.2f}")\n',
-    symptom: '7.40', err: false, tests: [{expr: 'price(3, 2, True)', expect: '10.4'}, {expr: 'price(12, 8, False)', expect: '16.1'}, {expr: 'price(60, 14, True)', expect: '59.0'}],
-    bad: [3], fixes: [['Move <code>return p</code> to the end of the function, after the if block.', true], ['Change <code>if fragile:</code> to <code>if fragile == True:</code>.', false], ['Change <code>return p</code> to <code>return p + 3.00</code>.', false], ['Add <code>print(p)</code> before the return.', false]],
-    why: 'return ends the function at once. Lines after it never run, so the if block was dead code. The return must be the last line.'},
-  {title: 'Kendall on the wrong shelf', fn: 'zone', value: "'C'",
-    q: 'zone(city) returns "A" for Doral, "B" for Hialeah and Miami Gardens, "C" for Kendall and Homestead, and "Ask dispatch" for any other city.',
-    code: 'def zone(city):\n    if city == "Doral":\n        return "A"\n    elif city == "Hialeah" or city == "Miami Gardens" or city == "Kendall":\n        return "B"\n    elif city == "Homestead":\n        return "C"\n    else:\n        return "Ask dispatch"\n\nprint(zone("Kendall"))\n',
-    fixed: 'def zone(city):\n    if city == "Doral":\n        return "A"\n    elif city == "Hialeah" or city == "Miami Gardens":\n        return "B"\n    elif city == "Kendall" or city == "Homestead":\n        return "C"\n    else:\n        return "Ask dispatch"\n\nprint(zone("Kendall"))\n',
-    symptom: 'B', err: false, tests: [{expr: 'zone("Kendall")', expect: "'C'"}, {expr: 'zone("Hialeah")', expect: "'B'"}, {expr: 'zone("Homestead")', expect: "'C'"}],
-    bad: [4], fixes: [['Remove Kendall from the zone B line and add it to the Homestead line: <code>elif city == "Kendall" or city == "Homestead":</code>', true], ['Change the zone B line to <code>return "C"</code>.', false], ['Move the Homestead elif above the Hialeah elif.', false], ['Add <code>return "C"</code> after the else block.', false]],
-    why: 'Kendall was listed with the zone B cities, so the chain returned "B" before it ever reached the zone C line. The condition that mentions a city decides its zone.'},
-  {title: 'One pound from nowhere', fn: 'manifest_total', value: '130',
-    q: 'manifest_total(weights) adds up a list of weights. The VAN-1 manifest 12, 3, 20, 50, 45 totals 130 lb, and an empty list totals 0.',
-    code: 'def manifest_total(weights):\n    total = 1\n    for w in weights:\n        total = total + w\n    return total\n\nprint(manifest_total([12, 3, 20, 50, 45]))\n',
-    fixed: 'def manifest_total(weights):\n    total = 0\n    for w in weights:\n        total = total + w\n    return total\n\nprint(manifest_total([12, 3, 20, 50, 45]))\n',
-    symptom: '131', err: false, tests: [{expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}],
-    bad: [2], fixes: [['Start the accumulator at zero: <code>total = 0</code>.', true], ['Change the loop line to <code>total = total + w - 1</code>.', false], ['Change the last line to <code>return total - 1</code>.', false], ['Skip the first weight in the loop.', false]],
-    why: 'An accumulator starts at 0. Starting at 1 adds a pound no package weighs, and an empty manifest would report 1 lb.'},
-  {title: 'Found, but where?', fn: 'find_package', value: '3',
-    q: 'find_package(tracking, packages) returns the index (position, starting at 0) where the tracking number sits in the list, or -1 when it is not there. PP-2026-0004 is at index 3.',
-    code: 'packages = ["PP-2026-0001", "PP-2026-0002", "PP-2026-0003", "PP-2026-0004", "PP-2026-0005"]\n\ndef find_package(tracking, packages):\n    for i in range(len(packages)):\n        if packages[i] == tracking:\n            return packages[i]\n    return -1\n\nprint(find_package("PP-2026-0004", packages))\n',
-    fixed: 'packages = ["PP-2026-0001", "PP-2026-0002", "PP-2026-0003", "PP-2026-0004", "PP-2026-0005"]\n\ndef find_package(tracking, packages):\n    for i in range(len(packages)):\n        if packages[i] == tracking:\n            return i\n    return -1\n\nprint(find_package("PP-2026-0004", packages))\n',
-    symptom: 'PP-2026-0004', err: false, tests: [{expr: 'find_package("PP-2026-0004", packages)', expect: '3'}, {expr: 'find_package("PP-2026-0009", packages)', expect: '-1'}, {expr: 'find_package("PP-2026-0001", packages)', expect: '0'}],
-    bad: [6], fixes: [['Return the index: <code>return i</code>.', true], ['Return the whole list: <code>return packages</code>.', false], ['Return the tracking number: <code>return tracking</code>.', false], ['Return <code>i + 1</code> so the count starts at 1.', false]],
-    why: 'The caller already has the tracking number; it needs the position so it can look up the weight in a second list. i is the index; packages[i] is the item.'},
-  {title: 'One step too far', fn: 'sort_by_weight', value: '[3, 12, 20, 45, 50]',
-    q: 'sort_by_weight(weights) is a bubble sort, lightest first. It compares neighbors weights[j] and weights[j + 1] and swaps them when the left one is heavier.',
-    code: 'def sort_by_weight(weights):\n    n = len(weights)\n    for i in range(n - 1):\n        for j in range(n - i):\n            if weights[j] > weights[j + 1]:\n                weights[j], weights[j + 1] = weights[j + 1], weights[j]\n    return weights\n\nprint(sort_by_weight([12, 3, 20, 50, 45]))\n',
-    fixed: 'def sort_by_weight(weights):\n    n = len(weights)\n    for i in range(n - 1):\n        for j in range(n - 1 - i):\n            if weights[j] > weights[j + 1]:\n                weights[j], weights[j + 1] = weights[j + 1], weights[j]\n    return weights\n\nprint(sort_by_weight([12, 3, 20, 50, 45]))\n',
-    symptom: 'Traceback (most recent call last):\n  File "sort.py", line 9, in <module>\n    print(sort_by_weight([12, 3, 20, 50, 45]))\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "sort.py", line 5, in sort_by_weight\n    if weights[j] > weights[j + 1]:\n                    ~~~~~~~^^^^^^^\nIndexError: list index out of range', err: true,
+  {title: 'The surcharge that never happens', q: 'Microsoft Copilot wrote price() for the toolkit. Dante ran it for package PP-2026-0002 (3 lb, 2 miles, fragile), expected 10.40, and saw this:', symptom: '7.4',
+    chart: fixed => priceChart(!fixed), bad: ['r1'], badWhy: 'The first RETURN p sits before the fragile decision. A return ends the function at once, so the diamond and the surcharge below it can never run.',
+    code: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    return p', '    if fragile:', '        p = p + 3.00', '    return p', '', 'print(price(3, 2, True))'],
+    fixed: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '        p = p + 3.00', '    return p', '', 'print(price(3, 2, True))'],
+    tests: [{expr: 'price(3, 2, True)', expect: '10.4'}, {expr: 'price(12, 8, False)', expect: '16.1'}, {expr: 'price(60, 14, True)', expect: '59.0'}],
+    fix: 'Delete the early return p (line 3), so the if runs before the return at the end.',
+    opts: [['Delete the early return p on line 3, so the if runs before the return at the end.', true], ['Change p = p + 3.00 to p + 3.00.', false], ['Replace if fragile: with if fragile == "yes":.', false], ['Move print(price(3, 2, True)) inside the function.', false]],
+    play: {path: ['s>p', 'p>d', 'd>a', 'a>r'], label: '10.4', cap: 'price(3, 2, True) now returns 10.4: the token reaches the fragile decision, takes Yes to the surcharge, and only then returns.'}},
+  {title: 'Kendall on the wrong shelf', q: 'Copilot wrote zone(). Kendall Office Supply is in Kendall, which is zone C. Dante ran zone("Kendall") and saw:', symptom: 'B',
+    chart: fixed => zoneChart(!fixed, false), bad: ['d2'], badWhy: 'The second diamond lists Kendall with the zone B cities, so Kendall returns "B" before the zone C diamond is ever reached.',
+    code: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens" or city == "Kendall":', '        return "B"', '    elif city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"', '', 'print(zone("Kendall"))'],
+    fixed: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"', '', 'print(zone("Kendall"))'],
+    tests: [{expr: 'zone("Kendall")', expect: "'C'"}, {expr: 'zone("Hialeah")', expect: "'B'"}, {expr: 'zone("Homestead")', expect: "'C'"}],
+    fix: 'Remove or city == "Kendall" from the zone B line and add it to the zone C line: elif city == "Kendall" or city == "Homestead":.',
+    opts: [['Remove or city == "Kendall" from the zone B condition and add it to the zone C condition.', true], ['Change the Homestead condition so it returns "B".', false], ['Move the Doral check to the end of the chain.', false], ['Return "C" before checking the city.', false]],
+    play: {path: ['s>d1', 'd1>d2', 'd2>d3', 'd3>rC'], label: "'C'", cap: 'zone("Kendall") now returns \'C\': Doral is False, Hialeah or Miami Gardens is False, Kendall or Homestead is True.'}},
+  {title: 'One pound from nowhere', q: 'Copilot wrote manifest_total(). The VAN-1 manifest (12, 3, 20, 50, 45) weighs 130 lb. The program printed:', symptom: '131',
+    chart: fixed => totalChart(fixed ? 0 : 1, false), bad: ['t'], badWhy: 'The accumulator starts at 1 instead of 0, so every total is one pound too high, and an empty manifest totals 1.',
+    code: ['def manifest_total(weights):', '    total = 1', '    for w in weights:', '        total = total + w', '    return total', '', 'print(manifest_total([12, 3, 20, 50, 45]))'],
+    fixed: ['def manifest_total(weights):', '    total = 0', '    for w in weights:', '        total = total + w', '    return total', '', 'print(manifest_total([12, 3, 20, 50, 45]))'],
+    tests: [{expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}],
+    fix: 'Change total = 1 to total = 0.',
+    opts: [['Change total = 1 to total = 0.', true], ['Change total = total + w to total = w.', false], ['Start the loop at the second weight.', false], ['Return total - 1.', false]],
+    play: {path: totalPlay, label: '130', cap: 'manifest_total([12, 3, 20, 50, 45]) now returns 130: the accumulator starts at 0 and the loop adds the five weights.'}},
+  {title: 'Found, but where?', q: 'Copilot wrote find_package(). PP-2026-0004 is the fourth number on the list, index 3, and MAIN needs that index to look up its weight. The program printed:', symptom: 'PP-2026-0004',
+    chart: fixed => findChart(!fixed), bad: ['ri'], badWhy: 'The RETURN symbol on the Yes branch hands back packages[i], the item itself, instead of i, its position. MAIN already had the tracking number; it needed the index.',
+    code: ['def find_package(tracking, packages):', '    for i in range(len(packages)):', '        if packages[i] == tracking:', '            return packages[i]', '    return -1', '', PKG, 'print(find_package("PP-2026-0004", packages))'],
+    fixed: ['def find_package(tracking, packages):', '    for i in range(len(packages)):', '        if packages[i] == tracking:', '            return i', '    return -1', '', PKG, 'print(find_package("PP-2026-0004", packages))'],
+    tests: [{expr: 'find_package("PP-2026-0004", packages)', expect: '3'}, {expr: 'find_package("PP-2026-0009", packages)', expect: '-1'}, {expr: 'find_package("PP-2026-0001", packages)', expect: '0'}],
+    fix: 'Change return packages[i] to return i.',
+    opts: [['Change return packages[i] to return i.', true], ['Change return -1 to return 0.', false], ['Change range(len(packages)) to range(len(packages) - 1).', false], ['Replace the loop with return packages.index(tracking).', false]],
+    play: {path: findPlay, label: '3', cap: 'find_package("PP-2026-0004", packages) now returns 3: indexes 0, 1, and 2 do not match, index 3 does, and the loop returns the position.'}},
+  {title: 'One step too far', q: 'Copilot wrote sort_by_weight(). Sorting the VAN-1 weights [12, 3, 20, 50, 45] stopped with this traceback:', symptom: 'Traceback (most recent call last):\n  File "<exec>", line 9, in <module>\n  File "<exec>", line 5, in sort_by_weight\nIndexError: list index out of range',
+    chart: fixed => sortChart(!fixed), bad: ['d2'], badWhy: 'The inner loop runs j up to n - i - 1, one pair too far: on the first pass j reaches 4 and weights[j + 1] is weights[5], which does not exist in a list of 5.',
+    code: ['def sort_by_weight(weights):', '    n = len(weights)', '    for i in range(n - 1):', '        for j in range(n - i):', '            if weights[j] > weights[j + 1]:', '                weights[j], weights[j + 1] = weights[j + 1], weights[j]', '    return weights', '', 'print(sort_by_weight([12, 3, 20, 50, 45]))'],
+    fixed: ['def sort_by_weight(weights):', '    n = len(weights)', '    for i in range(n - 1):', '        for j in range(n - 1 - i):', '            if weights[j] > weights[j + 1]:', '                weights[j], weights[j + 1] = weights[j + 1], weights[j]', '    return weights', '', 'print(sort_by_weight([12, 3, 20, 50, 45]))'],
     tests: [{expr: 'sort_by_weight([12, 3, 20, 50, 45])', expect: '[3, 12, 20, 45, 50]'}, {expr: 'sort_by_weight([50, 45, 20, 12, 3])', expect: '[3, 12, 20, 45, 50]'}, {expr: 'sort_by_weight([7])', expect: '[7]'}],
-    bad: [4], fixes: [['Shorten the inner loop by one: <code>for j in range(n - 1 - i):</code>', true], ['Change the outer loop to <code>for i in range(n):</code>.', false], ['Compare with the left neighbor instead: <code>if weights[j] > weights[j - 1]:</code>', false], ['Set <code>n = len(weights) - 1</code> and keep <code>range(n - i)</code>.', false]],
-    why: 'With five items the indexes run 0 to 4. When j is 4, weights[j + 1] is weights[5], which does not exist. The inner loop must stop one earlier: range(n - 1 - i).'},
-  {title: 'The total that vanished', fn: 'manifest_total', value: '130',
-    q: 'MAIN needs the total back so it can print it with units. A function hands a value back with return, not print.',
-    code: 'def manifest_total(weights):\n    total = 0\n    for w in weights:\n        total = total + w\n    print(total)\n\ntotal = manifest_total([12, 3, 20, 50, 45])\nprint(f"Total: {total} lb")\n',
-    fixed: 'def manifest_total(weights):\n    total = 0\n    for w in weights:\n        total = total + w\n    return total\n\ntotal = manifest_total([12, 3, 20, 50, 45])\nprint(f"Total: {total} lb")\n',
-    symptom: '130\nTotal: None lb', err: false, tests: [{expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}, {expr: 'total', expect: '130'}],
-    bad: [5], fixes: [['Replace <code>print(total)</code> with <code>return total</code>.', true], ['Print the units inside the function: <code>print(f"Total: {total} lb")</code>.', false], ['Call it without parentheses: <code>total = manifest_total</code>.', false], ['Add <code>global total</code> at the top of the function.', false]],
-    why: 'A function without a return gives back None. The 130 on the screen came from the print inside the function; MAIN received nothing. return total sends the value where MAIN can use it.'},
-  {title: 'Right numbers, wrong order', fn: 'price', value: '16.1',
-    q: 'Package 0001 is 12 lb and 8 miles, so its label should read $16.10. The function is correct; look at how MAIN calls it.',
-    code: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n        p = p + 3.00\n    return p\n\nweight = 12\nmiles = 8\nlabel = price(miles, weight, False)\nprint(f"Package price: ${label:.2f}")\n',
-    fixed: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n        p = p + 3.00\n    return p\n\nweight = 12\nmiles = 8\nlabel = price(weight, miles, False)\nprint(f"Package price: ${label:.2f}")\n',
-    symptom: 'Package price: $13.90', err: false, tests: [{expr: 'label', expect: '16.1'}, {expr: 'price(12, 8, False)', expect: '16.1'}],
-    bad: [9], fixes: [['Pass the arguments in the order of the parameters: <code>label = price(weight, miles, False)</code>', true], ['Swap the parameters in the def line: <code>def price(miles, weight, fragile):</code>', false], ['Swap the two assignment lines <code>weight = 12</code> and <code>miles = 8</code>.', false], ['Drop the third argument: <code>label = price(12, 8)</code>', false]],
-    why: 'Python matches arguments to parameters by position. The call sent 8 as the weight and 12 as the miles, so the price was 4.50 + 6.40 + 3.00 = 13.90. Swapping the def would break every other call that already uses the right order.'},
-  {title: 'The count that never ends', fn: 'count_fragile', value: '2',
-    q: 'count_fragile(flags) counts how many items of a list of True and False values are True. The sandbox stops any program after 15 seconds.',
-    code: 'def count_fragile(flags):\n    count = 0\n    i = 0\n    while i < len(flags):\n        if flags[i]:\n            count = count + 1\n    return count\n\nprint(count_fragile([False, True, False, False, True]))\n',
-    fixed: 'def count_fragile(flags):\n    count = 0\n    i = 0\n    while i < len(flags):\n        if flags[i]:\n            count = count + 1\n        i = i + 1\n    return count\n\nprint(count_fragile([False, True, False, False, True]))\n',
-    symptom: '(nothing is printed; the program keeps running)\nStopped after 15 seconds: the program never finished. Look for a loop whose condition never becomes False.', err: true,
-    tests: [{expr: 'count_fragile([False, True, False, False, True])', expect: '2'}, {expr: 'count_fragile([])', expect: '0'}, {expr: 'count_fragile([True])', expect: '1'}],
-    bad: [4, 6], fixes: [['Add <code>i = i + 1</code> as the last line of the loop body, outside the if.', true], ['Add <code>i = i + 1</code> inside the if block only.', false], ['Change <code>while</code> to <code>if</code>.', false], ['Change the condition to <code>i <= len(flags)</code>.', false]],
-    why: 'The condition i < len(flags) can only become False if i grows. Nothing in the loop changed i, so the same item was checked forever. The increment must run on every pass, not only when the item is True.'},
-  {title: 'The lane that is not there', fn: 'zone', value: "'Ask dispatch'",
-    q: 'zone(city) must return "Ask dispatch" for a city that is not in any zone, such as Fort Lauderdale. Blue Heron Clinic\'s package came out with no lane at all.',
-    code: 'def zone(city):\n    if city == "Doral":\n        return "A"\n    elif city == "Hialeah" or city == "Miami Gardens":\n        return "B"\n    elif city == "Kendall" or city == "Homestead":\n        return "C"\n\nprint("Lane:", zone("Fort Lauderdale"))\n',
-    fixed: 'def zone(city):\n    if city == "Doral":\n        return "A"\n    elif city == "Hialeah" or city == "Miami Gardens":\n        return "B"\n    elif city == "Kendall" or city == "Homestead":\n        return "C"\n    else:\n        return "Ask dispatch"\n\nprint("Lane:", zone("Fort Lauderdale"))\n',
-    symptom: 'Lane: None', err: false, tests: [{expr: 'zone("Fort Lauderdale")', expect: "'Ask dispatch'"}, {expr: 'zone("Doral")', expect: "'A'"}, {expr: 'zone("Homestead")', expect: "'C'"}],
-    bad: [6, 7], fixes: [['Add <code>else:</code> with <code>return "Ask dispatch"</code> at the end of the chain.', true], ['Add <code>print("Ask dispatch")</code> after the chain.', false], ['Change the last <code>elif</code> to <code>else</code>.', false], ['Put <code>return "Ask dispatch"</code> as the first line of the function.', false]],
-    why: 'No condition was True, so the function reached its end without a return, and Python returns None. Every path through a function must return something; the else is the path for everything that did not match.'},
-  {title: 'Four spaces short', fn: 'price', value: '10.4',
-    q: 'The body of an if must be indented under it. Python refuses to run the file at all, which is why the error names the line before anything prints.',
-    code: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n    p = p + 3.00\n    return p\n\nprint(f"{price(3, 2, True):.2f}")\n',
-    fixed: 'def price(weight, miles, fragile):\n    p = 4.50 + 0.80 * weight + 0.25 * miles\n    if fragile:\n        p = p + 3.00\n    return p\n\nprint(f"{price(3, 2, True):.2f}")\n',
-    symptom: '  File "price.py", line 4\n    p = p + 3.00\n    ^\nIndentationError: expected an indented block after \'if\' statement on line 3', err: true,
+    fix: 'Change range(n - i) to range(n - 1 - i).',
+    opts: [['Change range(n - i) to range(n - 1 - i).', true], ['Change range(n - 1) to range(n).', false], ['Change weights[j + 1] to weights[j - 1].', false], ['Change n = len(weights) to n = len(weights) - 1.', false]],
+    play: {path: ['s>n', 'n>d1', 'd1>d2', 'd2>d3', 'd3>sw', 'sw>d2', 'd2>d3', 'd3>d2', 'd2>d3', 'd3>d2', 'd2>d3', 'd3>sw', 'sw>d2', 'd2>d1', 'd1>rw'], label: '[3, 12, 20, 45, 50]', cap: 'Pass 1 with the fix: 4 comparisons and 2 swaps (12 with 3, then 50 with 45) give [3, 12, 20, 45, 50]. The replay skips passes 2 to 4 (no swaps) and returns the list.'}},
+  {title: 'The total that vanished', q: 'Copilot changed manifest_total() so it "shows the total". MAIN then tried to print the total with units and saw:', symptom: '130\nTotal: None lb',
+    chart: fixed => totalChart(0, !fixed), bad: ['out'], badWhy: 'The function prints the total instead of returning it. print shows 130 on the screen, but the function hands back nothing, so MAIN receives None.',
+    code: ['def manifest_total(weights):', '    total = 0', '    for w in weights:', '        total = total + w', '    print(total)', '', 'weights = [12, 3, 20, 50, 45]', 'print(f"Total: {manifest_total(weights)} lb")'],
+    fixed: ['def manifest_total(weights):', '    total = 0', '    for w in weights:', '        total = total + w', '    return total', '', 'weights = [12, 3, 20, 50, 45]', 'print(f"Total: {manifest_total(weights)} lb")'],
+    tests: [{expr: 'manifest_total(weights)', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}],
+    fix: 'Change print(total) to return total.',
+    opts: [['Change print(total) to return total.', true], ['Add a bare return after print(total).', false], ['Move print(total) inside the loop.', false], ['Print manifest_total(weights) without the f-string.', false]],
+    play: {path: totalPlay, label: '130', cap: 'With return total, the value 130 travels back to MAIN, and MAIN prints "Total: 130 lb".'}},
+  {title: 'Right numbers, wrong order', q: 'Copilot wrote the label program around price(). Package PP-2026-0001 (12 lb, 8 miles, not fragile) should cost 16.10. The program printed:', symptom: 'Package price: $13.90',
+    chart: fixed => labelChart(!fixed), bad: ['c'], badWhy: 'The call passes miles first and weight second. Python matches arguments to parameters by position, so weight becomes 8 and miles becomes 12, with no error message.',
+    code: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '        p = p + 3.00', '    return p', '', 'weight = 12', 'miles = 8', 'label = price(miles, weight, False)', 'print(f"Package price: ${label:.2f}")'],
+    fixed: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '        p = p + 3.00', '    return p', '', 'weight = 12', 'miles = 8', 'label = price(weight, miles, False)', 'print(f"Package price: ${label:.2f}")'],
+    tests: [{expr: 'label', expect: '16.1'}, {expr: 'price(12, 8, False)', expect: '16.1'}],
+    fix: 'Change the call to price(weight, miles, False).',
+    opts: [['Change the call to price(weight, miles, False).', true], ['Change the def line to def price(miles, weight, fragile):.', false], ['Change weight = 12 to weight = 8.', false], ['Change :.2f to :.1f in the print.', false]],
+    play: {path: ['s>w', 'w>m', 'm>c', 'c>o', 'o>e'], label: '16.10', cap: 'price(weight, miles, False) sends 12 to weight and 8 to miles: 4.50 + 9.60 + 2.00 = 16.10.'}},
+  {title: 'The count that never ends', q: 'Copilot wrote count_fragile(flags), which counts how many True values a list holds. With [False, True, False, False, True] the program never printed anything. The sandbox stopped it:', symptom: '(nothing printed)\nStopped after 15 seconds: the program never finished. Look for a loop whose condition never becomes False.',
+    chart: fixed => countChart(!fixed), bad: ['inc'], badWhy: 'i = i + 1 sits on the Yes branch only. When flags[i] is False, i never changes, the condition i < len(flags) stays True forever, and the loop never ends.',
+    code: ['def count_fragile(flags):', '    count = 0', '    i = 0', '    while i < len(flags):', '        if flags[i]:', '            count = count + 1', '            i = i + 1', '    return count', '', 'print(count_fragile([False, True, False, False, True]))'],
+    fixed: ['def count_fragile(flags):', '    count = 0', '    i = 0', '    while i < len(flags):', '        if flags[i]:', '            count = count + 1', '        i = i + 1', '    return count', '', 'print(count_fragile([False, True, False, False, True]))'],
+    tests: [{expr: 'count_fragile([False, True, False, False, True])', expect: '2'}, {expr: 'count_fragile([])', expect: '0'}, {expr: 'count_fragile([True, True])', expect: '2'}],
+    fix: 'Move i = i + 1 out of the if: four spaces less, so it runs on every pass of the loop.',
+    opts: [['Move i = i + 1 out of the if (same indentation as the if), so it runs on every pass.', true], ['Change while i < len(flags): to while i <= len(flags):.', false], ['Change count = count + 1 to i = i + 1.', false], ['Change i = 0 to i = 1.', false]],
+    play: {path: ['s>c0', 'c0>i0', 'i0>d1', 'd1>d2', 'd2>inc', 'inc>d1', 'd1>d2', 'd2>cnt', 'cnt>inc', 'inc>d1', 'd1>d2', 'd2>inc', 'inc>d1', 'd1>d2', 'd2>inc', 'inc>d1', 'd1>d2', 'd2>cnt', 'cnt>inc', 'inc>d1', 'd1>rc'], label: '2', cap: 'With i = i + 1 after the if, every pass moves i forward: five passes, two of them count, and the loop ends with count = 2.'}},
+  {title: 'The lane that is not there', q: 'Copilot wrote zone() without a last branch. Blue Heron Clinic is in Fort Lauderdale, a city the chain does not list. MAIN printed:', symptom: 'Lane: None',
+    chart: fixed => zoneChart(false, !fixed), bad: ['end', 'd3'], badWhy: 'The No arrow of the last diamond leads to the end of the function with no RETURN. A function that reaches its end without returning hands back None.',
+    code: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '', 'print("Lane:", zone("Fort Lauderdale"))'],
+    fixed: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"', '', 'print("Lane:", zone("Fort Lauderdale"))'],
+    tests: [{expr: 'zone("Fort Lauderdale")', expect: "'Ask dispatch'"}, {expr: 'zone("Doral")', expect: "'A'"}, {expr: 'zone("Homestead")', expect: "'C'"}],
+    fix: 'Add an else branch at the end of the chain: else: return "Ask dispatch".',
+    opts: [['Add else: return "Ask dispatch" at the end of the chain.', true], ['Change the last elif to else.', false], ['Put return "Ask dispatch" before the first if.', false], ['Add return None at the end of the function.', false]],
+    play: {path: ['s>d1', 'd1>d2', 'd2>d3', 'd3>rAsk'], label: "'Ask dispatch'", cap: 'No diamond matches Fort Lauderdale, so the else branch returns \'Ask dispatch\' and MAIN prints "Lane: Ask dispatch".'}},
+  {title: 'Four spaces short', q: 'Copilot pasted price() with one line out of place. Python refused to run the file at all:', symptom: 'Traceback (most recent call last):\n  File "<exec>", line 4\n    p = p + 3.00\n    ^\nIndentationError: expected an indented block after \'if\' statement on line 3',
+    chart: fixed => priceChart(false), bad: ['a'], badWhy: 'The chart puts p = p + 3.00 on the Yes branch of the fragile decision, but in the Python that line is not indented under if fragile:. Indentation is how Python knows which lines belong to the if.',
+    code: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '    p = p + 3.00', '    return p', '', 'print(price(3, 2, True))'],
+    fixed: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '        p = p + 3.00', '    return p', '', 'print(price(3, 2, True))'],
     tests: [{expr: 'price(3, 2, True)', expect: '10.4'}, {expr: 'price(12, 8, False)', expect: '16.1'}],
-    bad: [4], fixes: [['Indent <code>p = p + 3.00</code> four more spaces so it sits under the if.', true], ['Remove the colon after <code>if fragile</code>.', false], ['Delete the if line.', false], ['Indent <code>return p</code> under the if as well.', false]],
-    why: 'Indentation is how Python knows which lines belong to the if. The line after if fragile: had the same indentation as the if, so there was no body. Four more spaces make it the body; return p stays at the function level so it runs for every package.'}
+    fix: 'Indent p = p + 3.00 four more spaces so it sits under if fragile:.',
+    opts: [['Indent p = p + 3.00 four more spaces, under if fragile:.', true], ['Delete the line if fragile:.', false], ['Add a colon after p = p + 3.00.', false], ['Indent return p under the if.', false]],
+    play: {path: ['s>p', 'p>d', 'd>a', 'a>r'], label: '10.4', cap: 'With the surcharge line indented under the if, Python accepts the file and price(3, 2, True) returns 10.4.'}}
 ];
 const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
-let order = [], r = 0, total = 0, log = [], G = null, FALLBACK = false, st = null;
+let order = [], r = 0, total = 0, log = [], fk = null, G = null, SB = null, pyFailed = false;
 
-// ---- the scene: a small call stack tower (Three.js when available, otherwise SVG) ----
-function Scene3D(stage) {
-  const r3 = new THREE.WebGLRenderer({antialias: true, alpha: true}); r3.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r3.setSize(stage.clientWidth, stage.clientHeight); r3.domElement.setAttribute('aria-hidden', 'true'); stage.appendChild(r3.domElement);
-  const scene = new THREE.Scene(); const cam = new THREE.PerspectiveCamera(36, stage.clientWidth / stage.clientHeight, 0.1, 100); const fitCam = () => { const k = Math.max(1, 1.6 / Math.max(0.3, stage.clientWidth / stage.clientHeight)); cam.position.set(0.3, 1.0 + 2.3 * k, 6.2 * k); cam.lookAt(0, 1.0, 0); }; fitCam();
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x223366, 1.05)); const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(4, 9, 6); scene.add(sun);
-  function textSprite(text, o) { o = Object.assign({size: 30, color: '#eef1fa', bg: null, h: 0.34, pad: 14}, o || {}); const c = document.createElement('canvas'), ctx = c.getContext('2d'); const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false})); sp.renderOrder = 10;
-    sp.userData.set = (t, color, bg) => { if (color) o.color = color; if (bg !== undefined) o.bg = bg; const font = '600 ' + o.size + 'px "Red Hat Mono", Consolas, monospace'; ctx.font = font; const w = Math.ceil(ctx.measureText(t).width) + o.pad * 2, h = Math.round(o.size * 1.6); c.width = w; c.height = h; ctx.font = font; ctx.textBaseline = 'middle';
-      if (o.bg) { ctx.fillStyle = o.bg; ctx.beginPath(); ctx.roundRect(1, 1, w - 2, h - 2, 8); ctx.fill(); } ctx.fillStyle = o.color; ctx.fillText(t, o.pad, h / 2); tex.needsUpdate = true; sp.scale.set(o.h * w / h, o.h, 1); };
-    sp.userData.set(text); return sp; }
-  const mat = (color, o) => new THREE.MeshStandardMaterial(Object.assign({color, roughness: .55, metalness: .1}, o || {}));
-  const edges = (geo, color) => new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color, transparent: true, opacity: .9}));
-  const floorGeo = new THREE.BoxGeometry(6, 0.3, 3.2); const floor = new THREE.Mesh(floorGeo, mat(0x1B2150)); floor.position.set(0, -0.15, 0); floor.add(edges(floorGeo, 0xE0B840)); scene.add(floor);
-  const mainLab = textSprite('MAIN', {size: 34, color: '#E0B840', h: 0.42}); mainLab.position.set(-2.4, 0.22, 1.3); scene.add(mainLab);
-  const res = textSprite('result = ?', {size: 26, color: '#9FE7FF', bg: 'rgba(6,9,23,.85)', h: 0.3}); res.position.set(1.6, 0.32, 1.1); scene.add(res);
-  const fgeo = new THREE.BoxGeometry(2.4, 1.2, 1.6); const fbox = new THREE.Mesh(fgeo, new THREE.MeshPhysicalMaterial({color: 0x38B0E0, transparent: true, opacity: 0, roughness: .2, side: THREE.DoubleSide})); const fed = edges(fgeo, 0x38B0E0); fed.material.opacity = 0;
-  const frame = new THREE.Group(); frame.add(fbox); frame.add(fed); frame.position.set(-0.6, 0.65, 0); frame.scale.set(1, 0.05, 1); scene.add(frame);
-  const flab = textSprite('price()', {size: 30, color: '#9FE7FF', h: 0.36}); flab.position.set(0, 0.85, 0); flab.visible = false; frame.add(flab);
-  const card = textSprite('p = ?', {size: 26, color: '#1a1205', bg: '#E0B840', h: 0.28}); card.position.set(0, 0.1, 0.4); card.visible = false; frame.add(card);
-  let pill = null, lastTl = null;
-  const api = {
-    set(v) { res.userData.set('result = ' + v, '#9FE7FF'); },
-    explain(R, ok, got) {
-      if (lastTl) { lastTl.kill(); lastTl = null; }
-      if (pill) { scene.remove(pill); pill = null; }
-      const col = ok ? 0x6FD49B : 0xF0786A; fbox.material.color.set(col); fed.material.color.set(col); flab.userData.set(R.fn + '()'); card.userData.set(ok ? 'tests: all pass' : 'tests: a fail', '#1a1205', ok ? '#6FD49B' : '#F0786A');
-      frame.scale.set(1, 0.05, 1); frame.position.y = -0.3; fbox.material.opacity = 0; fed.material.opacity = 0; flab.visible = false; card.visible = false; res.userData.set('result = ?', '#9FE7FF');
-      if (!hasGSAP || reduced) { frame.scale.set(1, 1, 1); frame.position.y = 0.65; fbox.material.opacity = .16; fed.material.opacity = .9; flab.visible = true; card.visible = true; res.userData.set('result = ' + (ok ? R.value : got), ok ? '#6FD49B' : '#F0786A'); return null; }
-      const tl = gsap.timeline();
-      tl.to(frame.position, {y: 0.65, duration: .6, ease: 'power3.out'}, 0).to(frame.scale, {y: 1, duration: .6, ease: 'power3.out'}, 0).to(fbox.material, {opacity: .16, duration: .4}, .2).to(fed.material, {opacity: .9, duration: .4}, .2)
-        .call(() => { flab.visible = true; card.visible = true; }, null, .5);
-      const my = textSprite(ok ? R.value : String(got), {size: 30, color: '#06120f', bg: ok ? '#6FD49B' : '#F0786A', h: 0.34}); my.position.set(-0.6, 0.65, 0.9); my.visible = false; scene.add(my); pill = my;
-      tl.call(() => { my.visible = true; }, null, 1.1).to(my.position, {x: 1.6, y: 0.37, z: 1.1, duration: .9, ease: 'power2.inOut'}, 1.2).to(fbox.material, {opacity: 0, duration: .5}, 1.5).to(fed.material, {opacity: 0, duration: .5}, 1.5).to(frame.scale, {y: 0.05, duration: .5}, 1.5)
-        .call(() => { flab.visible = false; card.visible = false; res.userData.set('result = ' + (ok ? R.value : got), ok ? '#6FD49B' : '#F0786A'); scene.remove(my); if (pill === my) pill = null; }, null, 2.1);
-      if (!ok) tl.to(frame.position, {x: -0.48, duration: .06, yoyo: true, repeat: 7}, .6);
-      lastTl = tl; return tl;
-    }
-  };
-  const tick = () => { r3.render(scene, cam); requestAnimationFrame(tick); }; tick();
-  window.addEventListener('resize', () => { r3.setSize(stage.clientWidth, stage.clientHeight); cam.aspect = stage.clientWidth / stage.clientHeight; cam.updateProjectionMatrix(); fitCam(); });
-  return api;
+// ---- the chart card ----
+function buildChart(spec) { const stage = $('#stage'); stage.querySelectorAll('svg.flow, .fk-zoom').forEach(e => e.remove()); if (window.__flows) window.__flows.length = 0; fk = FlowKit(stage, spec); fk.onPick(onPick); return fk; }
+function playFixed() {
+  const R = ROUNDS[order[r]]; buildChart(R.chart(true));
+  $('#capT').textContent = 'The fixed function'; $('#capB').textContent = R.play.cap;
+  const first = R.play.path[0].split('>')[0], last = R.play.path[R.play.path.length - 1].split('>')[1];
+  fk.highlight(first, 'done');
+  const f = fk.token(R.play.path, R.play.label, '#6FD49B');
+  const done = () => { R.play.path.forEach(k => { const e = fk.edges[k]; if (e) { e.path.setAttribute('stroke', '#6FD49B'); } }); fk.highlight(last, 'done'); };
+  if (f) f.eventCallback('onComplete', done); else done();
+  $('#btnPlay').disabled = false;
 }
-function Scene2D(stage) {
-  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 640 300'); svg.setAttribute('class', 'flat'); svg.setAttribute('aria-hidden', 'true'); stage.appendChild(svg);
-  svg.innerHTML = '<text x="320" y="20" text-anchor="middle" fill="#aeb3c9" font-size="11">Flat view (no WebGL): the call stack tower</text>' +
-    '<rect x="60" y="250" width="520" height="24" rx="4" fill="#1B2150" stroke="#E0B840"/><text x="90" y="266" fill="#E0B840" font-size="14" font-weight="600">MAIN</text>' +
-    '<text id="res" x="430" y="238" fill="#9FE7FF" font-size="13" font-weight="600">result = ?</text>' +
-    '<g id="fr" opacity="0"><rect x="120" y="150" width="200" height="96" rx="8" fill="#38B0E0" fill-opacity=".14" stroke="#38B0E0" stroke-width="1.5"/><text id="fl" x="220" y="140" text-anchor="middle" fill="#9FE7FF" font-size="13" font-weight="600">price()</text>' +
-    '<rect id="cr" x="150" y="186" width="140" height="22" rx="4" fill="#E0B840"/><text id="ct" x="220" y="201" text-anchor="middle" fill="#1a1205" font-size="11" font-weight="600">tests</text></g>' +
-    '<g id="pill" opacity="0"><rect id="pr" x="180" y="186" width="80" height="22" rx="5" fill="#6FD49B"/><text id="pt" x="220" y="201" text-anchor="middle" fill="#06120f" font-size="12" font-weight="600">?</text></g>';
-  const q = s => svg.querySelector(s);
-  const api = {
-    set(v) { q('#res').textContent = 'result = ' + v; q('#res').setAttribute('fill', '#9FE7FF'); },
-    explain(R, ok, got) {
-      const col = ok ? '#6FD49B' : '#F0786A'; q('#fr rect').setAttribute('stroke', col); q('#fr rect').setAttribute('fill', col); q('#fl').textContent = R.fn + '()'; q('#ct').textContent = ok ? 'tests: all pass' : 'tests: a fail'; q('#cr').setAttribute('fill', col);
-      q('#pt').textContent = ok ? R.value : String(got); q('#pr').setAttribute('fill', col); q('#res').textContent = 'result = ?'; q('#res').setAttribute('fill', '#9FE7FF');
-      const done = () => { q('#res').textContent = 'result = ' + (ok ? R.value : got); q('#res').setAttribute('fill', col); };
-      if (!hasGSAP || reduced) { q('#fr').setAttribute('opacity', 1); done(); return null; }
-      q('#pill').setAttribute('transform', ''); q('#pill').setAttribute('opacity', 0);
-      if (api._tl) api._tl.kill();
-      const tl = gsap.timeline(); api._tl = tl; tl.fromTo('#fr', {attr: {opacity: 0, transform: 'translate(0 60)'}}, {attr: {opacity: 1, transform: 'translate(0 0)'}, duration: .6, ease: 'power3.out'})
-        .to('#pill', {attr: {opacity: 1}, duration: .2}, 1.0).to('#pill', {attr: {transform: 'translate(240 37)'}, duration: .9, ease: 'power2.inOut'}, 1.2).to('#fr', {attr: {opacity: 0}, duration: .5}, 1.5).call(() => { done(); q('#pill').setAttribute('opacity', 0); }, null, 2.1);
-      if (!ok) tl.to('#fr', {attr: {transform: 'translate(6 0)'}, duration: .06, yoyo: true, repeat: 7}, .6);
-      return tl;
-    }
-  };
-  return api;
-}
-function Scene(stage) { if (hasTHREE && window.WebGLRenderingContext) { try { return Scene3D(stage); } catch (e) { console.error(e); stage.querySelectorAll('canvas').forEach(c => c.remove()); } } return Scene2D(stage); }
-
-// ---- the sandbox (one instance; the code, inputs, and tests change per round) ----
-const sb = PySandbox($('#sandbox'), {title: 'Copilot\'s code (edit it, then Run)', code: '', inputs: '', tests: [],
-  onTests(passed, n, m) { if (!st || st.locked) return; const first = st.attempts === 0; if (passed === n) { lock(st.showed ? 3 : first ? 10 : 6, st.showed ? 'shown fix' : first ? 'fixed on the first run' : 'fixed on run ' + (st.attempts + 1)); G.explain(cur(), true); $('#capT').textContent = 'Fixed'; $('#capB').textContent = cur().fn + '() now returns ' + cur().value + ' and every test passes. ' + cur().why; }
-    else { const failing = m.tests.find(t => !t.pass); feedback('info', passed + ' of ' + n + ' tests pass. ' + (failing ? 'Look at <code>' + esc(failing.expr) + '</code>: expected ' + esc(failing.expect) + ', got ' + esc(failing.got) + '. ' : '') + 'Edit the code and press <b>Run</b> again (6 points when it passes).'); G.explain(cur(), false, failing ? failing.got : '?'); $('#capT').textContent = 'Not yet'; $('#capB').textContent = 'A test still fails. The coral value is what your version returned.'; } },
-  onRun(m) { if (!st || st.locked) return; st.attempts++; if (m.err === 'timeout') { feedback('bad', 'Stopped after 15 seconds: the program never finished. A loop\'s condition never became False. Find the variable the condition uses and make sure the loop changes it on every pass, then press <b>Run</b> again.'); G.explain(cur(), false, 'never returns'); }
-    else if (!m.ok) { feedback('bad', 'Python stopped with an error. Read the last line of the message in the Output box: it names the error and the line. Fix it and press <b>Run</b> again.'); G.explain(cur(), false, 'error'); } guide(2, 'Fix the code and press <b>Run</b> again, or press <b>Show the fix</b> for 3 points.'); }
-});
-const sbStatus = $('#sandbox .pysb-status'), sbPre = $('#sandbox .pysb-pre'), sbTests = $('#sandbox .pysb-tests');
-new MutationObserver(() => { if (/could not load/i.test(sbStatus.textContent) && !FALLBACK) { FALLBACK = true; feedback('info', 'Python could not load here, so this round switched to pick-the-line mode (same points).'); showMode(); } }).observe(sbStatus, {childList: true, characterData: true, subtree: true});
+$('#btnPlay').addEventListener('click', playFixed);
 
 // ---- rounds ----
-const cur = () => ROUNDS[order[r]];
-function feedback(kind, html) { $('#fb').innerHTML = '<div class="feedback ' + kind + '">' + html + '</div>'; }
-function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === 10 ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
-function lock(pts, how) { st.locked = true; st.pts = pts; total += pts; log[r] = {q: cur().title, how, pts}; $('#score').textContent = total; $('#btnNext').disabled = false; $('#btnFix').disabled = true; $('#btnCheck').disabled = true; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round';
-  feedback(pts === 10 ? 'ok' : pts > 0 ? 'info' : 'bad', '<b>' + pts + ' of 10 points</b> (' + how + '). ' + cur().why); drawProgress(); guide(4, 'Press <b>Next round</b>.'); }
-function showMode() {
-  const pick = FALLBACK || st.pick; $('#sbWrap').hidden = pick; $('#pickWrap').hidden = !pick;
-  if (pick && !st.built) { st.built = true; const R = cur(); const lines = R.code.replace(/\n$/, '').split('\n');
-    $('#pickCode').innerHTML = lines.map((l, i) => '<button type="button" class="ln" data-l="' + (i + 1) + '" aria-pressed="false"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' + hl(l) + '</button>').join('');
-    st.fixOrder = shuffle(R.fixes.map((_, i) => i)); $('#fixes').innerHTML = st.fixOrder.map(i => '<button type="button" data-f="' + i + '" aria-pressed="false">' + R.fixes[i][0] + '</button>').join(''); $('#btnCheck').disabled = false; }
-}
+function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l && l.closed ? (l.pts === 10 ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+function fb(sel, cls, html) { $(sel).innerHTML = '<div class="feedback ' + cls + '">' + html + '</div>'; }
+function onPick(id) { const L = log[r]; if (!L || L.symDone) return; L.picked = id; fk.clear(); fk.highlight(id, 'active'); const n = fk.nodes[id]; $('#pickMsg').textContent = 'Picked: ' + n.text.replace(/\n/g, ' '); guide(2, 'Press <b>Check symbol</b> to score your pick.'); }
 function showRound() {
-  const R = cur(); st = {attempts: 0, showed: false, locked: false, pts: null, pick: false, built: false, line: null, fix: null, checks: 0};
-  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.title; $('#qText').textContent = R.q; $('#fb').innerHTML = '';
-  $('#symptom').textContent = R.symptom; $('#symptom').classList.toggle('err', R.err);
-  sb.setCode(R.code); sb.setInputs(''); sb.setTests(R.tests); sbPre.className = 'pysb-pre'; sbPre.textContent = 'Tests for this round:\n' + R.tests.map(t => '  ' + t.expr + '  expected ' + t.expect).join('\n'); sbTests.hidden = true;
-  $('#btnNext').disabled = true; $('#btnFix').disabled = false; $('#btnCheck').disabled = true; $('#capT').textContent = 'Round ' + (r + 1); $('#capB').textContent = 'When your tests pass, the fixed call plays here.'; G.set('?');
-  showMode(); drawProgress();
-  guide(1, 'Read the symptom for round ' + (r + 1) + ', find the bad line, fix it, and press <b>Run</b>.');
+  const R = ROUNDS[order[r]];
+  log[r] = {title: R.title, sym: 0, fix: 0, pts: 0, symTries: 0, symDone: false, fixDone: false, runs: 0, shown: false, picked: null, fallback: pyFailed, closed: false, opts: shuffle(R.opts), fixTries: 0};
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.title; $('#qText').textContent = R.q;
+  $('#symptom').innerHTML = '<span class="k">What Python showed</span>' + esc(R.symptom);
+  $('#pickMsg').textContent = 'No symbol picked yet.'; $('#fb1').innerHTML = ''; $('#fb2').innerHTML = '';
+  $('#part1').classList.remove('done'); $('#part2').classList.add('locked'); $('#part2').classList.remove('done');
+  $('#btnSym').disabled = false; $('#btnShow').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round';
+  buildChart(R.chart(false)); $('#capT').textContent = 'Copilot\'s version'; $('#capB').textContent = 'Click the symbol you think is wrong, then press Check symbol below. After your fix passes the tests, the chart plays the fixed function.';
+  SB.reset(); SB.setCode(R.code.join('\n')); SB.setTests(R.tests); SB.setInputs('');
+  const list = $('#sb .pysb-tests'); list.hidden = false; list.innerHTML = R.tests.map(t => '<li><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">not run yet</span></li>').join('');
+  setMode(pyFailed ? 'fallback' : 'sandbox');
+  guide(1, 'Read round ' + (r + 1) + ' below, then <b>click the wrong symbol</b> on the chart above.'); drawProgress();
 }
-$('#pickCode').addEventListener('click', e => { const b = e.target.closest('button.ln'); if (!b || st.locked) return; st.line = +b.dataset.l; document.querySelectorAll('#pickCode button.ln').forEach(x => x.setAttribute('aria-pressed', x === b)); guide(2, st.fix === null ? 'Now pick the fix below, then press <b>Check</b>.' : 'Press <b>Check</b>.'); });
-$('#fixes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || st.locked) return; st.fix = +b.dataset.f; document.querySelectorAll('#fixes button').forEach(x => x.setAttribute('aria-pressed', x === b)); guide(2, st.line === null ? 'Now pick the bad line above, then press <b>Check</b>.' : 'Press <b>Check</b>.'); });
-$('#btnCheck').addEventListener('click', () => {
-  if (st.locked) return; if (st.line === null || st.fix === null) { feedback('info', 'Pick a line and a fix first, then press <b>Check</b>.'); return; }
-  const R = cur(); st.checks++; const lineOk = R.bad.includes(st.line), fixOk = R.fixes[st.fix][1];
-  document.querySelectorAll('#pickCode button.ln').forEach(b => { b.classList.toggle('right', lineOk && +b.dataset.l === st.line); b.classList.toggle('wrong', !lineOk && +b.dataset.l === st.line); });
-  document.querySelectorAll('#fixes button').forEach(b => { b.classList.toggle('right', fixOk && +b.dataset.f === st.fix); b.classList.toggle('wrong', !fixOk && +b.dataset.f === st.fix); });
-  if (lineOk && fixOk) { lock(st.showed ? 3 : st.checks === 1 ? 10 : 6, st.showed ? 'shown fix' : st.checks === 1 ? 'right on the first check' : 'right on check ' + st.checks); G.explain(R, true); }
-  else { feedback('info', (lineOk ? 'The line is right. ' : 'That line is not the cause. ') + (fixOk ? 'The fix is right.' : 'That fix does not cure the symptom.') + ' Change your pick and press <b>Check</b> again (6 points), or press <b>Show the fix</b> (3 points).'); G.explain(R, false, '?'); }
+function setMode(mode) {
+  const L = log[r]; L.fallback = mode === 'fallback';
+  $('#sb').hidden = L.fallback; $('#fallback').hidden = !L.fallback; $('#btnFallback').hidden = L.fallback; $('#btnShow').textContent = 'Show the fix';
+  if (L.fallback) { $('#opts').innerHTML = L.opts.map((o, i) => '<button type="button" data-i="' + i + '">' + esc(o[0]) + '</button>').join(''); L.pickedFix = null; $('#btnCheckFix').disabled = L.fixDone; }
+}
+$('#btnSym').addEventListener('click', () => {
+  const L = log[r], R = ROUNDS[order[r]];
+  if (L.symDone) return;
+  if (!L.picked) { guide(2, 'Click a symbol on the chart above first, then press <b>Check symbol</b>.'); fb('#fb1', 'info', 'Pick a symbol on the chart first: click it and it lights gold.'); return; }
+  L.symTries++;
+  const right = R.bad.indexOf(L.picked) >= 0;
+  if (right) { L.sym = L.symTries === 1 ? 4 : 2; L.symDone = true; fk.clear(); fk.highlight(R.bad[0], 'error'); fb('#fb1', 'ok', '<b>' + L.sym + ' of 4 points.</b> ' + esc(R.badWhy)); }
+  else if (L.symTries < 2) { fb('#fb1', 'bad', 'Not that symbol. Look at the symptom again and try once more (2 points if you find it now).'); fk.clear(); return; }
+  else { L.sym = 0; L.symDone = true; fk.clear(); fk.highlight(R.bad[0], 'error'); fb('#fb1', 'bad', '<b>0 of 4 points.</b> The wrong symbol is now coral on the chart. ' + esc(R.badWhy)); }
+  total += L.sym; L.pts = L.sym; $('#score').textContent = total; $('#btnSym').disabled = true; $('#part1').classList.add('done'); $('#part2').classList.remove('locked');
+  guide(3, L.fallback ? 'Pick the change that fixes the function and press <b>Check fix</b>.' : 'Fix the Python in the box and press <b>Run</b> until every test passes.'); drawProgress();
 });
-$('#btnFix').addEventListener('click', () => {
-  if (st.locked) return; const R = cur(); st.showed = true;
-  if (FALLBACK || st.pick) { st.line = R.bad[0]; st.fix = R.fixes.findIndex(f => f[1]); document.querySelectorAll('#pickCode button.ln').forEach(b => { b.setAttribute('aria-pressed', +b.dataset.l === st.line); b.classList.toggle('right', R.bad.includes(+b.dataset.l)); }); document.querySelectorAll('#fixes button').forEach(b => { b.setAttribute('aria-pressed', +b.dataset.f === st.fix); b.classList.toggle('right', +b.dataset.f === st.fix); b.disabled = true; }); lock(3, 'shown fix'); G.explain(R, true); }
-  else { sb.setCode(R.fixed); feedback('info', '<b>The fix is in the code box.</b> Line ' + R.bad[0] + ' was the cause. ' + R.why + ' Press <b>Run</b> to watch the tests pass (3 points).'); guide(3, 'Press <b>Run</b> in the code box to see the tests pass.'); }
+function scoreFix(points, why) {
+  const L = log[r]; L.fix = points; L.fixDone = true; L.closed = true; total += points; L.pts = L.sym + L.fix; $('#score').textContent = total;
+  fb('#fb2', points >= 4 ? 'ok' : 'info', '<b>' + points + ' of 6 points.</b> ' + why + ' Round total: ' + L.pts + ' of 10.');
+  $('#part2').classList.add('done'); $('#btnNext').disabled = false; $('#btnShow').disabled = true; $('#btnCheckFix').disabled = true;
+  document.querySelectorAll('#opts button').forEach(b => { b.disabled = true; });
+  playFixed(); guide(4, 'Watch the fixed function on the chart, then press <b>' + (r === ROUNDS.length - 1 ? 'See results' : 'Next round') + '</b>.'); drawProgress();
+}
+function onRun(m) {
+  const L = log[r]; if (!L || !L.symDone || L.fixDone || L.fallback) return;
+  L.runs++;
+  if (m.err === 'timeout') { fb('#fb2', 'bad', 'Stopped after 15 seconds: the loop never ended, which is the symptom itself. Change the code so the loop variable moves on every pass, then press Run again. (Python reloads after a stop; the next Run can take a minute.)'); return; }
+  const passed = (m.tests || []).filter(t => t.pass).length, n = (m.tests || []).length;
+  if (m.ok && n && passed === n) { const pts = L.shown ? 2 : L.runs === 1 ? 6 : 4; scoreFix(pts, L.shown ? 'The shown fix passes every test.' : L.runs === 1 ? 'Every test passed on your first Run.' : 'Every test passes now (Run number ' + L.runs + ').'); }
+  else fb('#fb2', 'bad', (m.ok ? passed + ' of ' + n + ' tests pass. Read which expected value did not come back, change the code, and Run again.' : 'Python stopped with an error. Read the last line of the message, fix that line, and Run again.') + (L.shown ? '' : ' Stuck? Show the fix loads the corrected code (2 points).'));
+}
+$('#btnShow').addEventListener('click', () => {
+  const L = log[r], R = ROUNDS[order[r]]; if (!L.symDone || L.fixDone) return;
+  L.shown = true;
+  if (L.fallback) { const i = L.opts.findIndex(o => o[1]); document.querySelectorAll('#opts button').forEach(b => { b.classList.toggle('right', +b.dataset.i === i); }); L.pickedFix = i; fb('#fb2', 'info', 'The fix is marked. Press <b>Check fix</b> to score it (2 points).'); }
+  else { SB.setCode(R.fixed.join('\n')); fb('#fb2', 'info', 'The fixed code is in the box: ' + esc(R.fix) + ' Press <b>Run</b> to see the tests pass (2 points).'); }
+  guide(3, L.fallback ? 'Press <b>Check fix</b>.' : 'Press <b>Run</b> in the box to run the fixed code.');
 });
-$('#btnResetCode').addEventListener('click', () => { if (st.locked) return; sb.setCode(cur().code); sbPre.className = 'pysb-pre'; sbPre.textContent = 'Code reset to Copilot\'s version. Edit it and press Run.'; sbTests.hidden = true; });
-$('#toPick').addEventListener('click', () => { if (st.locked) return; st.pick = true; showMode(); guide(1, 'Pick the bad line in the code, pick the fix, then press <b>Check</b>.'); });
-$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); window.scrollTo({top: $('#qTitle').getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth'}); } else finishAll(); });
+$('#btnFallback').addEventListener('click', () => { if (log[r].fixDone) return; setMode('fallback'); guide(3, 'Pick the change that fixes the function and press <b>Check fix</b>.'); });
+$('#opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; const L = log[r]; L.pickedFix = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); });
+$('#btnCheckFix').addEventListener('click', () => {
+  const L = log[r], R = ROUNDS[order[r]]; if (!L.symDone || L.fixDone) return;
+  if (L.pickedFix == null) { fb('#fb2', 'info', 'Pick one change first, then press Check fix.'); return; }
+  L.fixTries++;
+  const o = L.opts[L.pickedFix];
+  if (o[1]) { const pts = L.shown ? 2 : L.fixTries === 1 ? 6 : 4; document.querySelectorAll('#opts button').forEach(b => { b.classList.toggle('right', +b.dataset.i === L.pickedFix); }); scoreFix(pts, 'That change fixes it: ' + esc(R.fix)); }
+  else { document.querySelectorAll('#opts button').forEach(b => { if (+b.dataset.i === L.pickedFix) b.classList.add('wrong'); }); fb('#fb2', 'bad', 'That change does not make every test pass. Try another one (4 points if it is right now).'); }
+});
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); window.scrollTo({top: 0, behavior: 'smooth'}); } else finishAll(); });
 function finishAll() {
   guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
-  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.'; $('#symptom').textContent = ''; $('#sbWrap').hidden = true; $('#pickWrap').hidden = true; $('#btnNext').disabled = true; $('#btnFix').disabled = true; $('#fb').innerHTML = '';
-  $('#resTable').innerHTML = '<tr><th>Round</th><th>Bug</th><th>How you solved it</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(l.q) + '</td><td>' + esc(l.how) + '</td><td>' + l.pts + ' / 10</td></tr>').join('') + '<tr><td colspan="3"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.'; $('#symptom').textContent = ''; $('#part1').hidden = true; $('#part2').hidden = true; $('#btnNext').disabled = true;
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>Symbol</th><th>Fix</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '. ' + esc(l.title) + '</td><td>' + l.sym + ' / 4</td><td>' + l.fix + ' / 6' + (l.shown ? ' (shown)' : l.fallback ? ' (picked)' : '') + '</td><td>' + l.pts + ' / 10</td></tr>').join('') + '<tr><td colspan="3"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
   if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
   drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
-function start() { order = shuffle(ROUNDS.map((_, i) => i)); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+function start() { order = shuffle(ROUNDS.map((_, i) => i)); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#part1').hidden = false; $('#part2').hidden = false; $('#specRounds').textContent = ROUNDS.length; showRound(); }
 $('#btnAgain').addEventListener('click', start);
-G = Scene($('#stage'));
-window.__hunt = {get order() { return order; }, get r() { return r; }, get st() { return st; }, get total() { return total; }, get log() { return log; }, get FALLBACK() { return FALLBACK; }, ROUNDS, sb, start};
+
+// ---- the sandbox (one for the page; each round loads its code and tests) and the no-Python fallback ----
+SB = PySandbox($('#sb'), {title: 'Fix it: edit and run the Python', code: '', inputs: '', tests: [], onRun: onRun});
+new MutationObserver(() => { if ($('#sb .pysb-status').textContent === 'Python could not load' && !pyFailed) { pyFailed = true; const L = log[r]; if (L && !L.fixDone) { setMode('fallback'); fb('#fb2', 'info', 'Python could not load in this browser (the network may block cdn.jsdelivr.net). Pick the fix from the list for the same points.'); } } }).observe($('#sb .pysb-status'), {childList: true, characterData: true, subtree: true});
 start();
+window.__bh = {rounds: ROUNDS, order: () => order, r: () => r, log: () => log, total: () => total, sb: SB, pick: onPick, next: () => $('#btnNext').click()};
 })();
 </script>
 </body>

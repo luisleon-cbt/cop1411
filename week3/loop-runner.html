@@ -1,0 +1,1238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loop runner</title>
+<meta name="description" content="COP1411 Week 3 interactive: Watch the daily manifest loop run on a living flowchart: the data token circles the loop once per package while the trace table fills one row per pass.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Flip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<!-- Remove the library tags this page does not use. Pyodide loads lazily from the PySandbox kit on the first Run. -->
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS below (flowchart explorer). The stage holds the living flowchart; the HUD rows stay above and below it. */
+  .stage.flowstage{background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  .stage .flow{position:absolute;left:0;right:0;top:52px;height:calc(100% - 100px);width:100%}
+  @media(max-width:700px){.stage .flow{top:48px;height:calc(100% - 96px)}}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
+  .picks{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+  .picks .btn{padding:8px 12px;font-size:13.5px}
+  .own{display:grid;gap:8px;margin-top:6px}
+  .own label{display:block;font-size:12.5px;color:var(--silk-dim);margin-bottom:3px}
+  .own input{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:#0b0f2b;color:#eef1fa;font:13px var(--font-mono)}
+  .own input:focus{outline:2px solid var(--cbt-gold);outline-offset:1px}
+  .own .row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.own .row>div{flex:1 1 180px}
+  .mhint{font-size:12.5px;color:var(--silk-dim);margin:6px 0 0;min-height:18px}
+  .mhint.bad{color:#F0786A}
+  .follow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--silk-dim);margin-top:10px}
+  .follow input{accent-color:var(--cbt-gold)}
+  .listwrap{margin-top:10px}
+  .listwrap .n{font:600 10.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim);margin-bottom:6px}
+  .boxes{display:flex;flex-wrap:wrap;gap:6px;min-height:46px}
+  .boxes .b{width:52px;border:1px solid var(--line);border-radius:6px;background:rgba(11,15,43,.6);text-align:center;padding:4px 0 3px}
+  .boxes .b .v{font:700 15px var(--font-mono);color:#eef1fa}.boxes .b .i{font:500 10px var(--font-mono);color:var(--silk-dim);border-top:1px solid var(--line);margin-top:3px;padding-top:2px}
+  .boxes .b.on{border-color:var(--cbt-gold);box-shadow:0 0 0 1px var(--cbt-gold) inset}
+  .boxes .empty{font-size:12.5px;color:var(--silk-dim);align-self:center}
+  .capbar{margin-top:12px}
+  .capbar .n{display:flex;justify-content:space-between;font:600 10.5px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim);margin-bottom:5px}
+  .capbar .n b{color:#eef1fa}
+  .capbar .bar{position:relative;height:16px;border-radius:8px;background:rgba(11,15,43,.7);border:1px solid var(--line);overflow:hidden}
+  .capbar .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:#6FD49B;border-radius:8px;transition:width .4s ease,background .3s}
+  .capbar .bar i.near{background:#E0B840}.capbar .bar i.over{background:#F0786A}
+  .capbar .bar em{position:absolute;top:0;bottom:0;right:0;width:2px;background:var(--cbt-gold)}
+  .capbar .msg{font-size:12.5px;color:var(--silk-dim);margin-top:5px;min-height:16px}.capbar .msg.over{color:#F0786A;font-weight:600}
+  .trace{font:500 12.5px var(--font-mono)}
+  .trace td,.trace th{text-align:center}
+  .trace td.new{color:var(--cbt-gold);font-weight:700}
+  .trace tr.cur td{background:rgba(224,184,64,.10)}
+  .trace td.t{color:#6FD49B}.trace td.f{color:#F0786A}
+  .versions{display:flex;flex-wrap:wrap;gap:8px}
+  .versions .btn{flex:1 1 120px}
+  .sents{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+  .sents li{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--panel-2);display:grid;gap:8px}
+  .sents .s{font-size:14.5px;line-height:1.45}
+  .sents .tf{display:flex;gap:6px;flex-wrap:wrap}
+  .sents .tf button{padding:6px 14px;border-radius:6px;border:1px solid var(--line);background:#0b0f2b;color:#eef1fa;font:600 13px var(--font-body);cursor:pointer}
+  .sents .tf button[aria-pressed="true"]{border-color:var(--cbt-sky);background:rgba(56,176,224,.18)}
+  .sents .why{font-size:13px;color:var(--silk-dim);line-height:1.45;display:none}
+  .sents li.ok{border-color:#6FD49B}.sents li.ok .why{display:block;color:#6FD49B}
+  .sents li.bad{border-color:#F0786A}.sents li.bad .why{display:block;color:#F0786A}
+  .chk{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .chk .score{font-size:14px}
+  .ticks small{font-weight:400;color:var(--silk-dim)}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 3 · Interactive A</div>
+  </div>
+</header>
+
+<div class="app">
+  <header class="lab-head">
+    <p class="eyebrow">COP1411 · Week 3 · Explorer</p>
+    <h1>Loop runner</h1>
+    <p class="lede">Watch the daily manifest loop run on a living flowchart: the data token circles the loop once per package while the trace table fills one row per pass.</p>
+  </header>
+  <section class="stage flowstage" id="stage" aria-label="Flowchart of the daily manifest loop. Press Step to move the data token through the symbols; use the zoom buttons or scroll to zoom, drag to move.">
+    <div class="hud hud-top">
+      <ol class="phases" aria-label="Phase">
+        <li data-p="p1" style="--c:var(--cbt-gold)">Setup</li>
+        <li data-p="p2" style="--c:var(--cbt-sky)">Read</li>
+        <li data-p="p3" style="--c:var(--alu)">Loop body</li>
+        <li data-p="p4" style="--c:var(--oper)">Report</li>
+      </ol>
+      <div class="ticks">step <b id="hudStep">0</b> <small>of <span id="hudTotal">0</span></small> · pass <b id="hudPass">0</b></div>
+    </div>
+    <div class="hud hud-bottom">
+      <div class="legend" aria-label="Colors">
+        <span style="--c:var(--cbt-gold)"><i></i>the symbol running now</span>
+        <span style="--c:var(--cbt-sky)"><i></i>the token carrying a weight</span>
+        <span style="--c:#6FD49B"><i></i>done</span>
+        <span style="--c:#F0786A"><i></i>the sentinel -1 or a warning</span>
+        <span style="--c:#9FE7FF"><i></i>output</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How to use this lab</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Pick a manifest: <b>VAN-1 manifest</b>, <b>Overload manifest</b>, or type your own weights and press <b>Use these</b>.</li>
+      <li data-h="2">Press <b>Step</b> to move the token one symbol at a time. Watch the memory boxes, the trace table, the screen, and the lit line of Python. <b>Run</b> plays every step.</li>
+      <li data-h="3">Press <b>Step back</b> to see a step again. Then press <b>For version</b> and <b>Index version</b> to see the same job with a for loop and with an index.</li>
+      <li data-h="4">Scroll down to <b>Check Copilot's explanation</b>: mark the six sentences True or False using the trace table, then press <b>Check sentences</b>.</li>
+      <li data-h="5">Scroll to <b>Try it</b>, change the code or the inputs, and press <b>Run</b> there to run real Python.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Press <b>Step</b> to start the VAN-1 manifest.</span></div>
+      <ul class="tips"><li>Keyboard: Space steps, B steps back, R runs or pauses. Over the flowchart: + and - zoom, drag to move, FIT shows the whole chart.</li><li>Click any symbol to read what it does and which Python line it becomes.</li></ul>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <section class="narr" aria-live="polite">
+      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 0</span></div>
+      <p id="narration">Press Step to start, or Run to play every step.</p>
+    </section>
+    <div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="btnRun">Run</button>
+        <button type="button" class="btn" id="btnStep">Step</button>
+        <button type="button" class="btn" id="btnBack">Step back</button>
+        <button type="button" class="btn" id="btnReset">Reset</button>
+      </div>
+      <div class="speed" style="margin-top:12px"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="4" step="1" value="2"><output id="speedOut">1×</output></div>
+      <label class="follow"><input type="checkbox" id="follow" checked> Follow the token (zoom to the running symbol)</label>
+    </div>
+    <section>
+      <h2>Manifest</h2>
+      <div class="picks">
+        <button type="button" class="btn" id="pickVan" aria-pressed="true">VAN-1 manifest</button>
+        <button type="button" class="btn" id="pickOver" aria-pressed="false">Overload manifest</button>
+      </div>
+      <div class="own">
+        <div class="row">
+          <div><label for="ownW">Your weights in lb (up to 6, separated by commas; leave empty for an empty manifest)</label><input id="ownW" type="text" value="600, 600" inputmode="numeric" autocomplete="off"></div>
+          <div id="ownFwrap" hidden><label for="ownF">Fragile answers, yes or no, one per package</label><input id="ownF" type="text" value="no, yes" autocomplete="off"></div>
+          <button type="button" class="btn" id="btnOwn">Use these</button>
+        </div>
+        <p class="mhint" id="mhint">The sentinel -1 is added for you at the end.</p>
+      </div>
+    </section>
+    <section>
+      <h2>Version</h2>
+      <div class="versions">
+        <button type="button" class="btn" data-v="while" aria-pressed="true">While version</button>
+        <button type="button" class="btn" data-v="for" aria-pressed="false">For version</button>
+        <button type="button" class="btn" data-v="index" aria-pressed="false">Index version</button>
+      </div>
+      <p class="mhint" id="vhint">A while loop with a sentinel: it reads weights until -1 arrives.</p>
+    </section>
+    <section>
+      <h2>Memory</h2>
+      <div id="memory"></div>
+      <div class="listwrap"><div class="n" id="listName">weights (the list, with the index of each item)</div><div class="boxes" id="listW"></div></div>
+      <div class="listwrap" id="listFwrap" hidden><div class="n">fragile (a second list: fragile[i] answers for weights[i])</div><div class="boxes" id="listF"></div></div>
+      <div class="capbar"><div class="n"><span>VAN-1 capacity 1,200 lb</span><b id="capVal">total 0 lb</b></div><div class="bar"><i id="capFill"></i><em></em></div><div class="msg" id="capMsg">The bar turns gold within 100 lb of the capacity and coral above it.</div></div>
+    </section>
+    <section>
+      <h2>Screen</h2>
+      <div id="screen"></div>
+    </section>
+    <section class="span-all">
+      <h2>Trace table (one row per pass)</h2>
+      <div class="scroll-x"><table class="data trace" id="trace"></table></div>
+      <p class="mhint">Row 0 holds the values before the loop. The last row shows the test that ends the loop: nothing is added or counted on that row.</p>
+    </section>
+    <section class="span-all">
+      <h2 id="codeTitle">The same algorithm in Python: manifest.py</h2>
+      <pre class="code" id="code"></pre>
+    </section>
+    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any symbol in the flowchart to learn what it does and which Python line it becomes.</div>
+    <section class="span-all" id="checker">
+      <h2>Check Copilot's explanation</h2>
+      <p style="margin:0;font-size:14.5px">You pasted the while version into Microsoft Copilot and asked: "Explain this loop line by line." It answered with the six sentences below. An explanation that sounds right is not proof: mark each sentence <b>True</b> or <b>False</b> using the trace table above (run the VAN-1 manifest and the Overload manifest first), then press <b>Check sentences</b>.</p>
+      <ol class="sents" id="sents"></ol>
+      <div class="chk"><button type="button" class="btn primary" id="btnSents">Check sentences</button><span class="score" id="sentScore"></span></div>
+    </section>
+    <section class="span-all">
+      <h2>Try it: edit and run the Python</h2>
+      <p style="margin:0 0 10px;font-size:14px;color:var(--silk-dim)">The inputs box holds the VAN-1 manifest, one weight per line, ending with -1. Change the weights, or change the code, and press Run. The two tests below the output call a small helper that the code defines (functions come in week 4; leave it as it is).</p>
+      <div id="sandbox"></div>
+    </section>
+    <section>
+      <h2>Things to notice</h2>
+      <ul class="notice">
+        <li>The first INPUT happens before the loop, so the test has a value to check. The second INPUT is the last symbol of the body: without it the loop never ends.</li>
+        <li>The sentinel -1 is read, tested, and never processed: the exit row of the trace table keeps the same total and count as the row above it.</li>
+        <li>For VAN-1, heaviest = weight runs 3 times in 5 passes (12, 20, 50). The test is False for 3 and for 45.</li>
+        <li>The for version has no sentinel and no INPUT inside the loop: it stops by itself after the last item. The index version adds i, which runs from 0 to len(weights) - 1.</li>
+        <li>The capacity check comes after the loop. The overload manifest still reads every package: the loop does not stop at 1,200.</li>
+      </ul>
+    </section>
+    <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+  </aside>
+</div>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+if (hasGSAP && window.Draggable) gsap.registerPlugin(Draggable);
+if (hasGSAP && window.Flip) gsap.registerPlugin(Flip);
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+// FLOWKIT START
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot), orthogonal arrows
+// with Yes/No labels and loop-back routes, a data token that travels the arrows carrying the real value, node highlighting,
+// memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows});
+//   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
+//   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
+//   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
+//   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
+//   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
+function FlowKit(stage, opts) {
+  'use strict';
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, nodes: [], edges: []}, opts || {});
+  const NS = 'http://www.w3.org/2000/svg';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
+    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#F4F5FA', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(238,240,248,.08)'},
+    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}};
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2;
+  const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const mk = el('marker', {id: 'fk-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.arrow}, mk);
+  const mk2 = el('marker', {id: 'fk-arrow-hot', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.active}, mk2);
+  const glow = el('filter', {id: 'fk-glow', x: '-20%', y: '-20%', width: '140%', height: '140%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: '#161c4d', stroke: '#2a3270'});
+  const grid = el('g', {opacity: .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: '#2a3270', 'stroke-dasharray': '3 6'}, grid);
+  const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
+  const nodes = {}, edges = {};
+  let pick = null;
+
+  function shape(n, g) {
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 26 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
+    let s;
+    if (n.type === 'terminal') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'io') { const k = 16; s = el('polygon', {points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'decision') s = el('polygon', {points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'call') { s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx - w / 2 + 8, y1: cy - h / 2, x2: cx - w / 2 + 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx + w / 2 - 8, y1: cy - h / 2, x2: cx + w / 2 - 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: fill, stroke: stroke, 'stroke-width': 1.5, 'stroke-dasharray': '6 5'}, g);
+    else s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke};
+  }
+  function text(n, g, geo) {
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11 : 12.5, lh = 15;
+    const t = el('text', {x: geo.cx, y: geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? '#aeb3c9' : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 600}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.cx, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    return t;
+  }
+  function addNode(n) {
+    const g = el('g', {class: 'fk-node', 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': (n.type + ': ' + (n.text || n.id)).replace(/\n/g, ' '), style: 'cursor:pointer'}, L.nodes);
+    const geo = shape(n, g); const t = text(n, g, geo);
+    const rec = Object.assign({}, n, {g: g, geo: geo, t: t, state: null});
+    const fire = () => pick && pick(n.id);
+    g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    nodes[n.id] = rec; return rec;
+  }
+  // anchor points on a node: top, bottom, left, right
+  function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
+  function route(e) {
+    const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
+    if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
+    const pts = [];
+    if (b.row > a.row && !e.side) {              // downward: bottom to top, with a jog when the columns differ
+      const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
+      if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
+      pts.push(t); return pts;
+    }
+    if (e.side) {                                 // a branch: leave sideways, go to the target column, then down into the target
+      const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
+      if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
+      else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
+      return pts;
+    }
+    // loop back: bottom, down a bit, over to the lane, up above the target, over, into the top
+    const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
+    pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
+    return pts;
+  }
+  function addEdge(e) {
+    const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+    const g = el('g', {class: 'fk-edge'}, L.edges);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.2, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    let lab = null;
+    if (e.label) { const p0 = pts[0], p1 = pts[1], lx = p0[0] + (p1[0] - p0[0]) * (e.side ? .18 : 0) + (e.side === 'left' ? -8 : e.side === 'right' ? 8 : 10), ly = p0[1] + (p1[1] - p0[1]) * (e.side ? 0 : .5) + (e.side ? -8 : 4);
+      lab = el('text', {x: lx, y: ly, fill: C.arrow, 'font-size': 11, 'font-weight': 700, 'font-family': 'Figtree, sans-serif', 'text-anchor': e.side === 'left' ? 'end' : 'start'}, L.labels); lab.textContent = e.label; }
+    const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
+  }
+  O.nodes.forEach(addNode); O.edges.forEach(addEdge);
+
+  function highlight(id, state) {
+    const r = nodes[id]; if (!r) return; r.state = state;
+    const base = r.geo.stroke;
+    r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4 : 2);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else r.geo.s.removeAttribute('filter');
+    r.g.setAttribute('opacity', state === 'done' ? .8 : 1);
+  }
+  function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), lh = 15; r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.cx, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 7}}, {attr: {'stroke-width': 4}, duration: .5}); }
+  function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
+  function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
+  // a token travels along one or more edges (keys "from>to"); the pill carries the value
+  function token(keys, label, color) {
+    const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
+    const g = el('g', {class: 'fk-token'}, L.tokens);
+    const tw = Math.max(28, String(label).length * 7.2 + 16);
+    el('circle', {r: 15, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -11, width: tw, height: 22, rx: 11, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1}, g);
+    const t = el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
+    const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
+    const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
+    list.forEach(e => { e.path.setAttribute('stroke', C.active); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+    place(0);
+    if (!hasGSAP || reduce) { place(1); setTimeout(() => g.remove(), 500); return null; }
+    const o = {u: 0};
+    return gsap.timeline({onComplete: () => g.remove()}).to(o, {u: 1, duration: Math.max(.5, total / 320), ease: 'none', onUpdate: () => place(o.u)});
+  }
+  // view: zoom and pan through the viewBox
+  const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
+  const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * home.h / home.w; V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), home.h * 1.1 - V.h); }
+  function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
+  function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  function fit() { go(home); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * home.h / home.w}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply();
+  if (!document.getElementById('flowkit-css')) {
+    const st = document.createElement('style'); st.id = 'flowkit-css';
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4}' +
+      '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
+      '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
+      '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
+      '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
+      '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}';
+    document.head.appendChild(st);
+  }
+  const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+  box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
+  stage.appendChild(box);
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fit(); });
+  let drag = null;
+  svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
+  svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
+  svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
+
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  window.__flows = window.__flows || []; window.__flows.push(api);
+  return api;
+}
+// memory boxes: FlowKit.memory(host, [{name, label}]) -> {set, get, reset}
+FlowKit.memory = function (host, vars) {
+  host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
+  const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+    get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
+};
+// the program's screen: FlowKit.console(host) -> {print, clear, lines}
+FlowKit.console = function (host) {
+  host.classList.add('fk-con'); const lines = []; const render = () => { host.textContent = lines.length ? lines.join('\n') : ''; const c = document.createElement('span'); c.className = 'cur'; host.appendChild(c); };
+  render();
+  return {print(t) { lines.push(String(t)); render(); }, clear() { lines.length = 0; render(); }, lines: () => lines.slice()};
+};
+// FLOWKIT END
+
+// PYSANDBOX START
+// CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
+// Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
+//   const sb = PySandbox(hostEl, {title, code, inputs, tests: [{expr, expect}], timeout: 15000, onRun(result), onTests(passed, total)});
+//   sb.run(); sb.setCode(s); sb.getCode(); sb.setInputs(s); sb.reset(); sb.output()
+// result: {ok, out, err, tests: [{expr, expect, got, pass}]}. Without the CDN the box shows a plain fallback message.
+function PySandbox(host, opts) {
+  'use strict';
+  const O = Object.assign({title: 'Try it: edit and run the Python', code: 'print("hello")', inputs: '', tests: [], timeout: 15000,
+    pyodideUrl: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', runLabel: 'Run', resetLabel: 'Reset code'}, opts || {});
+  if (!document.getElementById('pysandbox-css')) {
+    const st = document.createElement('style'); st.id = 'pysandbox-css';
+    st.textContent = '.pysb{border:1px solid var(--line,#2a3270);border-radius:8px;background:rgba(11,15,43,.6);overflow:hidden;font-family:Figtree,system-ui,sans-serif}' +
+      '.pysb-head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line,#2a3270);font-size:13px}' +
+      '.pysb-head b{font-family:Archivo,sans-serif;font-weight:700}.pysb-status{margin-left:auto;font:500 11px "Red Hat Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-grid{display:grid;grid-template-columns:1fr 200px;gap:0}@media(max-width:700px){.pysb-grid{grid-template-columns:1fr}}' +
+      '.pysb textarea{width:100%;box-sizing:border-box;border:0;background:#0b0f2b;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;padding:10px 12px;resize:vertical;min-height:160px;outline:none;tab-size:4}' +
+      '.pysb textarea:focus{box-shadow:inset 0 0 0 2px var(--cbt-gold,#E0B840)}' +
+      '.pysb-in{border-left:1px solid var(--line,#2a3270)}@media(max-width:700px){.pysb-in{border-left:0;border-top:1px solid var(--line,#2a3270)}}' +
+      '.pysb-in label,.pysb-out label{display:block;padding:6px 12px 0;font:500 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-in textarea{min-height:60px}' +
+      '.pysb-bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line,#2a3270);flex-wrap:wrap}' +
+      '.pysb-bar button{font:600 13px Figtree,sans-serif;padding:7px 14px;border-radius:6px;border:1px solid var(--line,#2a3270);background:#1b2140;color:#eef1fa;cursor:pointer}' +
+      '.pysb-bar button.primary{background:var(--cbt-gold,#E0B840);color:#1a1205;border-color:transparent}.pysb-bar button:disabled{opacity:.5;cursor:default}' +
+      '.pysb-bar .hint{font-size:12px;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-prog{height:3px;background:transparent;position:relative;overflow:hidden}.pysb-prog i{position:absolute;left:-40%;top:0;bottom:0;width:40%;background:var(--cbt-sky,#38B0E0);animation:pysbp 1.2s linear infinite}@keyframes pysbp{to{left:100%}}' +
+      '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
+      '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
+      '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}';
+    document.head.appendChild(st);
+  }
+  host.classList.add('pysb');
+  host.innerHTML = '<div class="pysb-head"><b></b><span class="pysb-status">Python not loaded yet</span></div><div class="pysb-prog"></div>' +
+    '<div class="pysb-grid"><div><textarea class="pysb-code" spellcheck="false" aria-label="Python code"></textarea></div>' +
+    '<div class="pysb-in"><label>Inputs (one per input() call)</label><textarea class="pysb-inputs" spellcheck="false" aria-label="Inputs, one per line"></textarea></div></div>' +
+    '<div class="pysb-bar"><button type="button" class="primary pysb-run"></button><button type="button" class="pysb-reset"></button><span class="hint">Ctrl+Enter runs. The first run downloads Python (about 10 MB) once.</span></div>' +
+    '<div class="pysb-out"><label>Output</label><pre class="pysb-pre">Nothing run yet.</pre><ul class="pysb-tests" hidden></ul></div>';
+  const q = s => host.querySelector(s);
+  q('.pysb-head b').textContent = O.title; q('.pysb-run').textContent = O.runLabel; q('.pysb-reset').textContent = O.resetLabel;
+  const code = q('.pysb-code'), inputs = q('.pysb-inputs'), pre = q('.pysb-pre'), status = q('.pysb-status'), prog = q('.pysb-prog'), tests = q('.pysb-tests'), btnRun = q('.pysb-run');
+  code.value = O.code; inputs.value = O.inputs;
+  let worker = null, ready = false, loading = false, timer = null, last = null, failed = false;
+  const WORKER_SRC = [
+    'var py = null, url = "' + O.pyodideUrl + '";',
+    'self.onmessage = async function (e) {',
+    '  var m = e.data;',
+    '  try {',
+    '    if (!py) { importScripts(url + "pyodide.js"); py = await loadPyodide({indexURL: url}); postMessage({type: "ready", version: py.version}); }',
+    '    if (m.type !== "run") return;',
+    '    var lines = m.inputs.split(/\\r?\\n/); var out = [];',
+    '    py.setStdout({batched: function (s) { out.push(s); }}); py.setStderr({batched: function (s) { out.push(s); }});',
+    '    py.setStdin({stdin: function () { var l = lines.length ? lines.shift() : ""; return l + "\\n"; }, isatty: false});',
+    '    var ns = py.globals.get("dict")(); var result = {type: "done", ok: true, out: "", err: "", tests: []};',
+    '    try { await py.runPythonAsync(m.code, {globals: ns}); }',
+    '    catch (err) { result.ok = false; result.err = String(err.message || err); }',
+    '    result.out = out.join("\\n");',
+    '    for (var i = 0; i < m.tests.length; i++) { var t = m.tests[i], got;',
+    '      try { got = py.runPython("repr(" + t.expr + ")", {globals: ns}); } catch (e2) { got = "error: " + String(e2.message || e2).trim().split("\\n").pop(); }',
+    '      result.tests.push({expr: t.expr, expect: t.expect, got: got, pass: got === t.expect}); }',
+    '    ns.destroy(); postMessage(result);',
+    '  } catch (err) { postMessage({type: "fatal", err: String(err.message || err)}); }',
+    '};'].join('\n');
+  function spawn() {
+    const blob = new Blob([WORKER_SRC], {type: 'application/javascript'});
+    worker = new Worker(URL.createObjectURL(blob)); ready = false;
+    worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') { ready = true; loading = false; prog.innerHTML = ''; status.textContent = 'Python ' + m.version + ' ready'; return; }
+      if (m.type === 'fatal') { fail(m.err); return; }
+      if (m.type === 'done') { clearTimeout(timer); btnRun.disabled = false; show(m); }
+    };
+    worker.onerror = e => { fail(e.message || 'worker error'); };
+  }
+  function fail(msg) {
+    clearTimeout(timer); loading = false; ready = false; failed = true; btnRun.disabled = false; prog.innerHTML = '';
+    status.textContent = 'Python could not load';
+    pre.className = 'pysb-pre err'; pre.textContent = 'Python could not load here (the network may block cdn.jsdelivr.net). Copy the code into IDLE on the lab PC and run it there.' + (msg ? '\nDetails: ' + msg : '');
+    if (worker) { worker.terminate(); worker = null; }
+  }
+  function trimTrace(err) {
+    // keep from the first line that mentions the student's code; Pyodide adds its own frames above it
+    const i = err.indexOf('File "<exec>"'); if (i < 0) return err.trim();
+    const head = err.slice(0, i).split('\n').filter(l => /^Traceback/.test(l)).join('\n');
+    return (head ? head + '\n  ' : '') + err.slice(i).trim();
+  }
+  function show(m) {
+    last = m; const err = m.err ? trimTrace(m.err) : '';
+    pre.className = 'pysb-pre' + (m.ok ? '' : ' err');
+    pre.textContent = (m.out ? m.out + (m.out.endsWith('\n') ? '' : '\n') : '') + (err ? err : '') || '(no output)';
+    if (O.tests && O.tests.length) {
+      tests.hidden = false; tests.innerHTML = m.tests.map(t => '<li class="' + (t.pass ? 'pass' : 'fail') + '"><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">got ' + esc(t.got) + '</span></li>').join('');
+      const passed = m.tests.filter(t => t.pass).length; status.textContent = passed + ' of ' + m.tests.length + ' tests pass';
+      if (O.onTests) O.onTests(passed, m.tests.length, m);
+    } else status.textContent = m.ok ? 'Ran without errors' : 'Stopped with an error';
+    if (O.onRun) O.onRun(m);
+  }
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  function run() {
+    if (failed) { failed = false; }
+    if (!worker) spawn();
+    btnRun.disabled = true; tests.hidden = true; pre.className = 'pysb-pre'; pre.textContent = ready ? 'Running...' : 'Loading Python (about 10 MB, once)...';
+    if (!ready) { loading = true; status.textContent = 'Loading Python...'; prog.innerHTML = '<i></i>'; }
+    worker.postMessage({type: 'run', code: code.value, inputs: inputs.value, tests: O.tests || []});
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ready && loading) return; // still downloading; the fatal handler covers real failures
+      worker.terminate(); worker = null; ready = false; btnRun.disabled = false;
+      pre.className = 'pysb-pre err'; pre.textContent = 'Stopped after ' + Math.round(O.timeout / 1000) + ' seconds: the program never finished. Look for a loop whose condition never becomes False.';
+      status.textContent = 'Stopped (infinite loop?)'; if (O.onRun) O.onRun({ok: false, out: '', err: 'timeout', tests: []});
+    }, O.timeout + (ready ? 0 : 60000));
+  }
+  btnRun.addEventListener('click', run);
+  q('.pysb-reset').addEventListener('click', () => { code.value = O.code; inputs.value = O.inputs; pre.className = 'pysb-pre'; pre.textContent = 'Code reset. Press Run.'; tests.hidden = true; });
+  code.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if (e.key === 'Tab') { e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '    ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 4; } });
+  const api = {run: run, setCode: s => { code.value = s; }, getCode: () => code.value, setInputs: s => { inputs.value = s; }, setTests: t => { O.tests = t; },
+    reset: () => q('.pysb-reset').click(), output: () => pre.textContent, last: () => last, isReady: () => ready, el: host};
+  window.__pysandboxes = window.__pysandboxes || []; window.__pysandboxes.push(api);
+  return api;
+}
+// PYSANDBOX END
+
+// ---------------------------------------------------------------- data ----
+const CAP = 1200;
+const SKY = '#38B0E0', CORAL = '#F0786A', ICE = '#9FE7FF', GREEN = '#6FD49B', GOLD = '#E0B840';
+const MANIFESTS = {
+  van: {key: 'van', name: 'VAN-1 manifest', w: [12, 3, 20, 50, 45], f: ['no', 'yes', 'no', 'no', 'yes']},
+  over: {key: 'over', name: 'Overload manifest', w: [400, 350, 300, 200], f: ['no', 'no', 'yes', 'no']}
+};
+let M = MANIFESTS.van, VER = 'while';
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const fmt = n => n.toLocaleString('en-US');
+const pyList = a => '[' + a.join(', ') + ']';
+const pyStrList = a => '[' + a.map(x => '"' + x + '"').join(', ') + ']';
+// wrap a long list text into two lines at a comma, for a flowchart symbol
+function wrap(s, max) { if (s.length <= max) return s; const cut = s.lastIndexOf(', ', max); if (cut < 0) return s; return s.slice(0, cut + 1) + '\n' + s.slice(cut + 2); }
+const widthFor = text => Math.max(190, Math.max(...text.split('\n').map(l => l.length)) * 7.6 + 28);
+
+// --------------------------------------------------------- the charts ----
+// grid: main column 1, the Yes side branches at column 0, the report branch at columns 2 and 3, the loop lane at column -0.5
+const GEO = {cols: 4, colW: 230, rowH: 90, nodeH: 52, nodeW: 190, pad: 60};
+const LANE = -0.5, MERGE = 2.43;                 // the loop-back arrow rejoins the main line between the symbol above the test and the test
+function loopBack(fromId, fromCol, fromRow, bottomRow, h) {   // explicit route: down a bit, over to the lane, up, and into the main line above the test
+  return {from: fromId, to: 'test', points: [[fromCol, fromRow + h / GEO.rowH], [fromCol, bottomRow], [LANE, bottomRow], [LANE, MERGE], [1, MERGE]]};
+}
+const REPORT_NODES = txt => [
+  {id: 'rep', type: 'io', text: txt, col: 2, row: 4, w: widthFor(txt) + 16},
+  {id: 'capq', type: 'decision', text: 'total > 1200?', col: 2, row: 5},
+  {id: 'warn', type: 'io', text: 'OUTPUT "WARNING"', col: 3, row: 6},
+  {id: 'end', type: 'terminal', text: 'END', col: 2, row: 7}
+];
+const REPORT_EDGES = [{from: 'rep', to: 'capq'}, {from: 'capq', to: 'warn', label: 'Yes', side: 'right'}, {from: 'capq', to: 'end', label: 'No'}, {from: 'warn', to: 'end'}];
+function chartWhile() {
+  return Object.assign({rows: 10, nodes: [
+    {id: 'start', type: 'terminal', text: 'START', col: 1, row: 0},
+    {id: 'init', type: 'process', text: 'total = 0  count = 0\nheaviest = 0  weights = []', col: 1, row: 1, w: 236},
+    {id: 'in1', type: 'io', text: 'INPUT weight', col: 1, row: 2},
+    {id: 'test', type: 'decision', text: 'weight != -1?', col: 1, row: 3},
+    {id: 'app', type: 'process', text: 'weights.append(weight)', col: 1, row: 4},
+    {id: 'tot', type: 'process', text: 'total = total + weight', col: 1, row: 5},
+    {id: 'cnt', type: 'process', text: 'count = count + 1', col: 1, row: 6},
+    {id: 'hq', type: 'decision', text: 'weight > heaviest?', col: 1, row: 7},
+    {id: 'hset', type: 'process', text: 'heaviest = weight', col: 0, row: 8},
+    {id: 'in2', type: 'io', text: 'INPUT weight', col: 1, row: 9}
+  ].concat(REPORT_NODES('OUTPUT count, total,\nheaviest')), edges: [
+    {from: 'start', to: 'init'}, {from: 'init', to: 'in1'}, {from: 'in1', to: 'test'},
+    {from: 'test', to: 'app', label: 'Yes'}, {from: 'test', to: 'rep', label: 'No', side: 'right'},
+    {from: 'app', to: 'tot'}, {from: 'tot', to: 'cnt'}, {from: 'cnt', to: 'hq'},
+    {from: 'hq', to: 'hset', label: 'Yes', side: 'left'}, {from: 'hq', to: 'in2', label: 'No'}, {from: 'hset', to: 'in2'},
+    loopBack('in2', 1, 9, 9.6, 26)
+  ].concat(REPORT_EDGES)}, GEO);
+}
+function chartFor() {
+  const lt = wrap('weights = ' + pyList(M.w), 30);
+  return Object.assign({rows: 10, nodes: [
+    {id: 'start', type: 'terminal', text: 'START', col: 1, row: 0},
+    {id: 'list', type: 'process', text: lt, col: 1, row: 1, w: widthFor(lt)},
+    {id: 'init', type: 'process', text: 'total = 0  count = 0\nheaviest = 0', col: 1, row: 2},
+    {id: 'test', type: 'decision', text: 'next item\nin weights?', col: 1, row: 3},
+    {id: 'take', type: 'process', text: 'weight = next item', col: 1, row: 4},
+    {id: 'tot', type: 'process', text: 'total = total + weight', col: 1, row: 5},
+    {id: 'cnt', type: 'process', text: 'count = count + 1', col: 1, row: 6},
+    {id: 'hq', type: 'decision', text: 'weight > heaviest?', col: 1, row: 7},
+    {id: 'hset', type: 'process', text: 'heaviest = weight', col: 0, row: 8}
+  ].concat(REPORT_NODES('OUTPUT count, total,\nheaviest')), edges: [
+    {from: 'start', to: 'list'}, {from: 'list', to: 'init'}, {from: 'init', to: 'test'},
+    {from: 'test', to: 'take', label: 'Yes'}, {from: 'test', to: 'rep', label: 'No', side: 'right'},
+    {from: 'take', to: 'tot'}, {from: 'tot', to: 'cnt'}, {from: 'cnt', to: 'hq'},
+    {from: 'hq', to: 'hset', label: 'Yes', side: 'left'},
+    Object.assign(loopBack('hq', 1, 7, 8.75, 39), {label: 'No'}), loopBack('hset', 0, 8, 8.75, 26)
+  ].concat(REPORT_EDGES)}, GEO);
+}
+function chartIndex() {
+  const lt = wrap('weights = ' + pyList(M.w), 34) + '\n' + wrap('fragile = ' + pyStrList(M.f), 34);
+  return Object.assign({rows: 10, nodes: [
+    {id: 'start', type: 'terminal', text: 'START', col: 1, row: 0},
+    {id: 'list', type: 'process', text: lt, col: 1, row: 1, w: widthFor(lt)},
+    {id: 'init', type: 'process', text: 'total = 0  fragile_count = 0\nheaviest = 0  i = 0', col: 1, row: 2, w: 248},
+    {id: 'test', type: 'decision', text: 'i < len(weights)?', col: 1, row: 3},
+    {id: 'tot', type: 'process', text: 'total = total + weights[i]', col: 1, row: 4, w: 222},
+    {id: 'fq', type: 'decision', text: 'fragile[i] == "yes"?', col: 1, row: 5},
+    {id: 'fc', type: 'process', text: 'fragile_count =\nfragile_count + 1', col: 0, row: 6},
+    {id: 'hq', type: 'decision', text: 'weights[i] > heaviest?', col: 1, row: 7},
+    {id: 'hset', type: 'process', text: 'heaviest = weights[i]', col: 0, row: 8},
+    {id: 'inc', type: 'process', text: 'i = i + 1', col: 1, row: 9}
+  ].concat(REPORT_NODES('OUTPUT len(weights), total,\nfragile_count, heaviest')), edges: [
+    {from: 'start', to: 'list'}, {from: 'list', to: 'init'}, {from: 'init', to: 'test'},
+    {from: 'test', to: 'tot', label: 'Yes'}, {from: 'test', to: 'rep', label: 'No', side: 'right'},
+    {from: 'tot', to: 'fq'}, {from: 'fq', to: 'fc', label: 'Yes', side: 'left'}, {from: 'fq', to: 'hq', label: 'No'}, {from: 'fc', to: 'hq'},
+    {from: 'hq', to: 'hset', label: 'Yes', side: 'left'}, {from: 'hq', to: 'inc', label: 'No'}, {from: 'hset', to: 'inc'},
+    loopBack('inc', 1, 9, 9.6, 26)
+  ].concat(REPORT_EDGES)}, GEO);
+}
+
+// ------------------------------------------------------- the programs ----
+const PROGRAMS = {
+  while: () => ['CAPACITY = 1200', 'total = 0', 'count = 0', 'heaviest = 0', 'weights = []', 'weight = int(input("Weight in lb (-1 to stop): "))', 'while weight != -1:', '    weights.append(weight)',
+    '    total = total + weight', '    count = count + 1', '    if weight > heaviest:', '        heaviest = weight', '    weight = int(input("Weight in lb (-1 to stop): "))',
+    'print(f"{count} packages, {total} lb, heaviest {heaviest} lb")', 'if total > CAPACITY:', '    print("WARNING: over capacity")'],
+  for: () => ['CAPACITY = 1200', 'weights = ' + pyList(M.w), 'total = 0', 'count = 0', 'heaviest = 0', 'for weight in weights:', '    total = total + weight', '    count = count + 1',
+    '    if weight > heaviest:', '        heaviest = weight', 'print(f"{count} packages, {total} lb, heaviest {heaviest} lb")', 'if total > CAPACITY:', '    print("WARNING: over capacity")'],
+  index: () => ['CAPACITY = 1200', 'weights = ' + pyList(M.w), 'fragile = ' + pyStrList(M.f), 'total = 0', 'fragile_count = 0', 'heaviest = 0', 'for i in range(len(weights)):',
+    '    total = total + weights[i]', '    if fragile[i] == "yes":', '        fragile_count = fragile_count + 1', '    if weights[i] > heaviest:', '        heaviest = weights[i]',
+    'print(f"{len(weights)} packages, {total} lb, {fragile_count} fragile, heaviest {heaviest} lb")', 'if total > CAPACITY:', '    print("WARNING: over capacity")']
+};
+const CODE_TITLES = {while: 'The same algorithm in Python: manifest.py (while version)', for: 'The same algorithm in Python: manifest_for.py (for version)', index: 'The same algorithm in Python: manifest_index.py (index version)'};
+const VHINT = {while: 'A while loop with a sentinel: it reads weights until -1 arrives. This is the version assignment 3.1 builds in Flowgorithm.',
+  for: 'A for loop over the list: no sentinel and no INPUT inside the loop. It stops by itself after the last item.',
+  index: 'A for loop with an index: for i in range(len(weights)). The index i lets the loop read weights[i] and fragile[i] together. This is the second loop of assignment 3.2.'};
+
+// --------------------------------------------- click-to-explain notes ----
+const INFO = {
+  while: {
+    start: '<b>START.</b> Every flowchart begins here. Python has no symbol for it: the program starts at line 1.',
+    init: '<b>PROCESS.</b> The starting values. A counter (count) and an accumulator (total) start at 0. heaviest starts at 0 so the first real weight beats it. weights starts as an empty list []. Python: lines 2 to 5.',
+    in1: '<b>INPUT.</b> The first read happens before the loop, so the test has a value to check (a priming read). Python: line 6. int() turns the typed text into a whole number.',
+    test: '<b>DECISION.</b> The loop condition. While it is True the token enters the body; the first time it is False the token leaves by the No arrow. -1 is the sentinel: a value that means "no more packages" and is never processed. Python: line 7, while weight != -1:.',
+    app: '<b>PROCESS.</b> weights.append(weight) adds the value to the end of the list. The list remembers every package for later. Python: line 8.',
+    tot: '<b>PROCESS.</b> The accumulator: total = total + weight adds this package to the running total. Python: line 9.',
+    cnt: '<b>PROCESS.</b> The counter: count = count + 1 adds one per pass, whatever the weight is. Python: line 10.',
+    hq: '<b>DECISION.</b> The maximum-so-far pattern: is this weight bigger than the biggest seen so far? Python: line 11, if weight > heaviest:.',
+    hset: '<b>PROCESS.</b> Runs only when the test above is True. heaviest = weight remembers the new maximum. Python: line 12.',
+    in2: '<b>INPUT.</b> The read inside the loop. Without it weight never changes, the condition stays True, and the loop never ends (an infinite loop). Python: line 13.',
+    rep: '<b>OUTPUT.</b> The report prints once, after the loop. Python: line 14, an f-string.',
+    capq: '<b>DECISION.</b> The capacity check happens after the loop, not inside it: the loop reads every package first. Python: line 15.',
+    warn: '<b>OUTPUT.</b> Printed only when total > 1200. Exactly 1,200 lb is not above the capacity. Python: line 16.',
+    end: '<b>END.</b> The program stops.'
+  },
+  for: {
+    start: '<b>START.</b> Every flowchart begins here.',
+    list: '<b>PROCESS.</b> The list is written in the program this time, so there is no INPUT. Python: line 2.',
+    init: '<b>PROCESS.</b> The counter, the accumulator, and the maximum-so-far start at 0. Python: lines 3 to 5.',
+    test: '<b>DECISION.</b> A for loop asks "is there a next item?" before every pass and takes it. No sentinel, no condition to write. Python: line 6, for weight in weights:.',
+    take: '<b>PROCESS.</b> The next item of the list goes into weight. In Python this is part of line 6: the for line does the taking.',
+    tot: '<b>PROCESS.</b> The accumulator adds this weight to the running total. Python: line 7.',
+    cnt: '<b>PROCESS.</b> The counter adds one per pass. Python: line 8. (len(weights) would give the same number without a counter.)',
+    hq: '<b>DECISION.</b> The maximum-so-far test. Python: line 9.',
+    hset: '<b>PROCESS.</b> Remembers the new maximum. Python: line 10.',
+    rep: '<b>OUTPUT.</b> The report prints once, after the loop. Python: line 11.',
+    capq: '<b>DECISION.</b> The capacity check after the loop. Python: line 12.',
+    warn: '<b>OUTPUT.</b> Printed only when total > 1200. Python: line 13.',
+    end: '<b>END.</b> The program stops.'
+  },
+  index: {
+    start: '<b>START.</b> Every flowchart begins here.',
+    list: '<b>PROCESS.</b> Two lists that describe the same packages: weights[i] and fragile[i] belong to package number i + 1. Python: lines 2 and 3.',
+    init: '<b>PROCESS.</b> The accumulator, the fragile counter, and the maximum-so-far start at 0. The index i starts at 0 because list positions start at 0. Python: lines 4 to 7 (range starts i at 0).',
+    test: '<b>DECISION.</b> Is i still a valid position? len(weights) is the number of items, so the last valid index is len(weights) - 1. Python: line 7, for i in range(len(weights)): does this test for you.',
+    tot: '<b>PROCESS.</b> weights[i] reads the item at position i. The accumulator adds it. Python: line 8.',
+    fq: '<b>DECISION.</b> fragile[i] is the answer for the same package. Comparing a string with == is exact: "yes" matches, "Yes" does not. Python: line 9.',
+    fc: '<b>PROCESS.</b> A second counter, which only counts the fragile packages. Python: line 10.',
+    hq: '<b>DECISION.</b> The maximum-so-far test with weights[i]. Python: line 11.',
+    hset: '<b>PROCESS.</b> Remembers the new maximum. Python: line 12.',
+    inc: '<b>PROCESS.</b> i = i + 1 moves to the next position. In Python, range does this for you at the end of every pass. Forgetting it in a while loop gives an infinite loop.',
+    rep: '<b>OUTPUT.</b> The report uses len(weights) as the package count. Python: line 13.',
+    capq: '<b>DECISION.</b> The capacity check after the loop. Python: line 14.',
+    warn: '<b>OUTPUT.</b> Printed only when total > 1200. Python: line 15.',
+    end: '<b>END.</b> The program stops.'
+  }
+};
+
+// ------------------------------------------- the steps, generated from the manifest ----
+// each step: {phase, node, line, edges, label, color, text, after}; `after` is the whole memory after the step (so step back and reset just redraw it)
+const snap = o => JSON.parse(JSON.stringify(o));
+function baseState() { return {weight: null, total: null, count: null, heaviest: null, fc: null, i: null, weights: [], rows: [], con: [], done: [], active: null, capOver: null, pass: 0, hsetRuns: 0}; }
+function genWhile() {
+  const st = baseState(), steps = [], W = M.w, n = W.length, seq = W.concat([-1]);
+  const add = (o) => { st.done = st.active ? st.done.concat([st.active]) : st.done; st.active = o.node; steps.push(Object.assign({after: snap(st)}, o)); };
+  add({phase: 'p1', node: 'start', line: 0, text: 'START. The program begins with empty memory. The ' + M.name + ' has ' + (n ? n + ' weight' + (n > 1 ? 's: ' : ': ') + W.join(', ') + ', and then -1' : 'no packages: the dispatcher types -1 right away') + '. The -1 is the sentinel, a value that means "no more packages".'});
+  st.total = 0; st.count = 0; st.heaviest = 0; st.rows.push({p: 0, weight: '', test: '', total: 0, count: 0, heaviest: 0});
+  add({phase: 'p1', node: 'init', line: [2, 5], edges: ['start>init'], label: 'go', color: GOLD, text: 'PROCESS: the starting values. total = 0, count = 0, heaviest = 0, and weights = [] (an empty list). A counter and an accumulator always start at 0 before the loop. Row 0 of the trace table holds these values.'});
+  st.weight = seq[0];
+  add({phase: 'p2', node: 'in1', line: 6, edges: ['init>in1'], label: '?', color: SKY, text: 'INPUT weight: the dispatcher types ' + seq[0] + '. It goes in the box weight. This read happens before the loop so the test has a value to check.'});
+  let k = 0;
+  while (true) {
+    const w = seq[k], prevRead = k === 0 ? 'in1' : 'in2';
+    if (w !== -1) {
+      st.pass++; st.rows.push({p: st.pass, weight: w, test: 'True', total: '', count: '', heaviest: ''});
+      add({phase: 'p3', node: 'test', line: 7, edges: [prevRead + '>test'], label: String(w), color: SKY, text: 'Is weight != -1? weight is ' + w + ', so ' + w + ' != -1 is True. The token takes the Yes arrow into the loop body. Pass ' + st.pass + ' begins: row ' + st.pass + ' appears in the trace table.' + (k ? ' (The token came up the loop-back arrow on the left.)' : '')});
+      st.weights.push(w);
+      add({phase: 'p3', node: 'app', line: 8, edges: ['test>app'], label: String(w), color: SKY, text: 'weights.append(' + w + '): the list grows to ' + pyList(st.weights) + '. The new item sits at index ' + (st.weights.length - 1) + '.'});
+      const t0 = st.total; st.total += w; st.rows[st.rows.length - 1].total = st.total;
+      add({phase: 'p3', node: 'tot', line: 9, edges: ['app>tot'], label: String(w), color: SKY, text: 'total = total + weight: ' + t0 + ' + ' + w + ' = ' + st.total + '. The accumulator grows by this weight.' + (st.total > CAP ? ' The total is now above the 1,200 lb capacity: the bar turns coral, but the loop goes on.' : '')});
+      st.count++; st.rows[st.rows.length - 1].count = st.count;
+      add({phase: 'p3', node: 'cnt', line: 10, edges: ['tot>cnt'], label: String(w), color: SKY, text: 'count = count + 1: ' + (st.count - 1) + ' + 1 = ' + st.count + '. The counter adds one per pass, whatever the weight is.'});
+      const bigger = w > st.heaviest;
+      if (bigger) {
+        add({phase: 'p3', node: 'hq', line: 11, edges: ['cnt>hq'], label: String(w), color: SKY, text: 'Is weight > heaviest? ' + w + ' > ' + st.heaviest + ' is True. The token takes the Yes arrow to the left.'});
+        const h0 = st.heaviest; st.heaviest = w; st.hsetRuns++; st.rows[st.rows.length - 1].heaviest = st.heaviest;
+        add({phase: 'p3', node: 'hset', line: 12, edges: ['hq>hset'], label: String(w), color: SKY, text: 'heaviest = weight: the heaviest so far changes from ' + h0 + ' to ' + w + '. This symbol has now run ' + st.hsetRuns + ' time' + (st.hsetRuns > 1 ? 's' : '') + '.'});
+      } else {
+        st.rows[st.rows.length - 1].heaviest = st.heaviest;
+        add({phase: 'p3', node: 'hq', line: 11, edges: ['cnt>hq'], label: String(w), color: SKY, text: 'Is weight > heaviest? ' + w + ' > ' + st.heaviest + ' is False, so heaviest = weight is skipped and heaviest stays ' + st.heaviest + '. The token takes the No arrow straight down.'});
+      }
+      k++; st.weight = seq[k];
+      add({phase: 'p2', node: 'in2', line: 13, edges: [bigger ? 'hset>in2' : 'hq>in2'], label: String(w), color: SKY, text: 'INPUT weight: the dispatcher types ' + seq[k] + '. ' + (seq[k] === -1 ? 'That is the sentinel. ' : '') + 'The box weight now holds ' + seq[k] + '. Next, the loop-back arrow carries the token up the left lane to the test.'});
+    } else {
+      st.rows.push({p: 'exit', weight: -1, test: 'False', total: st.total, count: st.count, heaviest: st.heaviest});
+      add({phase: 'p4', node: 'test', line: 7, edges: [prevRead + '>test'], label: '-1', color: CORAL, text: 'Is weight != -1? weight is -1, so -1 != -1 is False. The loop ends after ' + st.pass + ' pass' + (st.pass === 1 ? '' : 'es') + '. The token takes the No arrow to the report. Notice the exit row: -1 was read and tested, never added or counted.'});
+      break;
+    }
+  }
+  const line = st.count + ' packages, ' + st.total + ' lb, heaviest ' + st.heaviest + ' lb';
+  st.con.push(line);
+  add({phase: 'p4', node: 'rep', line: 14, edges: ['test>rep'], label: '-1', color: CORAL, text: 'OUTPUT: the screen shows "' + line + '". The report prints once, after the loop.'});
+  st.capOver = st.total > CAP;
+  add({phase: 'p4', node: 'capq', line: 15, edges: ['rep>capq'], label: String(st.total), color: st.capOver ? CORAL : ICE, text: 'Is total > 1200? ' + st.total + ' > 1200 is ' + (st.capOver ? 'True: the van is over its capacity by ' + (st.total - CAP) + ' lb. The token takes the Yes arrow.' : 'False: the load fits' + (st.total === CAP ? ' (exactly 1,200 is not above 1,200)' : '') + '. The token takes the No arrow to END.')});
+  if (st.capOver) { st.con.push('WARNING: over capacity'); add({phase: 'p4', node: 'warn', line: 16, edges: ['capq>warn'], label: String(st.total), color: CORAL, text: 'OUTPUT: the screen shows "WARNING: over capacity". The loop read every package first; the warning comes after.'}); }
+  add({phase: 'p4', node: 'end', line: 0, edges: [st.capOver ? 'warn>end' : 'capq>end'], label: 'done', color: GREEN, text: 'END. ' + st.pass + ' pass' + (st.pass === 1 ? '' : 'es') + ', ' + (steps.length + 1) + ' steps. heaviest = weight ran ' + st.hsetRuns + ' time' + (st.hsetRuns === 1 ? '' : 's') + '. Press Step back to review, or try the For version and the Index version.'});
+  return steps;
+}
+function genFor() {
+  const st = baseState(), steps = [], W = M.w, n = W.length;
+  const add = (o) => { st.done = st.active ? st.done.concat([st.active]) : st.done; st.active = o.node; steps.push(Object.assign({after: snap(st)}, o)); };
+  add({phase: 'p1', node: 'start', line: 0, text: 'START. In the for version the list is already in the program: ' + pyList(W) + (n ? '' : ' (an empty list)') + '. There is no sentinel and no INPUT.'});
+  st.weights = W.slice();
+  add({phase: 'p1', node: 'list', line: 2, edges: ['start>list'], label: 'go', color: GOLD, text: 'PROCESS: weights = ' + pyList(W) + '. The list has ' + n + ' item' + (n === 1 ? '' : 's') + (n ? ', at index 0 to ' + (n - 1) + '.' : '. With no items the loop body will never run.')});
+  st.total = 0; st.count = 0; st.heaviest = 0; st.rows.push({p: 0, weight: '', test: '', total: 0, count: 0, heaviest: 0});
+  add({phase: 'p1', node: 'init', line: [3, 5], edges: ['list>init'], label: 'go', color: GOLD, text: 'PROCESS: total = 0, count = 0, heaviest = 0. Row 0 of the trace table holds these values.'});
+  let lastBigger = false;
+  for (let k = 0; k <= n; k++) {
+    const from = k === 0 ? 'init>test' : (lastBigger ? 'hset>test' : 'hq>test');
+    if (k < n) {
+      const w = W[k]; st.pass++; st.rows.push({p: st.pass, weight: w, test: 'True', total: '', count: '', heaviest: ''});
+      add({phase: 'p3', node: 'test', line: 6, edges: [from], label: 'item ' + (k + 1), color: SKY, text: 'Is there a next item in weights? Yes: item ' + (k + 1) + ' of ' + n + ' is ' + w + ' (index ' + k + '). Pass ' + st.pass + ' begins.' + (k ? ' (The token came up the loop-back arrow.)' : '')});
+      st.weight = w;
+      add({phase: 'p3', node: 'take', line: 6, edges: ['test>take'], label: String(w), color: SKY, text: 'weight = ' + w + '. The for line does this for you: it takes the next item and puts it in weight.'});
+      const t0 = st.total; st.total += w; st.rows[st.rows.length - 1].total = st.total;
+      add({phase: 'p3', node: 'tot', line: 7, edges: ['take>tot'], label: String(w), color: SKY, text: 'total = total + weight: ' + t0 + ' + ' + w + ' = ' + st.total + '.' + (st.total > CAP ? ' Above the 1,200 lb capacity: the bar turns coral, but the loop goes on.' : '')});
+      st.count++; st.rows[st.rows.length - 1].count = st.count;
+      add({phase: 'p3', node: 'cnt', line: 8, edges: ['tot>cnt'], label: String(w), color: SKY, text: 'count = count + 1: ' + (st.count - 1) + ' + 1 = ' + st.count + '.'});
+      lastBigger = w > st.heaviest;
+      if (lastBigger) {
+        add({phase: 'p3', node: 'hq', line: 9, edges: ['cnt>hq'], label: String(w), color: SKY, text: 'Is weight > heaviest? ' + w + ' > ' + st.heaviest + ' is True. The token takes the Yes arrow to the left.'});
+        const h0 = st.heaviest; st.heaviest = w; st.hsetRuns++; st.rows[st.rows.length - 1].heaviest = w;
+        add({phase: 'p3', node: 'hset', line: 10, edges: ['hq>hset'], label: String(w), color: SKY, text: 'heaviest = weight: ' + h0 + ' becomes ' + w + '. Then the loop-back arrow carries the token up the lane to the "next item?" test.'});
+      } else {
+        st.rows[st.rows.length - 1].heaviest = st.heaviest;
+        add({phase: 'p3', node: 'hq', line: 9, edges: ['cnt>hq'], label: String(w), color: SKY, text: 'Is weight > heaviest? ' + w + ' > ' + st.heaviest + ' is False: heaviest stays ' + st.heaviest + '. The No arrow is the loop-back: the token goes up the lane to the "next item?" test.'});
+      }
+    } else {
+      st.rows.push({p: 'exit', weight: '', test: 'False', total: st.total, count: st.count, heaviest: st.heaviest});
+      add({phase: 'p4', node: 'test', line: 6, edges: [from], label: 'none', color: CORAL, text: 'Is there a next item? No: all ' + n + ' item' + (n === 1 ? '' : 's') + ' ' + (n === 1 ? 'has' : 'have') + ' been used. The for loop ends by itself after ' + st.pass + ' pass' + (st.pass === 1 ? '' : 'es') + ', with no sentinel. The token takes the No arrow to the report.'});
+    }
+  }
+  const line = st.count + ' packages, ' + st.total + ' lb, heaviest ' + st.heaviest + ' lb';
+  st.con.push(line);
+  add({phase: 'p4', node: 'rep', line: 11, edges: ['test>rep'], label: 'none', color: CORAL, text: 'OUTPUT: the screen shows "' + line + '".'});
+  st.capOver = st.total > CAP;
+  add({phase: 'p4', node: 'capq', line: 12, edges: ['rep>capq'], label: String(st.total), color: st.capOver ? CORAL : ICE, text: 'Is total > 1200? ' + st.total + ' > 1200 is ' + (st.capOver ? 'True: over by ' + (st.total - CAP) + ' lb. The token takes the Yes arrow.' : 'False: the load fits. The token takes the No arrow to END.')});
+  if (st.capOver) { st.con.push('WARNING: over capacity'); add({phase: 'p4', node: 'warn', line: 13, edges: ['capq>warn'], label: String(st.total), color: CORAL, text: 'OUTPUT: the screen shows "WARNING: over capacity".'}); }
+  add({phase: 'p4', node: 'end', line: 0, edges: [st.capOver ? 'warn>end' : 'capq>end'], label: 'done', color: GREEN, text: 'END. Same answer as the while version, in ' + (steps.length + 1) + ' steps: the for loop needs no sentinel and no read inside the body.'});
+  return steps;
+}
+function genIndex() {
+  const st = baseState(), steps = [], W = M.w, F = M.f, n = W.length;
+  const add = (o) => { st.done = st.active ? st.done.concat([st.active]) : st.done; st.active = o.node; steps.push(Object.assign({after: snap(st)}, o)); };
+  add({phase: 'p1', node: 'start', line: 0, text: 'START. The index version keeps two lists that describe the same packages: weights and fragile. Position i in both lists is the same package.'});
+  st.weights = W.slice();
+  add({phase: 'p1', node: 'list', line: [2, 3], edges: ['start>list'], label: 'go', color: GOLD, text: 'PROCESS: weights = ' + pyList(W) + ' and fragile = ' + pyStrList(F) + '. len(weights) is ' + n + ', so the valid indexes are 0 to ' + (n - 1) + '.'});
+  st.i = 0; st.total = 0; st.fc = 0; st.heaviest = 0; st.rows.push({p: 0, i: '', wi: '', fi: '', test: '', total: 0, fc: 0, heaviest: 0});
+  add({phase: 'p1', node: 'init', line: [4, 7], edges: ['list>init'], label: 'go', color: GOLD, text: 'PROCESS: total = 0, fragile_count = 0, heaviest = 0, and i = 0. In Python, range(len(weights)) starts i at 0 for you: range(' + n + ') gives ' + (n ? Array.from({length: n}, (_, j) => j).join(', ') : 'no numbers at all') + '.'});
+  for (let k = 0; k <= n; k++) {
+    const from = k === 0 ? 'init>test' : 'inc>test';
+    if (k < n) {
+      const w = W[k], f = F[k]; st.pass++; st.rows.push({p: st.pass, i: k, wi: w, fi: f, test: 'True', total: '', fc: '', heaviest: ''});
+      add({phase: 'p3', node: 'test', line: 7, edges: [from], label: 'i = ' + k, color: SKY, text: 'Is i < len(weights)? ' + k + ' < ' + n + ' is True: index ' + k + ' is a valid position. weights[' + k + '] is ' + w + ' and fragile[' + k + '] is "' + f + '": the same package. Pass ' + st.pass + ' begins.'});
+      const t0 = st.total; st.total += w; st.rows[st.rows.length - 1].total = st.total;
+      add({phase: 'p3', node: 'tot', line: 8, edges: ['test>tot'], label: 'weights[' + k + '] = ' + w, color: SKY, text: 'total = total + weights[' + k + ']: ' + t0 + ' + ' + w + ' = ' + st.total + '.' + (st.total > CAP ? ' Above the 1,200 lb capacity: the bar turns coral.' : '')});
+      if (f === 'yes') {
+        add({phase: 'p3', node: 'fq', line: 9, edges: ['tot>fq'], label: '"' + f + '"', color: SKY, text: 'Is fragile[' + k + '] == "yes"? "yes" == "yes" is True. The token takes the Yes arrow to the left.'});
+        st.fc++; st.rows[st.rows.length - 1].fc = st.fc;
+        add({phase: 'p3', node: 'fc', line: 10, edges: ['fq>fc'], label: '"' + f + '"', color: SKY, text: 'fragile_count = fragile_count + 1: ' + (st.fc - 1) + ' + 1 = ' + st.fc + '.'});
+      } else {
+        st.rows[st.rows.length - 1].fc = st.fc;
+        add({phase: 'p3', node: 'fq', line: 9, edges: ['tot>fq'], label: '"' + f + '"', color: SKY, text: 'Is fragile[' + k + '] == "yes"? "' + f + '" == "yes" is False: fragile_count stays ' + st.fc + '. The token takes the No arrow straight down.'});
+      }
+      const bigger = w > st.heaviest;
+      if (bigger) {
+        add({phase: 'p3', node: 'hq', line: 11, edges: [f === 'yes' ? 'fc>hq' : 'fq>hq'], label: String(w), color: SKY, text: 'Is weights[' + k + '] > heaviest? ' + w + ' > ' + st.heaviest + ' is True. The token takes the Yes arrow to the left.'});
+        const h0 = st.heaviest; st.heaviest = w; st.hsetRuns++; st.rows[st.rows.length - 1].heaviest = w;
+        add({phase: 'p3', node: 'hset', line: 12, edges: ['hq>hset'], label: String(w), color: SKY, text: 'heaviest = weights[' + k + ']: ' + h0 + ' becomes ' + w + '.'});
+      } else {
+        st.rows[st.rows.length - 1].heaviest = st.heaviest;
+        add({phase: 'p3', node: 'hq', line: 11, edges: [f === 'yes' ? 'fc>hq' : 'fq>hq'], label: String(w), color: SKY, text: 'Is weights[' + k + '] > heaviest? ' + w + ' > ' + st.heaviest + ' is False: heaviest stays ' + st.heaviest + '. The token takes the No arrow.'});
+      }
+      st.i = k + 1;
+      add({phase: 'p3', node: 'inc', line: 7, edges: [bigger ? 'hset>inc' : 'hq>inc'], label: 'i = ' + (k + 1), color: SKY, text: 'i = i + 1: ' + k + ' + 1 = ' + (k + 1) + '. range does this for you at the end of every pass. The loop-back arrow carries the token up the lane to the test.'});
+    } else {
+      st.rows.push({p: 'exit', i: n, wi: '', fi: '', test: 'False', total: st.total, fc: st.fc, heaviest: st.heaviest});
+      add({phase: 'p4', node: 'test', line: 7, edges: [from], label: 'i = ' + n, color: CORAL, text: 'Is i < len(weights)? ' + n + ' < ' + n + ' is False. There is no weights[' + n + ']: the last valid index was ' + (n - 1) + ' = len(weights) - 1. The loop ends after ' + st.pass + ' pass' + (st.pass === 1 ? '' : 'es') + '.'});
+    }
+  }
+  const line = n + ' packages, ' + st.total + ' lb, ' + st.fc + ' fragile, heaviest ' + st.heaviest + ' lb';
+  st.con.push(line);
+  add({phase: 'p4', node: 'rep', line: 13, edges: ['test>rep'], label: 'i = ' + n, color: CORAL, text: 'OUTPUT: the screen shows "' + line + '". len(weights) gives the package count, so no counter was needed.'});
+  st.capOver = st.total > CAP;
+  add({phase: 'p4', node: 'capq', line: 14, edges: ['rep>capq'], label: String(st.total), color: st.capOver ? CORAL : ICE, text: 'Is total > 1200? ' + st.total + ' > 1200 is ' + (st.capOver ? 'True: over by ' + (st.total - CAP) + ' lb. The token takes the Yes arrow.' : 'False: the load fits. The token takes the No arrow to END.')});
+  if (st.capOver) { st.con.push('WARNING: over capacity'); add({phase: 'p4', node: 'warn', line: 15, edges: ['capq>warn'], label: String(st.total), color: CORAL, text: 'OUTPUT: the screen shows "WARNING: over capacity".'}); }
+  add({phase: 'p4', node: 'end', line: 0, edges: [st.capOver ? 'warn>end' : 'capq>end'], label: 'done', color: GREEN, text: 'END. ' + (steps.length + 1) + ' steps. This is the pattern for the second loop of assignment 3.2: one index, two lists, one package per pass.'});
+  return steps;
+}
+const GEN = {while: genWhile, for: genFor, index: genIndex};
+const CHART = {while: chartWhile, for: chartFor, index: chartIndex};
+const COLS = {
+  while: [['pass', 'p'], ['weight', 'weight'], ['weight != -1', 'test'], ['total', 'total'], ['count', 'count'], ['heaviest', 'heaviest']],
+  for: [['pass', 'p'], ['weight', 'weight'], ['next item?', 'test'], ['total', 'total'], ['count', 'count'], ['heaviest', 'heaviest']],
+  index: [['pass', 'p'], ['i', 'i'], ['weights[i]', 'wi'], ['fragile[i]', 'fi'], ['i < len', 'test'], ['total', 'total'], ['fragile_count', 'fc'], ['heaviest', 'heaviest']]
+};
+const MEMVARS = {
+  while: [{name: 'weight', label: 'the weight just read'}, {name: 'total', label: 'accumulator, lb'}, {name: 'count', label: 'counter, packages'}, {name: 'heaviest', label: 'maximum so far, lb'}],
+  for: [{name: 'weight', label: 'the current item'}, {name: 'total', label: 'accumulator, lb'}, {name: 'count', label: 'counter, packages'}, {name: 'heaviest', label: 'maximum so far, lb'}],
+  index: [{name: 'i', label: 'the index (position)'}, {name: 'total', label: 'accumulator, lb'}, {name: 'fragile_count', label: 'counter, fragile only'}, {name: 'heaviest', label: 'maximum so far, lb'}]
+};
+
+// --------------------------------------------------------- rendering ----
+let fk = null, MEM = null, STEPS = [];
+const CON = FlowKit.console($('#screen'));
+function renderCode(active) {
+  const prog = PROGRAMS[VER](), lo = Array.isArray(active) ? active[0] : active, hi = Array.isArray(active) ? active[1] : active;
+  $('#code').innerHTML = prog.map((l, i) => '<span class="ln' + (i + 1 >= lo && i + 1 <= hi && lo > 0 ? ' on' : '') + '"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' +
+    (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
+}
+function buildChart() {
+  const stage = $('#stage');
+  stage.querySelectorAll('svg.flow, .fk-zoom').forEach(e => e.remove());
+  fk = FlowKit(stage, CHART[VER]());
+  fk.onPick(id => { $('#info').innerHTML = INFO[VER][id] || ''; if (fk.nodes[id]) fk.flash(id, '#38B0E0'); setTimeout(() => { const r = fk.nodes[id]; if (r && r.state !== 'active' && r.state !== 'error') fk.highlight(id, r.state); }, 600); });
+  MEM = FlowKit.memory($('#memory'), MEMVARS[VER]);
+  $('#listFwrap').hidden = VER !== 'index'; $('#ownFwrap').hidden = VER !== 'index';
+  $('#listName').textContent = VER === 'index' ? 'weights (the list; the lit box is weights[i])' : 'weights (the list, with the index of each item)';
+  $('#codeTitle').textContent = CODE_TITLES[VER]; $('#vhint').textContent = VHINT[VER];
+}
+function drawLists(s, popIdx) {
+  const host = $('#listW');
+  if (!s.weights.length) { host.innerHTML = '<span class="empty">[] (empty list)</span>'; }
+  else host.innerHTML = s.weights.map((w, i) => '<div class="b' + (VER === 'index' && s.i === i ? ' on' : '') + '"><div class="v">' + w + '</div><div class="i">[' + i + ']</div></div>').join('');
+  if (VER === 'index') { const fh = $('#listF'); fh.innerHTML = M.f.map((f, i) => '<div class="b' + (s.i === i ? ' on' : '') + '"><div class="v" style="font-size:12px;line-height:19px">' + f + '</div><div class="i">[' + i + ']</div></div>').join('') || '<span class="empty">[] (empty list)</span>'; }
+  if (popIdx != null && hasGSAP) { const b = host.children[popIdx]; if (b && b.classList.contains('b')) gsap.fromTo(b, {scale: 1.3, borderColor: '#E0B840'}, {scale: 1, borderColor: '#2a3270', duration: .5}); }
+}
+function drawCap(st) {
+  const s = {total: st.total || 0};
+  const pct = Math.min(100, s.total / CAP * 100), f = $('#capFill'); f.style.width = pct + '%';
+  f.className = s.total > CAP ? 'over' : s.total >= CAP - 100 ? 'near' : '';
+  $('#capVal').textContent = 'total ' + fmt(s.total) + ' lb';
+  const m = $('#capMsg'); m.className = 'msg' + (s.total > CAP ? ' over' : '');
+  m.textContent = st.total === null ? 'The bar turns gold within 100 lb of the capacity and coral above it.' : s.total > CAP ? 'Over capacity by ' + fmt(s.total - CAP) + ' lb.' : s.total === CAP ? 'Exactly at capacity: 1,200 > 1,200 is False, so no warning.' : s.total >= CAP - 100 ? fmt(CAP - s.total) + ' lb to spare: close to the limit.' : fmt(CAP - s.total) + ' lb to spare.';
+}
+function drawTable(s, prev) {
+  const cols = COLS[VER], pr = prev ? prev.rows : [];
+  $('#trace').innerHTML = '<tr>' + cols.map(c => '<th>' + esc(c[0]) + '</th>').join('') + '</tr>' + s.rows.map((r, ri) => '<tr' + (ri === s.rows.length - 1 && ri > 0 && s.active !== 'end' ? ' class="cur"' : '') + '>' + cols.map(c => {
+    const v = r[c[1]], was = pr[ri] ? pr[ri][c[1]] : undefined, changed = prev && String(v) !== String(was === undefined ? '' : was) && v !== '';
+    return '<td class="' + (changed ? 'new ' : '') + (v === 'True' ? 't' : v === 'False' ? 'f' : '') + '">' + (v === '' || v === undefined ? '' : esc(c[1] === 'fi' && v !== '' ? '"' + v + '"' : v)) + '</td>'; }).join('') + '</tr>').join('');
+}
+function drawMemory(s, prev) {
+  const names = MEMVARS[VER].map(v => v.name), key = {fragile_count: 'fc'};
+  names.forEach(n => { const v = s[key[n] || n]; const was = prev ? prev[key[n] || n] : undefined; MEM.set(n, v === null ? undefined : v, {pop: !!prev && v !== was}); });
+}
+function applyState(s, prev) {   // draw everything from the state; prev (the state before) decides what pops
+  drawMemory(s, prev); drawLists(s, prev && s.weights.length > prev.weights.length ? s.weights.length - 1 : null); drawCap(s); drawTable(s, prev);
+  if (!prev || prev.con.length !== s.con.length) { CON.clear(); s.con.forEach(l => CON.print(l)); }
+}
+function restoreView() {
+  fk.clear(); applyState(S, null);
+  S.done.forEach(id => fk.highlight(id, 'done'));
+  if (S.active) fk.highlight(S.active, S.active === 'warn' ? 'error' : 'active');
+  if (S.active && $('#follow').checked) fk.focus(S.active); else if (!S.active) fk.fit();
+}
+
+// ------------------------------------------------------ step engine ----
+const fresh = () => Object.assign(baseState(), {phase: null, step: 0});
+let S = fresh(), hist = [], tl = null, running = false, timer = null, speed = 1;
+const SPEEDS = [0.25, 0.5, 1, 2, 4];
+function setPhase(p) { document.querySelectorAll('.phases li').forEach(li => li.classList.toggle('on', li.dataset.p === p)); const li = document.querySelector('.phases li[data-p="' + p + '"]'); $('#phaseTag').textContent = li ? li.textContent : 'Ready'; $('#phaseTag').style.setProperty('--pc', li ? getComputedStyle(li).getPropertyValue('--c') : 'var(--silk-dim)'); }
+function animStep(t, s, m) {
+  const before = snap(s);
+  t.call(() => { if (s.active) fk.highlight(s.active, 'done'); });
+  if (m.edges) { const f = fk.token(m.edges, m.label, m.color); if (f) t.add(f); }
+  t.call(() => { fk.highlight(m.node, m.node === 'warn' ? 'error' : 'active'); if ($('#follow').checked) fk.focus(m.node); applyState(m.after, before); });
+  t.to({}, {duration: .35});
+}
+function render() {
+  $('#hudStep').textContent = S.step; $('#hudTotal').textContent = STEPS.length; $('#hudPass').textContent = S.pass; $('#ctx').textContent = 'Step ' + S.step + ' of ' + STEPS.length;
+  $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = S.step >= STEPS.length; $('#btnRun').textContent = running ? 'Pause' : 'Run';
+  renderCode(S.step > 0 && S.step <= STEPS.length ? STEPS[S.step - 1].line : 0);
+  guide(S.step === 0 ? 2 : S.step < STEPS.length ? 2 : VER === 'while' ? 3 : 4,
+    S.step === 0 ? 'Press <b>Step</b> to start the ' + M.name + ' (' + (VER === 'while' ? 'while' : VER === 'for' ? 'for' : 'index') + ' version), or <b>Run</b> to play every step.'
+    : S.step < STEPS.length ? 'Read the explanation, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + STEPS.length + ' (pass ' + S.pass + ').'
+    : VER === 'while' ? 'Done. Press <b>Step back</b> to review, press <b>For version</b> to see the same job with a for loop, or try the <b>Overload manifest</b>.'
+    : 'Done. Scroll down to <b>Check Copilot\'s explanation</b>, or to <b>Try it</b> to run your own version.');
+}
+function finish(m) { tl = null; Object.assign(S, snap(m.after)); S.step++; render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed); } }
+function stepFwd(animated) {
+  if (tl) { tl.progress(1); return; }
+  if (S.step >= STEPS.length) return;
+  hist.push(snap(S));
+  const m = STEPS[S.step]; S.phase = m.phase; setPhase(m.phase); $('#narration').textContent = m.text; renderCode(m.line);
+  if (animated !== false && hasGSAP) { tl = gsap.timeline({onComplete: () => finish(m)}); animStep(tl, S, m); tl.timeScale(speed); }
+  else { const t = {call: f => f(), add: () => {}, to: () => {}}; animStep(t, S, m); finish(m); }
+}
+function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); setPhase(S.phase); restoreView(); $('#narration').textContent = 'Stepped back to step ' + S.step + '. Press Step to watch the next step again.'; render(); }
+function run() { if (S.step >= STEPS.length) return; running = true; render(); stepFwd(); }
+function stop() { running = false; clearTimeout(timer); render(); }
+function reset(msg) { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); hist = []; setPhase(null); restoreView(); $('#narration').textContent = msg || 'Press Step to start, or Run to play every step.'; render(); }
+function rebuild(msg) { stop(); if (tl) { tl.kill(); tl = null; } buildChart(); STEPS = GEN[VER](); reset(msg); }
+
+$('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
+$('#btnRun').addEventListener('click', () => running ? stop() : run());
+$('#btnBack').addEventListener('click', back);
+$('#btnReset').addEventListener('click', () => reset());
+$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
+$('#follow').addEventListener('change', e => { if (e.target.checked && S.active) fk.focus(S.active); else if (!e.target.checked) fk.fit(); });
+document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
+  if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click(); });
+
+// ------------------------------------------------- manifest pickers ----
+function setPicks(key) { $('#pickVan').setAttribute('aria-pressed', key === 'van'); $('#pickOver').setAttribute('aria-pressed', key === 'over'); }
+$('#pickVan').addEventListener('click', () => { M = MANIFESTS.van; setPicks('van'); $('#mhint').className = 'mhint'; $('#mhint').textContent = 'VAN-1: 12, 3, 20, 50, 45, then -1. Expected: 5 packages, 130 lb, heaviest 50 lb.'; rebuild('VAN-1 manifest loaded. Press Step to start.'); guide(2, 'Press <b>Step</b> to start the VAN-1 manifest.'); });
+$('#pickOver').addEventListener('click', () => { M = MANIFESTS.over; setPicks('over'); $('#mhint').className = 'mhint'; $('#mhint').textContent = 'Overload: 400, 350, 300, 200, then -1. Expected: 4 packages, 1250 lb, heaviest 400 lb, and the warning.'; rebuild('Overload manifest loaded. Press Step to start and watch the capacity bar.'); guide(2, 'Press <b>Step</b> to start the Overload manifest.'); });
+$('#btnOwn').addEventListener('click', () => {
+  const raw = $('#ownW').value.trim(), hint = $('#mhint');
+  const parts = raw === '' ? [] : raw.split(/[,\s;]+/).filter(Boolean);
+  const w = [];
+  for (const p of parts) { if (!/^\d+$/.test(p)) { hint.className = 'mhint bad'; hint.textContent = '"' + p + '" is not a whole number. Type weights like 600, 600 (no letters, no decimals).'; return; } const v = +p; if (v < 1 || v > 2000) { hint.className = 'mhint bad'; hint.textContent = 'Each weight must be from 1 to 2000 lb (' + v + ' is out of range). Zero and negative numbers are not packages, and -1 is reserved as the sentinel.'; return; } w.push(v); }
+  if (w.length > 6) { hint.className = 'mhint bad'; hint.textContent = 'Up to 6 weights here, so the chart stays readable. You typed ' + w.length + '.'; return; }
+  const fparts = $('#ownF').value.trim() === '' ? [] : $('#ownF').value.trim().toLowerCase().split(/[,\s;]+/).filter(Boolean);
+  const f = w.map((_, i) => fparts[i] === 'yes' ? 'yes' : 'no');
+  if (VER === 'index' && fparts.some(x => x !== 'yes' && x !== 'no')) { hint.className = 'mhint bad'; hint.textContent = 'Fragile answers must be yes or no, separated by commas (one per weight).'; return; }
+  M = {key: 'own', name: w.length ? 'your manifest' : 'empty manifest', w: w, f: f}; setPicks('own');
+  hint.className = 'mhint'; hint.textContent = w.length ? 'Your manifest: ' + w.join(', ') + ', then -1.' + (VER === 'index' ? ' Fragile: ' + f.join(', ') + '.' : '') : 'Empty manifest: the dispatcher types -1 first. Watch how many passes run.';
+  rebuild((w.length ? 'Your manifest is loaded.' : 'Empty manifest loaded.') + ' Press Step to start.'); guide(2, 'Press <b>Step</b> to start your manifest.');
+});
+document.querySelectorAll('.versions .btn').forEach(b => b.addEventListener('click', () => {
+  VER = b.dataset.v; document.querySelectorAll('.versions .btn').forEach(x => x.setAttribute('aria-pressed', x === b));
+  rebuild((VER === 'while' ? 'While version' : VER === 'for' ? 'For version' : 'Index version') + ' loaded for the ' + M.name + '. Press Step to start.');
+  guide(2, 'Press <b>Step</b> to run the ' + (VER === 'while' ? 'while' : VER === 'for' ? 'for' : 'index') + ' version of the ' + M.name + '.');
+}));
+
+// ------------------------------------------- the Copilot sentence checker ----
+const SENTS = [
+  {s: 'The loop keeps running while the weight that was just read is not -1.', v: true, why: 'True. Every row of the trace table with True in the weight != -1 column is a pass that ran; the exit row shows the first False.'},
+  {s: 'count starts at 1, so that the first package is counted.', v: false, why: 'False. VAN-1 row 0 shows count 0 before the loop, and row 1 shows count 1 after the first package. Starting at 1 would report 6 packages.'},
+  {s: 'total adds up every weight read before the sentinel.', v: true, why: 'True. VAN-1 rows 1 to 5: 12, 15, 35, 85, 130. The exit row keeps 130: the -1 is never added.'},
+  {s: 'The loop stops as soon as total goes above 1,200.', v: false, why: 'False. Overload row 4 shows total 1,250, and the loop still read the next weight (-1) and tested it on the exit row. The capacity check comes after the loop.'},
+  {s: 'heaviest changes only on a pass where the weight read is bigger than the heaviest so far.', v: true, why: 'True. VAN-1 rows 1, 3, and 4 change heaviest (12, 20, 50); rows 2 and 5 keep it.'},
+  {s: 'For the VAN-1 manifest the loop body runs 6 times, once per value typed, including the -1.', v: false, why: 'False. VAN-1 has 5 passes (rows 1 to 5). The exit row shows -1 was read and tested, and the body never ran for it.'}
+];
+let ans = SENTS.map(() => null);
+$('#sents').innerHTML = SENTS.map((x, i) => '<li><div class="s">' + (i + 1) + '. ' + esc(x.s) + '</div><div class="tf"><button type="button" data-i="' + i + '" data-v="1" aria-pressed="false">True</button><button type="button" data-i="' + i + '" data-v="0" aria-pressed="false">False</button></div><div class="why"></div></li>').join('');
+$('#sents').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const i = +b.dataset.i; ans[i] = b.dataset.v === '1'; b.parentNode.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); guide(4, ans.every(a => a !== null) ? 'All six marked. Press <b>Check sentences</b>.' : 'Mark every sentence True or False, then press <b>Check sentences</b>.'); });
+$('#btnSents').addEventListener('click', () => {
+  if (ans.some(a => a === null)) { $('#sentScore').textContent = 'Mark every sentence first.'; guide(4, 'Mark every sentence True or False, then press <b>Check sentences</b>.'); return; }
+  let right = 0;
+  document.querySelectorAll('#sents li').forEach((li, i) => { const ok = ans[i] === SENTS[i].v; right += ok; li.className = ok ? 'ok' : 'bad'; li.querySelector('.why').textContent = (ok ? 'Right. ' : 'Not right: you marked it ' + (ans[i] ? 'True' : 'False') + '. ') + SENTS[i].why; });
+  $('#sentScore').innerHTML = '<span class="big">' + right + '</span> of 6 right.' + (right === 6 ? ' Every verdict cites a row: that is proof, not opinion.' : ' Read the row cited under each sentence and try again.');
+  guide(5, right === 6 ? 'Scroll down to <b>Try it</b> and run the Python.' : 'Fix the wrong marks using the rows cited, press <b>Check sentences</b> again, then scroll to <b>Try it</b>.');
+});
+
+// ------------------------------------------------------ the sandbox ----
+const SANDBOX_CODE = ['CAPACITY = 1200', '', '# a helper for the two tests below (functions are week 4; leave it as it is)', 'def manifest_total(weights):', '    total = 0', '    for w in weights:', '        total = total + w', '    return total', '',
+  'total = 0', 'count = 0', 'heaviest = 0', 'weights = []', 'weight = int(input("Weight in lb (-1 to stop): "))', 'while weight != -1:', '    weights.append(weight)', '    total = total + weight', '    count = count + 1', '    if weight > heaviest:', '        heaviest = weight',
+  '    weight = int(input("Weight in lb (-1 to stop): "))', 'print(f"{count} packages, {total} lb, heaviest {heaviest} lb")', 'if total > CAPACITY:', '    print("WARNING: over capacity")'].join('\n');
+PySandbox($('#sandbox'), {code: SANDBOX_CODE, inputs: '12\n3\n20\n50\n45\n-1', tests: [{expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}]});
+
+window.__loopRunner = {busy: () => !!tl || running, state: () => S, steps: () => STEPS};
+buildChart(); STEPS = GEN[VER](); reset();
+})();
+</script>
+</body>
+</html>

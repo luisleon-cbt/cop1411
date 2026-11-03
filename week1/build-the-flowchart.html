@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build the flowchart</title>
+<meta name="description" content="COP1411 Week 1 interactive: Drag symbols into empty slots, run the token, and earn points when the chart reaches END with the right label on the screen.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+  /* ===== end of theme ===== */
+
+
+  /* page-specific CSS below (flowchart challenge) */
+  .bench{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:900px){.bench{grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr)}}
+  .flowcard{position:relative;width:100%;height:440px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  @media(min-width:900px){.flowcard{height:560px}}
+  .flowcard .flow{position:absolute;inset:0;width:100%;height:100%}
+  .work h3{margin:0 0 8px;font:600 11px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--silk-dim)}
+  .work p{margin:0 0 10px;font-size:14px;color:var(--silk-dim)}
+  .palette{display:grid;gap:8px;grid-template-columns:1fr;margin-bottom:14px}
+  .pc{position:relative;padding:9px 12px 9px 12px;border-radius:6px;background:#F4F5FA;color:#1A1D2E;font:600 12.5px/1.35 var(--font-mono);border:2px solid #8A90B8;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;white-space:pre-wrap;z-index:1}
+  .pc.io{background:#E6F5FB;border-color:#2A8FBF;border-radius:4px;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);padding-left:20px;padding-right:20px}
+  .pc.process{border-radius:4px}.pc.call{border-left:8px double #3FA36B;border-right:8px double #3FA36B;background:#E3F7EC;border-color:#3FA36B}
+  .pc.terminal{border-radius:20px;background:#FBF4DD;border-color:#C9A227}
+  .pc .k{display:block;font:500 9.5px var(--font-mono);letter-spacing:.1em;color:#5f6aa8;margin-bottom:2px}
+  .pc.placed{opacity:.45;cursor:pointer}.pc.placed .k::after{content:" · in slot " attr(data-slot);color:#1A1D2E;font-weight:700}
+  .pc.dragging{z-index:20;box-shadow:0 10px 24px rgba(0,0,0,.45);opacity:1}
+  .pc.locked{cursor:default}
+  .slots{display:grid;gap:6px}
+  .slotrow{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;padding:6px 8px;border:1px dashed var(--line-2);border-radius:6px;background:rgba(11,15,43,.5)}
+  .slotrow.over{border-color:var(--cbt-gold);background:rgba(224,184,64,.12)}
+  .slotrow .n{font:600 11px var(--font-mono);color:var(--silk-dim);letter-spacing:.06em;white-space:nowrap}
+  .slotrow select{width:100%;font-size:12.5px;padding:6px 8px}
+  .parts{display:grid;gap:8px;margin-bottom:12px}
+  .parts button{text-align:left;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14px var(--font-body);cursor:pointer;line-height:1.4}
+  .parts button[aria-pressed="true"]{border-color:var(--cbt-gold);background:rgba(224,184,64,.12)}
+  .parts button[aria-pressed="true"]::before{content:"\2713  ";color:var(--cbt-gold);font-weight:700}
+  .parts button:disabled{cursor:default;opacity:.8}
+  .promptbox{background:#0b0f2b;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:13.5px;line-height:1.5;min-height:3.2em;color:var(--silk)}
+  .promptbox .h{font:500 10px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--silk-dim);display:block;margin-bottom:4px}
+  .screen-h{font:500 10px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--silk-dim);margin:10px 0 4px}
+  .mini{font-size:12.5px;color:var(--silk-dim);margin-top:8px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 1 · Interactive B</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero split reveal" style="--i:0">
+    <div><span class="eyebrow">COP1411 · Week 1 · Interactive B · Challenge</span><h1>Build the flowchart</h1><p class="lede">Dante, the Palmetto Parcel dispatcher, describes a job in one sentence. You build it as a flowchart: drag the symbols into the empty slots, press Run, and watch the data token walk the chart. It reaches END with the right text on the screen, or it stops coral at the first symbol that uses a value nobody has read or computed yet.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Half</b><span>credit for one swapped pair</span></div><div><b>Shuffled</b><span>every attempt</span></div></div>
+  </section>
+  <aside class="card reveal" style="--i:1" data-ref="FLOWCHART">
+    <h2 id="benchTitle">The chart and the symbols</h2>
+    <div class="bench">
+      <div>
+        <div class="flowcard" id="stage"></div>
+        <div class="screen-h">Screen</div>
+        <div id="screen"></div>
+      </div>
+      <div class="work" id="work"></div>
+    </div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">Fill every slot, then press Run the chart below. The token tells you what happened.</p></div>
+    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
+  </aside>
+  <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How this challenge works</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Read the job in the round below. In building rounds, <b>drag each symbol card</b> onto an empty slot of the chart (or pick it in the slot's list). In other rounds, <b>pick an answer</b> or <b>click the prompt parts</b>.</li>
+      <li data-h="2">Press <b>Run the chart</b> (or <b>Check</b>). The token walks the chart; the feedback shows your points and why.</li>
+      <li data-h="3">Press <b>Play the explanation</b> to watch a working chart run with the real values.</li>
+      <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> if you want a better score.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and fill the slots.</span></div>
+      <ul class="tips"><li>Full points for a working order, half when exactly two neighboring symbols are swapped. Click a filled symbol on the chart to send its card back. Over the flowchart: + and - zoom, drag the background to move, FIT shows everything.</li></ul>
+    </div>
+  </section>
+  <section class="card reveal" style="--i:3" data-ref="ROUND">
+    <div class="progress" id="prog"></div>
+    <h2 id="qTitle">Round 1</h2>
+    <p id="qText" style="margin:0 0 6px"></p>
+    <div class="opts" id="opts"></div>
+    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Run the chart</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
+    <div id="fb"></div>
+  </section>
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
+    <h2>Your results</h2>
+    <div class="scroll-x"><table class="data" id="resTable"></table></div>
+    <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
+  </section>
+</main>
+<footer class="foot">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+const hasDrag = hasGSAP && !!window.Draggable;
+if (hasDrag) gsap.registerPlugin(Draggable);
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+// FLOWKIT START
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot), orthogonal arrows
+// with Yes/No labels and loop-back routes, a data token that travels the arrows carrying the real value, node highlighting,
+// memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows});
+//   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
+//   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
+//   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
+//   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
+//   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
+function FlowKit(stage, opts) {
+  'use strict';
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, nodes: [], edges: []}, opts || {});
+  const NS = 'http://www.w3.org/2000/svg';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
+    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#F4F5FA', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(238,240,248,.08)'},
+    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}};
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2;
+  const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const mk = el('marker', {id: 'fk-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.arrow}, mk);
+  const mk2 = el('marker', {id: 'fk-arrow-hot', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.active}, mk2);
+  const glow = el('filter', {id: 'fk-glow', x: '-20%', y: '-20%', width: '140%', height: '140%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: '#161c4d', stroke: '#2a3270'});
+  const grid = el('g', {opacity: .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: '#2a3270', 'stroke-dasharray': '3 6'}, grid);
+  const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
+  const nodes = {}, edges = {};
+  let pick = null;
+
+  function shape(n, g) {
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 26 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
+    let s;
+    if (n.type === 'terminal') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'io') { const k = 16; s = el('polygon', {points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'decision') s = el('polygon', {points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'call') { s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx - w / 2 + 8, y1: cy - h / 2, x2: cx - w / 2 + 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx + w / 2 - 8, y1: cy - h / 2, x2: cx + w / 2 - 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: fill, stroke: stroke, 'stroke-width': 1.5, 'stroke-dasharray': '6 5'}, g);
+    else s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke};
+  }
+  function text(n, g, geo) {
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11 : 12.5, lh = 15;
+    const t = el('text', {x: geo.cx, y: geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? '#aeb3c9' : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 600}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.cx, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    return t;
+  }
+  function addNode(n) {
+    const g = el('g', {class: 'fk-node', 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': (n.type + ': ' + (n.text || n.id)).replace(/\n/g, ' '), style: 'cursor:pointer'}, L.nodes);
+    const geo = shape(n, g); const t = text(n, g, geo);
+    const rec = Object.assign({}, n, {g: g, geo: geo, t: t, state: null});
+    const fire = () => pick && pick(n.id);
+    g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    nodes[n.id] = rec; return rec;
+  }
+  // anchor points on a node: top, bottom, left, right
+  function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
+  function route(e) {
+    const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
+    if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
+    const pts = [];
+    if (b.row > a.row && !e.side) {              // downward: bottom to top, with a jog when the columns differ
+      const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
+      if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
+      pts.push(t); return pts;
+    }
+    if (e.side) {                                 // a branch: leave sideways, go to the target column, then down into the target
+      const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
+      if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
+      else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
+      return pts;
+    }
+    // loop back: bottom, down a bit, over to the lane, up above the target, over, into the top
+    const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
+    pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
+    return pts;
+  }
+  function addEdge(e) {
+    const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+    const g = el('g', {class: 'fk-edge'}, L.edges);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.2, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    let lab = null;
+    if (e.label) { const p0 = pts[0], p1 = pts[1], lx = p0[0] + (p1[0] - p0[0]) * (e.side ? .18 : 0) + (e.side === 'left' ? -8 : e.side === 'right' ? 8 : 10), ly = p0[1] + (p1[1] - p0[1]) * (e.side ? 0 : .5) + (e.side ? -8 : 4);
+      lab = el('text', {x: lx, y: ly, fill: C.arrow, 'font-size': 11, 'font-weight': 700, 'font-family': 'Figtree, sans-serif', 'text-anchor': e.side === 'left' ? 'end' : 'start'}, L.labels); lab.textContent = e.label; }
+    const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
+  }
+  O.nodes.forEach(addNode); O.edges.forEach(addEdge);
+
+  function highlight(id, state) {
+    const r = nodes[id]; if (!r) return; r.state = state;
+    const base = r.geo.stroke;
+    r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4 : 2);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else r.geo.s.removeAttribute('filter');
+    r.g.setAttribute('opacity', state === 'done' ? .8 : 1);
+  }
+  function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), lh = 15; r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.cx, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 7}}, {attr: {'stroke-width': 4}, duration: .5}); }
+  function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
+  function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
+  // a token travels along one or more edges (keys "from>to"); the pill carries the value
+  function token(keys, label, color) {
+    const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
+    const g = el('g', {class: 'fk-token'}, L.tokens);
+    const tw = Math.max(28, String(label).length * 7.2 + 16);
+    el('circle', {r: 15, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -11, width: tw, height: 22, rx: 11, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1}, g);
+    const t = el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
+    const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
+    const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
+    list.forEach(e => { e.path.setAttribute('stroke', C.active); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+    place(0);
+    if (!hasGSAP || reduce) { place(1); setTimeout(() => g.remove(), 500); return null; }
+    const o = {u: 0};
+    return gsap.timeline({onComplete: () => g.remove()}).to(o, {u: 1, duration: Math.max(.5, total / 320), ease: 'none', onUpdate: () => place(o.u)});
+  }
+  // view: zoom and pan through the viewBox
+  const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
+  const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * home.h / home.w; V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), home.h * 1.1 - V.h); }
+  function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
+  function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  function fit() { go(home); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * home.h / home.w}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply();
+  if (!document.getElementById('flowkit-css')) {
+    const st = document.createElement('style'); st.id = 'flowkit-css';
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4}' +
+      '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
+      '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
+      '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
+      '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
+      '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}';
+    document.head.appendChild(st);
+  }
+  const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+  box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
+  stage.appendChild(box);
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fit(); });
+  let drag = null;
+  svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
+  svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
+  svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
+
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  window.__flows = window.__flows || []; window.__flows.push(api);
+  return api;
+}
+// memory boxes: FlowKit.memory(host, [{name, label}]) -> {set, get, reset}
+FlowKit.memory = function (host, vars) {
+  host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
+  const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+    get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
+};
+// the program's screen: FlowKit.console(host) -> {print, clear, lines}
+FlowKit.console = function (host) {
+  host.classList.add('fk-con'); const lines = []; const render = () => { host.textContent = lines.length ? lines.join('\n') : ''; const c = document.createElement('span'); c.className = 'cur'; host.appendChild(c); };
+  render();
+  return {print(t) { lines.push(String(t)); render(); }, clear() { lines.length = 0; render(); }, lines: () => lines.slice()};
+};
+// FLOWKIT END
+
+// ---- rounds: six building rounds (drag symbols into slots), two inputs-and-output rounds, two prompt rounds; 10 points each ----
+const io = (id, text, needs, gives, out) => ({id: id, type: 'io', text: text, needs: needs || [], gives: gives || {}, out: out || null});
+const pr = (id, text, needs, gives) => ({id: id, type: 'process', text: text, needs: needs || [], gives: gives || {}});
+const LABEL_CHART = {nodes: [{id: 'start', type: 'terminal', text: 'START'}, {id: 'inW', type: 'io', text: 'INPUT weight'}, {id: 'inM', type: 'io', text: 'INPUT miles'}, {id: 'proc', type: 'process', text: 'price = 4.50 + 0.80 * weight\n+ 0.25 * miles'}, {id: 'out', type: 'io', text: 'OUTPUT "Package price: $"\nprice'}, {id: 'end', type: 'terminal', text: 'END'}],
+  walk: [['start>inW', '?', '#38B0E0', null], ['inW>inM', '12.0', '#38B0E0', null], ['inM>proc', '12.0, 8.0', '#38B0E0', null], ['proc>out', '16.1', '#9FE7FF', null], ['out>end', 'done', '#6FD49B', 'Package price: $16.10']]};
+const CHANGE_CHART = {nodes: [{id: 'start', type: 'terminal', text: 'START'}, {id: 'inT', type: 'io', text: 'INPUT total'}, {id: 'inC', type: 'io', text: 'INPUT cash'}, {id: 'proc', type: 'process', text: 'change = cash - total'}, {id: 'out', type: 'io', text: 'OUTPUT "Change: $" change'}, {id: 'end', type: 'terminal', text: 'END'}],
+  walk: [['start>inT', '?', '#38B0E0', null], ['inT>inC', '16.1', '#38B0E0', null], ['inC>proc', '16.1, 20.0', '#38B0E0', null], ['proc>out', '3.9', '#9FE7FF', null], ['out>end', 'done', '#6FD49B', 'Change: $3.90']]};
+const ROUNDS = [
+  {type: 'build', q: 'Make a label for package PP-2026-0001 (12 lb, 8 miles): read the weight and the miles, compute the price, print the label.', expect: 'Package price: $16.10',
+    cards: [io('a', 'INPUT weight', [], {weight: '12'}), io('b', 'INPUT miles', [], {miles: '8'}), pr('c', 'price = 4.50 + 0.80 * weight\n+ 0.25 * miles', ['weight', 'miles'], {price: '16.1'}), io('d', 'OUTPUT "Package price: $"\nprice', ['price'], {}, 'Package price: $16.10'), io('x', 'OUTPUT "Lane: " lane', ['lane'], {}, 'Lane: ?')]},
+  {type: 'build', q: 'Load VAN-1 (capacity 1,200 lb): read how many packages are on the dock and their total weight, compute how many pounds the van still has free, print the manifest line.', expect: 'VAN-1: 5 packages, 1070 lb free',
+    cards: [io('a', 'INPUT packages', [], {packages: '5'}), io('b', 'INPUT total', [], {total: '130'}), pr('c', 'free = 1200 - total', ['total'], {free: '1070'}), io('d', 'OUTPUT "VAN-1: " packages\n" packages, " free " lb free"', ['packages', 'free'], {}, 'VAN-1: 5 packages, 1070 lb free'), pr('x', 'free = free - weight', ['free', 'weight'], {free: '?'})]},
+  {type: 'build', q: 'Deliver package PP-2026-0002 to Doral Dental Group: read the tracking number and the name of the receiver, build the delivery note, print it.', expect: 'PP-2026-0002 delivered to Doral Dental Group',
+    cards: [io('a', 'INPUT tracking', [], {tracking: 'PP-2026-0002'}), io('b', 'INPUT receiver', [], {receiver: 'Doral Dental Group'}), pr('c', 'note = tracking &\n" delivered to " & receiver', ['tracking', 'receiver'], {note: 'note'}), io('d', 'OUTPUT note', ['note'], {}, 'PP-2026-0002 delivered to Doral Dental Group'), io('x', 'OUTPUT "Signed by " signature', ['signature'], {}, 'Signed by ?')]},
+  {type: 'build', q: 'Compute the change for a cash delivery: read the total (16.10) and the cash the customer hands over (20.00), compute the change, print it.', expect: 'Change: $3.90',
+    cards: [io('a', 'INPUT total', [], {total: '16.1'}), io('b', 'INPUT cash', [], {cash: '20.0'}), pr('c', 'change = cash - total', ['cash', 'total'], {change: '3.9'}), io('d', 'OUTPUT "Change: $" change', ['change'], {}, 'Change: $3.90'), pr('x', 'change = change - tip', ['change', 'tip'], {change: '?'})]},
+  {type: 'build', q: 'Check a tracking number that a customer typed with extra spaces and lowercase letters: read it, clean it (trim the spaces, make it uppercase), look up its status, print the number and the status.', expect: 'PP-2026-0001: out for delivery',
+    cards: [io('a', 'INPUT typed', [], {typed: '" pp-2026-0001 "'}), pr('b', 'clean = uppercase(trim(typed))', ['typed'], {clean: 'PP-2026-0001'}), pr('c', 'status = look up clean\nin the dispatch list', ['clean'], {status: 'out for delivery'}), io('d', 'OUTPUT clean ": " status', ['clean', 'status'], {}, 'PP-2026-0001: out for delivery'), io('x', 'OUTPUT "Driver: " driver', ['driver'], {}, 'Driver: ?')]},
+  {type: 'build', q: 'Print a receipt for Sabor Cubano Bakery: read the customer name and the price, build the receipt text, print it, and save it to a file (printing and saving can go in either order).', expect: 'Receipt: Sabor Cubano Bakery, $16.10',
+    cards: [io('a', 'INPUT customer', [], {customer: 'Sabor Cubano Bakery'}), io('b', 'INPUT price', [], {price: '16.1'}), pr('c', 'receipt = "Receipt: " & customer\n& ", $" & price', ['customer', 'price'], {receipt: 'receipt'}), io('d', 'OUTPUT receipt', ['receipt'], {}, 'Receipt: Sabor Cubano Bakery, $16.10'), {id: 'e', type: 'call', text: 'save receipt to file', needs: ['receipt'], gives: {}}, io('x', 'OUTPUT "Paid with " method', ['method'], {}, 'Paid with ?')]},
+  {type: 'mc', chart: LABEL_CHART, q: 'Read the chart above. Which answer names its inputs and its output?', opts: [
+    ['Inputs: weight and miles. Output: the price label.', 10, 'The two parallelograms at the top read a value from the user, so they are the inputs. The parallelogram at the bottom prints the only result, the label.'],
+    ['Inputs: weight, miles, and price. Output: the price label.', 4, 'Weight and miles are right, but price is computed by the PROCESS rectangle from the other two; nobody types it, so it is not an input.'],
+    ['Input: the price label. Outputs: weight and miles.', 0, 'Backwards. The label is what comes out of the program; the weight and the miles go in.'],
+    ['Inputs: 4.50, 0.80, and 0.25. Output: price.', 0, 'Those numbers are fixed inside the step and never change from one run to the next, so they are not inputs. And the output is the printed label, not the stored number.']]},
+  {type: 'mc', chart: {nodes: [{id: 'start', type: 'terminal', text: 'START'}, {id: 'inN', type: 'io', text: 'INPUT name'}, {id: 'inB', type: 'io', text: 'INPUT boxes'}, {id: 'proc', type: 'process', text: 'line = name & " sent " & boxes\n& " boxes today."'}, {id: 'out', type: 'io', text: 'OUTPUT line'}, {id: 'end', type: 'terminal', text: 'END'}],
+      walk: [['start>inN', '?', '#38B0E0', null], ['inN>inB', 'Sabor Cubano Bakery', '#38B0E0', null], ['inB>proc', 'Sabor Cubano Bakery, 4', '#38B0E0', null], ['proc>out', 'line', '#9FE7FF', null], ['out>end', 'done', '#6FD49B', 'Sabor Cubano Bakery sent 4 boxes today.']]},
+    q: 'This chart runs at the counter when a customer drops off boxes. Which answer names its inputs and its output?', opts: [
+    ['Inputs: the customer name and the number of boxes. Output: the sentence "Sabor Cubano Bakery sent 4 boxes today."', 10, 'Two INPUT symbols read the name and the count; the PROCESS joins them into one sentence; the OUTPUT prints that sentence.'],
+    ['Inputs: the questions "Customer name?" and "How many boxes?". Output: the sentence.', 4, 'The questions are the prompts the program shows. The inputs are the answers the user types: the name and the number of boxes.'],
+    ['Input: the sentence. Outputs: the name and the number of boxes.', 0, 'Backwards. The sentence is built from the name and the count, so it comes out at the end.'],
+    ['No inputs: the dispatcher types the sentence and the program prints it.', 0, 'The chart has two INPUT symbols; the sentence is never typed, it is built by the PROCESS from the two inputs.']]},
+  {type: 'prompt', chart: LABEL_CHART, cover: {inputs: ['inW', 'inM'], steps: ['proc'], output: ['out']}, q: 'Build the Microsoft Copilot prompt for the price label. Click the parts that belong in a precise prompt (the inputs, the steps, the expected output) and leave the filler out, then press Check. The chart shows which symbols your prompt covers (green) and which ones Copilot has to guess (coral).',
+    parts: [{k: 'filler', t: 'Please make it look professional and modern.'}, {k: 'inputs', t: 'Inputs: the weight of one package in pounds and the miles to deliver it, both typed by the user.'}, {k: 'steps', t: 'Steps: price = 4.50 + 0.80 * weight + 0.25 * miles.'}, {k: 'filler', t: 'Use your best judgment for anything I forgot.'}, {k: 'output', t: 'Expected output: one line, "Package price: $" and the price with two decimals. Example: 12 lb and 8 miles print Package price: $16.10.'}]},
+  {type: 'prompt', chart: CHANGE_CHART, cover: {inputs: ['inT', 'inC'], steps: ['proc'], output: ['out']}, q: 'Build the Microsoft Copilot prompt for the change calculator the drivers use. Click the parts that belong in a precise prompt and leave the filler out, then press Check.',
+    parts: [{k: 'inputs', t: 'Inputs: the total of the delivery and the cash the customer hands over, both typed by the driver.'}, {k: 'filler', t: 'Make it fast and user friendly.'}, {k: 'steps', t: 'Steps: change = cash - total.'}, {k: 'output', t: 'Expected output: one line, "Change: $" and the change with two decimals. Example: total 16.10 and cash 20.00 print Change: $3.90.'}, {k: 'filler', t: 'Add anything else a delivery company might need.'}]}
+];
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+// ---- scoring for the building rounds (pure functions, exposed as window.__score for tests) ----
+function walkIds(R, ids) {   // ids: card ids in slot order. Returns {ok, failAt, missing, printed, steps}
+  const byId = {}; R.cards.forEach(c => { byId[c.id] = c; });
+  const have = {}; let printed = []; let carry = '?';
+  const steps = [];
+  for (let i = 0; i < ids.length; i++) {
+    const c = byId[ids[i]]; if (!c) return {ok: false, failAt: i, missing: null, printed: printed, steps: steps, empty: true};
+    const missing = c.needs.find(n => !(n in have));
+    steps.push({i: i, card: c, carry: carry, missing: missing || null});
+    if (missing) return {ok: false, failAt: i, missing: missing, card: c, printed: printed, steps: steps};
+    Object.keys(c.gives).forEach(k => { have[k] = c.gives[k]; });
+    const vals = Object.keys(c.gives).map(k => c.gives[k]); if (vals.length) carry = vals.join(', ');
+    if (c.out) { printed.push(c.out); carry = c.out; }
+  }
+  const ok = printed.length === 1 && printed[0] === R.expect;
+  return {ok: ok, failAt: -1, missing: null, printed: printed, steps: steps, carry: carry};
+}
+function scoreBuild(R, ids) {
+  const w = walkIds(R, ids);
+  if (w.ok) return {pts: 10, w: w, why: 'working'};
+  for (let i = 0; i + 1 < ids.length; i++) { const s = ids.slice(); [s[i], s[i + 1]] = [s[i + 1], s[i]]; if (walkIds(R, s).ok) return {pts: 5, w: w, why: 'swap', swap: i}; }
+  return {pts: 0, w: w, why: 'broken'};
+}
+function scorePrompt(R, chosen) { const need = ['inputs', 'steps', 'output'].filter(k => chosen.includes(k)).length, fill = chosen.filter(k => k === 'filler').length; return {pts: Math.max(0, (need === 3 ? 10 : 3 * need) - 2 * fill), need: need, fill: fill}; }
+window.__score = {walkIds: walkIds, scoreBuild: scoreBuild, scorePrompt: scorePrompt, ROUNDS: ROUNDS};
+
+// ---- the chart in the card ----
+let fk = null, CON = FlowKit.console($('#screen')), tlPlay = null;
+function column(nodes) { return {cols: 1, rows: nodes.length, colW: 360, rowH: 80, nodeW: 280, nodes: nodes.map((n, i) => Object.assign({col: 0, row: i}, n)), edges: nodes.slice(1).map((n, i) => ({from: nodes[i].id, to: n.id}))}; }
+function newChart(spec) { if (tlPlay) { tlPlay.kill(); tlPlay = null; } const st = $('#stage'); st.innerHTML = ''; fk = FlowKit(st, spec); CON.clear(); return fk; }
+// walk the token along edges: steps [[edgeKey, label, color, printText], ...]; onArrive(i) runs when the token reaches the end of edge i
+function playWalk(steps, onArrive, onDone) {
+  if (tlPlay) { tlPlay.kill(); tlPlay = null; }
+  const t = hasGSAP ? gsap.timeline({onComplete: () => { tlPlay = null; if (onDone) onDone(); }}) : null;
+  steps.forEach((s, i) => { const from = s[0].split('>')[0], to = s[0].split('>')[1];
+    const arrive = () => { fk.highlight(from, 'done'); fk.highlight(to, 'active'); if (s[3]) CON.print(s[3]); if (onArrive) onArrive(i, to); };
+    if (t) { t.call(() => fk.highlight(from, 'active')); const f = fk.token(s[0], s[1], s[2]); if (f) t.add(f); t.call(arrive); t.to({}, {duration: .35}); }
+    else { fk.highlight(from, 'active'); fk.token(s[0], s[1], s[2]); arrive(); } });
+  if (t) { tlPlay = t; } else if (onDone) onDone();
+  return t;
+}
+
+let order = [], r = 0, picked = null, total = 0, log = [], R = null, slots = [], chosen = [], locked = false, drags = [];
+
+// ---- building rounds: palette cards, slots, drag and drop, selects ----
+function buildRound() {
+  const n = R.cards.length - 1; slots = new Array(n).fill(null); locked = false;
+  const nodes = [{id: 'start', type: 'terminal', text: 'START'}].concat(slots.map((_, i) => ({id: 's' + (i + 1), type: 'slot', text: 'slot ' + (i + 1) + ': drop a symbol here'}))).concat([{id: 'end', type: 'terminal', text: 'END'}]);
+  newChart(column(nodes));
+  fk.onPick(id => { if (locked || !/^s\d+$/.test(id)) return; const i = +id.slice(1) - 1; if (slots[i]) { slots[i] = null; sync(); } });
+  R._cards = shuffle(R.cards);
+  $('#benchTitle').textContent = 'The chart and the symbols';
+  $('#work').innerHTML = '<h3>Symbol cards (' + (n + 1) + ', one does not belong)</h3><p>Drag a card onto a slot of the chart, or pick it in the slot list. Click a filled symbol on the chart to send its card back.</p><div class="palette" id="palette">' +
+    R._cards.map(c => '<div class="pc ' + c.type + '" data-id="' + c.id + '" tabindex="0"><span class="k">' + c.type.toUpperCase() + '</span>' + esc(c.text) + '</div>').join('') + '</div>' +
+    '<h3>Slots (keyboard)</h3><div class="slots" id="slotrows">' + slots.map((_, i) => '<div class="slotrow" data-slot="' + i + '"><span class="n">SLOT ' + (i + 1) + '</span><select aria-label="Symbol for slot ' + (i + 1) + '" data-slot="' + i + '"><option value="">(empty)</option>' + R._cards.map(c => '<option value="' + c.id + '">' + esc(c.text.replace(/\n/g, ' ')) + '</option>').join('') + '</select></div>').join('') + '</div>';
+  document.querySelectorAll('#slotrows select').forEach(sel => sel.addEventListener('change', e => { if (locked) return; place(e.target.value || null, +e.target.dataset.slot); }));
+  drags.forEach(d => d.kill()); drags = [];
+  if (hasDrag) {
+    drags = Draggable.create('#palette .pc', {type: 'x,y', zIndexBoost: false, onPress: function () { if (locked) { this.endDrag(); return; } this.target.classList.add('dragging'); },
+      onDrag: function () { document.querySelectorAll('.slotrow').forEach(row => row.classList.toggle('over', this.hitTest(row, '40%'))); },
+      onRelease: function () { const el = this.target; el.classList.remove('dragging'); document.querySelectorAll('.slotrow').forEach(row => row.classList.remove('over'));
+        let target = -1; if (!locked) { for (let i = 0; i < slots.length; i++) { const g = document.querySelector('#stage .fk-node[data-id="s' + (i + 1) + '"]'), row = document.querySelector('.slotrow[data-slot="' + i + '"]'); if ((g && this.hitTest(g, '40%')) || (row && this.hitTest(row, '40%'))) { target = i; break; } } }
+        gsap.set(el, {x: 0, y: 0}); if (target >= 0) place(el.dataset.id, target); else if (!locked && this.hitTest('#palette', '40%') && slots.includes(el.dataset.id)) { slots[slots.indexOf(el.dataset.id)] = null; sync(); } }});
+  }
+  sync();
+}
+function place(cardId, slot) {   // put a card in a slot; the previous occupant goes where the card came from (its old slot, or the palette)
+  const from = cardId ? slots.indexOf(cardId) : -1, occupant = slots[slot];
+  if (from >= 0) slots[from] = occupant && occupant !== cardId ? occupant : null;
+  slots[slot] = cardId || null; sync();
+}
+function sync() {
+  const byId = {}; R.cards.forEach(c => { byId[c.id] = c; });
+  slots.forEach((id, i) => { const sid = 's' + (i + 1); if (id) fk.fill(sid, {type: byId[id].type, text: byId[id].text}); else fk.empty(sid, 'slot ' + (i + 1) + ': drop a symbol here'); });
+  document.querySelectorAll('#palette .pc').forEach(el => { const i = slots.indexOf(el.dataset.id); el.classList.toggle('placed', i >= 0); el.classList.toggle('locked', locked); el.querySelector('.k').dataset.slot = i >= 0 ? String(i + 1) : ''; });
+  document.querySelectorAll('#slotrows select').forEach(sel => { sel.value = slots[+sel.dataset.slot] || ''; sel.disabled = locked; });
+  const filled = slots.filter(Boolean).length;
+  if (!locked) guide(filled < slots.length ? 1 : 2, filled < slots.length ? 'Fill the ' + (slots.length - filled) + ' empty slot' + (slots.length - filled === 1 ? '' : 's') + ' (' + filled + ' of ' + slots.length + ' filled), then press <b>Run the chart</b>.' : 'Every slot is filled. Press <b>Run the chart</b> to watch the token.');
+}
+function runBuild() {
+  if (slots.includes(null)) { $('#fb').innerHTML = '<div class="feedback info">Fill every slot first. ' + slots.filter(x => !x).length + ' slot(s) are still empty.</div>'; return false; }
+  locked = true; sync(); CON.clear(); fk.clear();
+  const res = scoreBuild(R, slots), w = res.w, byId = {}; R.cards.forEach(c => { byId[c.id] = c; });
+  const steps = []; const ids = ['start'].concat(slots.map((_, i) => 's' + (i + 1))).concat(['end']);
+  const upTo = w.failAt >= 0 ? w.failAt : slots.length;   // the token reaches slot failAt (index) and stops there
+  for (let i = 0; i <= upTo && i < ids.length - 1; i++) { const st = w.steps[i]; const card = i < slots.length ? byId[slots[i]] : null;
+    const fails = i === upTo && w.failAt >= 0;
+    steps.push([ids[i] + '>' + ids[i + 1], st ? st.carry : (w.carry || '?'), fails ? '#F0786A' : i === slots.length ? '#6FD49B' : '#38B0E0', card && card.out && !fails ? card.out : null]); }
+  let msg;
+  if (w.failAt >= 0) { const c = w.card; msg = 'The token stopped at slot ' + (w.failAt + 1) + ': ' + c.text.replace(/\n/g, ' ') + ' uses ' + w.missing + ', but no earlier symbol read or computed ' + w.missing + '. A symbol cannot use a value that nobody has produced yet.' + (c.id === 'x' ? ' That card is the one that does not belong to this job.' : ''); }
+  else if (!w.ok) msg = 'The token reached END, but the screen does not show ' + R.expect + '. ' + (w.printed.length ? 'It printed something else.' : 'Nothing was printed: the job needs an OUTPUT symbol.');
+  else msg = 'The token reached END and the screen shows ' + R.expect + '. Every symbol found the values it needed.';
+  const why = res.pts === 10 ? 'Working order.' : res.pts === 5 ? 'Half credit: exactly two neighboring symbols are swapped (slots ' + (res.swap + 1) + ' and ' + (res.swap + 2) + '). Swap them and the chart works.' : 'No points this round.';
+  playWalk(steps, (i, to) => { if (w.failAt >= 0 && to === 's' + (w.failAt + 1)) fk.highlight(to, 'error'); }, () => { if (w.ok) fk.highlight('end', 'done'); });
+  $('#capT').textContent = res.pts === 10 ? 'It works' : res.pts === 5 ? 'Almost' : 'Stopped'; $('#capB').textContent = msg;
+  finishRound(res.pts, slots.map(id => byId[id].text.replace(/\n/g, ' ')).join(' > '), msg + ' ' + why, res.pts === 10 ? 'ok' : res.pts === 5 ? 'info' : 'bad');
+  return true;
+}
+function playBuild() {   // show a working order and run it
+  if (tlPlay) { tlPlay.kill(); tlPlay = null; }
+  const good = R.cards.filter(c => c.id !== 'x').map(c => c.id); slots = good.slice(); locked = true; sync(); fk.clear(); CON.clear();
+  const w = walkIds(R, slots), ids = ['start'].concat(slots.map((_, i) => 's' + (i + 1))).concat(['end']), byId = {}; R.cards.forEach(c => { byId[c.id] = c; });
+  const steps = ids.slice(1).map((to, i) => [ids[i] + '>' + to, w.steps[i] ? w.steps[i].carry : w.carry, i === slots.length ? '#6FD49B' : '#38B0E0', i < slots.length && byId[slots[i]].out ? byId[slots[i]].out : null]);
+  $('#capT').textContent = 'A working order'; $('#capB').textContent = 'Reads first (in either order when they are independent), then the computation that needs both values, then the output. The token now carries a value at every arrow and ends with ' + R.expect + ' on the screen.';
+  playWalk(steps, null, () => fk.highlight('end', 'done'));
+}
+
+// ---- multiple choice rounds ----
+function mcRound() {
+  newChart(column(R.chart.nodes)); fk.onPick(id => { const n = fk.nodes[id]; $('#capT').textContent = n.type.toUpperCase(); $('#capB').textContent = {terminal: 'A terminal symbol: where the program starts or stops.', io: 'An input or output symbol: a parallelogram reads a value from the user or shows a result on the screen.', process: 'A process symbol: a rectangle computes something and stores it in a memory box.'}[n.type] + ' This one says: ' + n.text.replace(/\n/g, ' ') + '.'; });
+  $('#benchTitle').textContent = 'Read the chart'; $('#work').innerHTML = '<h3>How to read it</h3><p>Click any symbol for its meaning. Then pick an answer in the round below and press Check. After that, Play the explanation runs the chart with real values.</p>';
+  R._opts = shuffle(R.opts); picked = null;
+  $('#opts').innerHTML = R._opts.map((o, i) => '<button type="button" data-i="' + i + '">' + esc(o[0]) + '</button>').join('');
+  guide(1, 'Read the chart above, then <b>pick one answer</b> below and press <b>Check</b>.');
+}
+function checkMC() {
+  if (picked === null) { guide(1, 'Pick an answer first, then press <b>Check</b>.'); return false; }
+  const o = R._opts[picked], best = R._opts.find(x => x[1] === 10);
+  document.querySelectorAll('#opts button').forEach((b, i) => { b.disabled = true; b.style.borderColor = ''; if (R._opts[i] === best) b.classList.add('right'); else if (i === picked) b.classList.add('wrong'); });
+  finishRound(o[1], o[0], o[2] + (o === best ? '' : ' The best answer: ' + best[0] + ' ' + best[2]), o[1] === 10 ? 'ok' : o[1] > 0 ? 'info' : 'bad');
+  $('#capT').textContent = o[1] === 10 ? 'Right' : 'Review'; $('#capB').textContent = best[2];
+  return true;
+}
+function playChart() { fk.clear(); CON.clear(); $('#capT').textContent = 'The chart runs'; $('#capB').textContent = 'Watch the token: a question mark until the first INPUT, then the values it carries, then the printed result.'; playWalk(R.chart.walk, null, () => fk.highlight('end', 'done')); }
+
+// ---- prompt rounds ----
+function promptRound() {
+  newChart(column(R.chart.nodes)); chosen = []; locked = false; R._parts = shuffle(R.parts);
+  $('#benchTitle').textContent = 'The chart your prompt must describe';
+  $('#work').innerHTML = '<h3>Prompt parts (click to include)</h3><div class="parts" id="parts">' + R._parts.map((p, i) => '<button type="button" data-i="' + i + '" aria-pressed="false">' + esc(p.t) + '</button>').join('') + '</div><div class="promptbox" id="pbox"><span class="h">Your prompt</span><span id="ptext">(nothing yet)</span></div>';
+  document.querySelectorAll('#parts button').forEach(b => b.addEventListener('click', () => { if (locked) return; const i = +b.dataset.i; const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); if (on) chosen.push(i); else chosen = chosen.filter(x => x !== i); coverage(); }));
+  coverage();
+  fk.onPick(id => { const n = fk.nodes[id]; $('#capT').textContent = n.state === 'done' ? 'Covered' : 'Copilot has to guess'; $('#capB').textContent = n.text.replace(/\n/g, ' ') + (n.state === 'done' ? ' is described by a part of your prompt.' : ' is not described by any part of your prompt yet, so Copilot would invent it.'); });
+}
+function coverage() {
+  const kinds = chosen.map(i => R._parts[i].k); fk.clear();
+  Object.keys(R.cover).forEach(k => R.cover[k].forEach(id => fk.highlight(id, kinds.includes(k) ? 'done' : 'error')));
+  fk.highlight('start', 'done'); fk.highlight('end', 'done');
+  $('#ptext').textContent = chosen.length ? chosen.map(i => R._parts[i].t).join(' ') : '(nothing yet)';
+  const guess = Object.keys(R.cover).filter(k => !kinds.includes(k)).length;
+  if (!locked) guide(chosen.length ? 2 : 1, chosen.length ? (guess ? 'Your prompt still leaves ' + guess + ' part' + (guess === 1 ? '' : 's') + ' of the chart coral. Add parts or press <b>Check</b>.' : 'Every working symbol is green. Press <b>Check</b>.') : '<b>Click the prompt parts</b> that belong in a precise prompt.');
+}
+function checkPrompt() {
+  if (!chosen.length) { guide(1, 'Click at least one prompt part, then press <b>Check</b>.'); return false; }
+  locked = true; document.querySelectorAll('#parts button').forEach(b => { b.disabled = true; });
+  const kinds = chosen.map(i => R._parts[i].k), s = scorePrompt(R, kinds);
+  const missing = ['inputs', 'steps', 'output'].filter(k => !kinds.includes(k));
+  let msg = s.need === 3 ? 'All three parts are there: Copilot has nothing to guess, and the example gives you a known answer to test its program against.' : 'Your prompt leaves out the ' + missing.join(' and the ') + ' part' + (missing.length === 1 ? '' : 's') + ': the coral symbols are where Copilot would invent something, and an invented price rule looks exactly as confident as the right one.';
+  if (s.fill) msg += ' The ' + s.fill + ' filler sentence' + (s.fill === 1 ? '' : 's') + ' cost 2 points each: "professional", "fast", or "anything I forgot" tell Copilot nothing it can check, and they invite extra steps you did not ask for.';
+  $('#capT').textContent = s.pts === 10 ? 'Precise prompt' : 'Review'; $('#capB').textContent = msg;
+  finishRound(s.pts, kinds.map(k => k).join(', '), msg, s.pts === 10 ? 'ok' : s.pts > 0 ? 'info' : 'bad');
+  return true;
+}
+function playPrompt() { Object.keys(R.cover).forEach(k => R.cover[k].forEach(id => fk.highlight(id, 'done'))); CON.clear(); $('#capT').textContent = 'With the precise prompt'; $('#capB').textContent = 'All symbols covered. The token runs the program the prompt describes and prints the example from the expected-output line.'; playWalk(R.chart.walk, null, () => fk.highlight('end', 'done')); }
+
+// ---- round flow ----
+function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+function showRound() {
+  R = ROUNDS[order[r]]; picked = null; $('#fb').innerHTML = ''; $('#opts').innerHTML = ''; CON.clear();
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length; $('#qText').textContent = R.q;
+  $('#capT').textContent = 'Ready'; $('#capB').textContent = R.type === 'build' ? 'Fill every slot, then press Run the chart below. The token tells you what happened.' : R.type === 'mc' ? 'Pick an answer below. After Check, press Play the explanation to watch the chart run with real values.' : 'Click prompt parts on the right: the chart shows live what your prompt covers.';
+  $('#btnCheck').textContent = R.type === 'build' ? 'Run the chart' : 'Check';
+  $('#btnCheck').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true; drawProgress();
+  if (R.type === 'build') buildRound(); else if (R.type === 'mc') mcRound(); else promptRound();
+}
+function finishRound(pts, answer, why, cls) {
+  total += pts; log[r] = {q: R.q, a: answer, pts: pts, max: 10};
+  $('#fb').innerHTML = '<div class="feedback ' + cls + '"><b>' + pts + ' of 10 points.</b> ' + esc(why) + '</div>';
+  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
+  guide(3, 'Read the feedback. Press <b>Play the explanation</b> to watch a working chart, then <b>Next round</b>.');
+}
+$('#opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); guide(2, 'Press <b>Check</b> to see your points.'); });
+$('#btnCheck').addEventListener('click', () => { if (R.type === 'build') runBuild(); else if (R.type === 'mc') checkMC(); else checkPrompt(); });
+$('#btnPlay').addEventListener('click', () => { if (R.type === 'build') playBuild(); else if (R.type === 'mc') playChart(); else playPrompt(); });
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); } else finishAll(); });
+function finishAll() {
+  guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent: you can order the symbols of a job and write a precise prompt.' : total >= 70 ? ' Good. Replay the rounds you missed: the rule is always the same, a symbol cannot use a value nobody has produced yet.' : ' Try again after Interactive A: watch where each value is born on the chart.'); $('#opts').innerHTML = ''; $('#work').innerHTML = ''; $('#btnCheck').disabled = true; $('#btnNext').disabled = true; $('#btnPlay').disabled = true;
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
+  drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function start() { order = shuffle(ROUNDS.map((_, i) => i)); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+$('#btnAgain').addEventListener('click', start);
+window.__challenge = {start: start, state: () => ({r: r, order: order, total: total, slots: slots, type: R && R.type}), place: place, pick: i => { picked = i; }, choose: idx => { chosen = idx.slice(); coverage(); }, parts: () => R._parts, opts: () => R._opts};
+start();
+})();
+</script>
+</body>
+</html>

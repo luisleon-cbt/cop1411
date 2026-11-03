@@ -8,10 +8,10 @@ Live site: https://luisleon-cbt.github.io/cop1411/
 
 | Folder | Topic | Interactive A | Interactive B |
 |---|---|---|---|
-| week1 | What an algorithm is | label-printer.html | assemble-the-algorithm.html |
-| week2 | Decisions | sorting-floor.html | cover-every-branch.html |
-| week3 | Repetition | loading-the-van.html | trace-race.html |
-| week4 | Decomposition and the final project | call-stack-tower.html | bug-hunt.html |
+| week1 | What an algorithm is | flowchart-runner.html | build-the-flowchart.html |
+| week2 | Decisions | decision-diamonds.html | cover-every-branch.html |
+| week3 | Repetition | loop-runner.html | trace-race.html |
+| week4 | Decomposition and the final project | function-calls.html | bug-hunt.html |
 
 ## Publishing
 
@@ -19,4 +19,4 @@ Live site: https://luisleon-cbt.github.io/cop1411/
 2. In the repository, open Settings, then Pages, and set Source to "Deploy from a branch", branch `main`, folder `/ (root)`.
 3. Each page is then live at `https://luisleon-cbt.github.io/cop1411/weekN/<file>.html`.
 
-The pages load the CBT logo from `luisleon-cbt/items`, and GSAP, Three.js, Prism, and fonts from public CDNs, and Python itself (Pyodide, about 10 MB) the first time a Try it box is run. The pages need no build step.
+The pages load the CBT logo from `luisleon-cbt/items`, and GSAP, Prism, and fonts from public CDNs, and Python itself (Pyodide, about 10 MB) the first time a Try it box is run. The flowcharts are SVG drawn and animated with JavaScript; the pages need no build step.

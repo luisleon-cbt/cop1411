@@ -4,16 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cover every branch</title>
-<meta name="description" content="COP1411 Week 2 interactive: Pick the fewest packages that light every line of the sorter, predict lanes and prices, and catch the case Copilot&#x27;s sorter gets wrong.">
+<meta name="description" content="COP1411 Week 2 interactive: Light every arrow of the sorter with the fewest packages, predict lanes and prices, and find the one package that exposes the bug in Copilot&#x27;s order.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Flip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<!-- Remove the library tags this page does not use. Pyodide loads lazily from the PySandbox kit on the first Run. -->
 <style>
   /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
   :root{
@@ -265,41 +266,30 @@
   @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
   /* ===== end of theme ===== */
 
-  /* page-specific CSS below (sorting floor scene) */
-  .scene{position:relative;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
-  .scene canvas,.scene svg.flat{position:absolute;inset:0;width:100%;height:100%;display:block}
+  /* page-specific CSS below (flowchart challenge) */
+  .flowcard{position:relative;width:100%;aspect-ratio:16/9;min-height:240px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  @media(max-width:640px){.flowcard{aspect-ratio:4/3}}
+  .flowcard .flow{position:absolute;inset:0;width:100%;height:100%}
   .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
   .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
-  .code .ln.lit{background:rgba(111,212,155,.16);box-shadow:inset 3px 0 0 var(--ok)}.code .ln.lit.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
-  .code .ln.dark{color:#8b93b8}
   .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
-  .cp{display:inline-block;margin-left:10px;padding:1px 7px;border-radius:999px;font:600 10.5px var(--font-mono);letter-spacing:.06em;vertical-align:1px;line-height:1.5}
-  .cp.t{background:rgba(111,212,155,.2);color:#6FD49B}.cp.f{background:rgba(240,120,106,.22);color:#F0786A}.cp.s{background:rgba(174,179,201,.14);color:#aeb3c9}.cp.q{background:rgba(174,179,201,.1);color:#6b7190}
-  .zoomctl{position:absolute;z-index:4;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
-  .zoomctl button{width:38px;height:34px;border:0;border-radius:4px;background:transparent;color:var(--silk);font:600 18px/1 var(--font-mono);cursor:pointer;padding:0}
-  .zoomctl button.fit{font-size:10px;letter-spacing:.06em;height:28px}.zoomctl button:hover{background:var(--panel-2);color:var(--cbt-gold)}
-  .zoomctl button:focus-visible{outline:2px solid var(--cbt-gold);outline-offset:1px}
-  .zoomctl .pad{display:grid;grid-template-columns:repeat(3,26px);grid-template-rows:repeat(3,24px);gap:1px;margin:3px 0;padding-top:4px;border-top:1px solid var(--line)}
-  .zoomctl .pad button{width:26px;height:24px;font-size:12px}.zoomctl .pad .u{grid-area:1/2}.zoomctl .pad .l{grid-area:2/1}.zoomctl .pad .c{grid-area:2/2;font-size:9px}.zoomctl .pad .r{grid-area:2/3}.zoomctl .pad .d{grid-area:3/2}
-  @media(max-width:520px){.zoomctl{right:8px;padding:3px}.zoomctl button{width:30px;height:28px;font-size:16px}.zoomctl button.fit{height:24px;font-size:9px}.zoomctl .pad{grid-template-columns:repeat(3,22px);grid-template-rows:repeat(3,22px)}.zoomctl .pad button{width:22px;height:22px;font-size:10px}}
-  .card .zoomctl{right:10px}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
-  .chip{font:600 11.5px var(--font-mono);letter-spacing:.04em;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--silk-dim);background:var(--panel-2)}
-  .chip.lit{border-color:var(--ok);color:var(--ok);background:rgba(111,212,155,.12)}
-  .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
-  .pcard{text-align:left;padding:9px 11px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 12.5px var(--font-body);cursor:pointer;display:grid;gap:2px;position:relative}
-  .pcard b{font:700 13px var(--font-mono);color:var(--cbt-gold)}.pcard.frag b{color:var(--cbt-sky)}
-  .pcard .fr{font:600 10.5px var(--font-mono);color:var(--cbt-sky);letter-spacing:.06em;text-transform:uppercase}
-  .pcard .res{font:600 11px var(--font-mono);color:var(--silk-dim);min-height:1.2em}
+  .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-top:10px}
+  .pcard{text-align:left;padding:9px 11px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);cursor:pointer;display:grid;gap:2px;font-family:var(--font-body)}
+  .pcard b{font:700 12.5px var(--font-mono);color:var(--cbt-gold)}
+  .pcard span{font-size:12.5px;color:var(--silk-dim)}
   .pcard:hover:not(:disabled){border-color:var(--cbt-gold)}
-  .pcard.used{border-color:var(--ok);background:rgba(111,212,155,.08);cursor:default}.pcard.used .res{color:var(--ok)}
-  .pcard.bug{border-color:var(--bad);background:rgba(240,120,106,.1)}.pcard.bug .res{color:var(--bad)}
-  .pcard.dud{opacity:.55;cursor:default}
-  .pcard:disabled{cursor:default}
-  .count{font:500 12.5px var(--font-mono);color:var(--silk-dim);margin-top:8px}
-  .count b{color:var(--silk)}
-  .code{margin-top:10px;font-size:12.5px}
-  .stepper{flex-wrap:wrap}
+  .pcard.used{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .pcard.used b::after{content:" \2713";color:var(--ok)}
+  .pcard.dud{border-color:var(--warn);background:rgba(224,184,64,.08)}
+  .pcard.hit{border-color:var(--bad);background:rgba(240,120,106,.12)}
+  .pcard:disabled{cursor:default;opacity:.85}
+  .covbar{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .covbar b{color:var(--silk);font-weight:700}
+  .covbar .lit{color:var(--ok)}
+  .plog{margin:8px 0 0;padding:0;list-style:none;font-size:13px;color:var(--silk-dim);display:grid;gap:3px;max-height:140px;overflow:auto}
+  .plog li b{color:var(--silk);font-weight:600}
+  .plog li.none{color:var(--warn)}
+  .code.small{font-size:12.5px;margin:8px 0}
 </style>
 </head>
 <body>
@@ -312,41 +302,42 @@
 
 <main class="wrap">
   <section class="hero split reveal" style="--i:0">
-    <div><span class="eyebrow">COP1411 · Week 2 · Challenge</span><h1>Cover every branch</h1><p class="lede">Pick the fewest packages that light every line of the sorter, predict lanes and prices, and catch the case Copilot's sorter gets wrong.</p></div>
-    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit where fair</span></div><div><b>In order</b><span>cover, predict, then Copilot</span></div></div>
+    <div><span class="eyebrow">COP1411 · Week 2 · Challenge</span><h1>Cover every branch</h1><p class="lede">Light every arrow of the sorter with the fewest packages, predict lanes and prices, and find the one package that exposes the bug in Copilot's order.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit where fair</span></div><div><b>9</b><span>packages on the shelf</span></div></div>
   </section>
-  <aside class="card reveal" style="--i:1" data-ref="SCENE">
-    <h2>Watch it happen</h2>
-    <div class="scene stage wide" id="stage" aria-label="The sorting floor. Each package you pick rides the conveyor here."></div>
-    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">Pick a package card in the round below and watch it ride the floor. After you check an answer, press Play the explanation to see the key package again.</p></div>
+  <aside class="card reveal" style="--i:1" data-ref="FLOWCHART">
+    <h2>Watch it on the flowchart</h2>
+    <div class="flowcard" id="stage"></div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">In a coverage round, every arrow the token travels turns green. In a question round, press Play the explanation after you check your answer.</p></div>
     <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
   </aside>
   <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
     <h2 id="guideTitle">How this challenge works</h2>
     <ol class="steps" id="howSteps">
-      <li data-h="1">Read the round below. In a coverage round, <b>click package cards</b> one at a time: each one rides the floor above and lights the lines it runs in green. In the other rounds, <b>pick one answer</b>.</li>
-      <li data-h="2">Press <b>Check</b> (or <b>Check coverage</b>). You see your points and why the best answer is best.</li>
-      <li data-h="3">Press <b>Play the explanation</b> to watch the key package ride the floor again.</li>
+      <li data-h="1">Read the round below. In a coverage round, <b>click package cards</b> on the shelf one at a time and watch the token light arrows green on the chart above. In a question round, <b>pick one answer</b>.</li>
+      <li data-h="2">Press <b>Check coverage</b> (or <b>Check</b>). You see your points and why: a dark arrow scores zero, and every extra package costs 2 points.</li>
+      <li data-h="3">Press <b>Play the explanation</b> to watch the best set of packages, or the right path, on the flowchart above.</li>
       <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> if you want a better score.</li>
     </ol>
     <div>
       <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and click a package card.</span></div>
-      <ul class="tips"><li>Coverage rounds: full points for lighting every branch with the minimum number of packages, minus 2 per extra package, and zero when a branch stays dark.</li><li>Over the floor: + and - zoom, 0 fits, the arrow keys move the view.</li></ul>
+      <ul class="tips"><li>The nine packages are the eight from the reference table plus PP-2026-0009. Rounds come in a fixed order; answer choices are shuffled. Over the flowchart: + and - zoom, drag to move, FIT shows everything.</li></ul>
     </div>
   </section>
   <section class="card reveal" style="--i:3" data-ref="ROUND">
     <div class="progress" id="prog"></div>
     <h2 id="qTitle">Round 1</h2>
     <p id="qText" style="margin:0 0 6px"></p>
-    <pre class="code" id="rcode" hidden></pre>
-    <div class="chips" id="chips" hidden></div>
-    <div class="shelf" id="shelf" hidden></div>
-    <p class="count" id="count" hidden></p>
+    <div id="shelfWrap" hidden>
+      <div class="covbar" id="covbar"></div>
+      <div class="shelf" id="shelf" aria-label="Package shelf"></div>
+      <ul class="plog" id="plog" aria-live="polite"></ul>
+    </div>
     <div class="opts" id="opts"></div>
-    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button><button class="btn" id="btnClear" type="button" hidden>Reset picks</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
+    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
     <div id="fb"></div>
   </section>
-  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="U3 · RESULTS">
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
     <h2>Your results</h2>
     <div class="scroll-x"><table class="data" id="resTable"></table></div>
     <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
@@ -358,400 +349,546 @@
 (function () {
 "use strict";
 const hasGSAP = typeof window.gsap !== 'undefined';
-const hasTHREE = typeof window.THREE !== 'undefined';
+if (hasGSAP && window.Draggable) gsap.registerPlugin(Draggable);
+if (hasGSAP && window.Flip) gsap.registerPlugin(Flip);
 function guide(stepNo, nowHtml) {
   document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
   if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
 }
 const $ = s => document.querySelector(s);
-// ---- the sorting floor: a conveyor, decision gates in a row, and a branch belt with bins off every gate.
-// Three.js when WebGL is there, otherwise an SVG top view of the same floor. Board units: the conveyor runs along x, belts branch toward +z.
-function FloorScene(stage, opts) {
-  opts = opts || {};
-  const LANE_COLORS = {FREIGHT: '#F0786A', FRAGILE: '#38B0E0', A: '#6FD49B', B: '#E0B840', C: '#A9B4FF', 'ASK DISPATCH': '#aeb3c9', VAN: '#6FD49B', SUR: '#38B0E0', NOSUR: '#6FD49B'};
-  const LAMP = {T: '#6FD49B', F: '#F0786A', E: '#E0B840', S: '#555d8a', off: '#3a4690'};
-  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let def = {gates: []}, geo = [], P = {x: -9.5, z: 0, y: 0, rot: 0}, pk = null, R = null;
-  const api = {onPick: null, def: () => def, geo: () => geo};
-  function layout(d) {
-    def = d; geo = [];
-    const n = d.gates.length, start = -5.5 + (3 - n) * 1.75;
-    d.gates.forEach((g, k) => {
-      const gx = start + k * 3.5, m = g.bins.length;
-      const bins = g.bins.map((b, j) => ({x: gx + (j - (m - 1) / 2) * 1.1, z: 4.4, id: b.id, label: b.label, color: b.color || LANE_COLORS[b.id] || '#aeb3c9'}));
-      geo.push({x: gx, label: g.label, bins: bins});
-    });
-  }
-  function gateX(k) { return geo[k] ? geo[k].x : 3.5; }
-  function apply() { if (R) R.place(P); }
-  function moveTo(tl, x, z, dur, rot) {
-    const t = {x: x, z: z}; if (rot !== undefined) t.rot = rot;
-    if (tl) tl.to(P, Object.assign({duration: dur, ease: 'power2.inOut', onUpdate: apply}, t)); else { Object.assign(P, t); apply(); }
-  }
-  // public animation primitives (each adds to a GSAP timeline, or applies at once when tl is null)
-  api.build = d => { layout(d); if (R) R.build(geo); api.reset(); };
-  api.setPackage = p => { pk = p; if (R) R.look(p); };
-  api.reset = () => { P = {x: -9.5, z: 0, y: 0, rot: 0}; apply(); if (R) { R.resetLamps(); R.hide(true); } };
-  api.enter = tl => { if (R) R.hide(false); P.x = -9.5; P.z = 0; P.y = 1.2; apply(); if (tl) tl.to(P, {y: 0, duration: .5, ease: 'bounce.out', onUpdate: apply}); else { P.y = 0; apply(); } };
-  api.rideTo = (k, tl) => { const x = gateX(k); moveTo(tl, x, 0, Math.max(.4, Math.abs(x - P.x) * .14)); };
-  api.lamp = (k, res, tl) => { const f = () => { if (R) R.lamp(k, res); }; if (tl) tl.call(f); else f(); };
-  api.divert = (k, j, tl) => { const b = geo[k].bins[j]; moveTo(tl, geo[k].x, .9, .45, 90); moveTo(tl, b.x, 3.4, .8); const f = () => { if (R) R.binGlow(k, j, true); }; if (tl) tl.call(f); else f(); };
-  api.pass = (k, tl) => { const nx = geo[k + 1] ? geo[k + 1].x - 1.6 : 3.4; moveTo(tl, nx, 0, .5); };
-  api.land = (k, j, tl) => { const b = geo[k].bins[j]; moveTo(tl, b.x, 4.4, .4); if (tl) tl.to(P, {y: .35, duration: .25, onUpdate: apply}).to(P, {y: 0, duration: .2, onUpdate: apply}); };
-  api.skip = (k, tl) => api.lamp(k, 'S', tl);
-  api.flash = tl => { const f = () => { if (R) R.flashPackage(); }; if (tl) tl.call(f); else f(); };
-  api.zoom = f => { if (R) R.zoom(f); }; api.pan = (dx, dz) => { if (R) R.pan(dx, dz); }; api.fit = () => { if (R) R.fit(); };
-  api.intro = () => { if (R && !reduced && hasGSAP) R.intro(); };
-  const MONO = '"Red Hat Mono", Consolas, monospace';
+// FLOWKIT START
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot), orthogonal arrows
+// with Yes/No labels and loop-back routes, a data token that travels the arrows carrying the real value, node highlighting,
+// memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows});
+//   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
+//   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
+//   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
+//   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
+//   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
+function FlowKit(stage, opts) {
+  'use strict';
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, nodes: [], edges: []}, opts || {});
+  const NS = 'http://www.w3.org/2000/svg';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = {ink: '#1A1D2E', line: '#5f6aa8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa',
+    fill: {terminal: '#FBF4DD', io: '#E6F5FB', process: '#F4F5FA', decision: '#E4E7FF', call: '#E3F7EC', slot: 'rgba(238,240,248,.08)'},
+    stroke: {terminal: '#C9A227', io: '#2A8FBF', process: '#8A90B8', decision: '#6B76D6', call: '#3FA36B', slot: '#8A90B8'}};
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2;
+  const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const mk = el('marker', {id: 'fk-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.arrow}, mk);
+  const mk2 = el('marker', {id: 'fk-arrow-hot', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M0,0 L10,5 L0,10 z', fill: C.active}, mk2);
+  const glow = el('filter', {id: 'fk-glow', x: '-20%', y: '-20%', width: '140%', height: '140%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: '#161c4d', stroke: '#2a3270'});
+  const grid = el('g', {opacity: .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - 8, stroke: '#2a3270', 'stroke-dasharray': '3 6'}, grid);
+  const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
+  const nodes = {}, edges = {};
+  let pick = null;
 
-  // ---------- Three.js renderer ----------
-  function three() {
-    const r = new THREE.WebGLRenderer({antialias: true, alpha: true}); r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    r.setSize(stage.clientWidth, stage.clientHeight); r.domElement.className = 'gl'; stage.appendChild(r.domElement);
-    const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0b0f2b, 26, 44);
-    const cam = new THREE.PerspectiveCamera(38, stage.clientWidth / stage.clientHeight, 0.1, 100);
-    const HOME = {pos: new THREE.Vector3(-2.5, 9, 11), tgt: new THREE.Vector3(-2.5, 0, 1.9)};
-    function homeFor() { // the floor is about 16 units wide and 9 deep: pick the distance that fits both into the view
-      const a = Math.max(.3, stage.clientWidth / Math.max(1, stage.clientHeight)), half = Math.tan(cam.fov * Math.PI / 360), narrow = a < 1.4;
-      const d = Math.max(8 / (half * a), 5 / half) * (narrow ? 1.02 : 1.08); const dir = new THREE.Vector3(0, .66, .75).normalize();
-      HOME.tgt.x = narrow ? -1.6 : -2.5; HOME.pos.copy(HOME.tgt).add(dir.multiplyScalar(d)); labelK = Math.min(1.8, Math.max(1, d / 13));
-    }
-    let labelK = 1, lastGeo = null, lastPk = null;
-    homeFor(); cam.position.copy(HOME.pos); cam.lookAt(HOME.tgt);
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x1b2150, 1.05)); const sun = new THREE.DirectionalLight(0xffffff, .75); sun.position.set(-6, 12, 8); scene.add(sun);
-    const ctl = window.THREE.OrbitControls ? new THREE.OrbitControls(cam, r.domElement) : null;
-    if (ctl) { ctl.enableDamping = true; ctl.target.copy(HOME.tgt); ctl.minDistance = 5; ctl.maxDistance = 40; ctl.maxPolarAngle = Math.PI * .47; }
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(34, 20), new THREE.MeshStandardMaterial({color: 0x121a4a, roughness: .95})); floor.rotation.x = -Math.PI / 2; floor.position.set(-2, -.02, 2); scene.add(floor);
-    const grid = new THREE.GridHelper(34, 34, 0x2a3470, 0x1f2860); grid.position.set(-2, 0, 2); scene.add(grid);
-    const mat = (c, o) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: .6, metalness: .15}, o || {}));
-    const belt = new THREE.Mesh(new THREE.BoxGeometry(13.5, .3, 1.4), mat(0x2b3566)); belt.position.set(-2.75, .15, 0); belt.userData.key = 'belt'; scene.add(belt);
-    for (let x = -9; x <= 3.5; x += .8) { const rl = new THREE.Mesh(new THREE.BoxGeometry(.08, .05, 1.3), mat(0x4a56a0)); rl.position.set(x, .33, 0); scene.add(rl); }
-    const stop = new THREE.Mesh(new THREE.BoxGeometry(.25, .7, 1.6), mat(0xF0786A)); stop.position.set(4.1, .35, 0); scene.add(stop);
-    const dyn = new THREE.Group(); scene.add(dyn);
-    const pickables = [];
-    function textSprite(text, color, h) {
-      const c = document.createElement('canvas'), x = c.getContext('2d'), px = 34; x.font = '600 ' + px + 'px ' + MONO;
-      const tw = Math.ceil(x.measureText(text).width); c.width = tw + 44; c.height = 60; const g = c.getContext('2d');
-      g.fillStyle = 'rgba(11,15,43,.88)'; g.strokeStyle = color; g.lineWidth = 3; g.beginPath(); if (g.roundRect) g.roundRect(2, 2, c.width - 4, c.height - 4, 10); else g.rect(2, 2, c.width - 4, c.height - 4); g.fill(); g.stroke();
-      g.font = '600 ' + px + 'px ' + MONO; g.fillStyle = color; g.textBaseline = 'middle'; g.fillText(text, 22, 31);
-      const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter; const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, depthTest: false, transparent: true}));
-      const hh = (h || .5) * labelK; sp.scale.set(hh * c.width / c.height, hh, 1); sp.renderOrder = 5; return sp;
-    }
-    let lamps = [], binMeshes = [], pkgMesh = null, pkgLabel = null;
-    function build(geo) {
-      lastGeo = geo; while (dyn.children.length) dyn.remove(dyn.children[0]); lamps = []; binMeshes = []; pickables.length = 0; if (pkgMesh) pickables.push(pkgMesh);
-      geo.forEach((g, k) => {
-        [-.95, .95].forEach(z => { const post = new THREE.Mesh(new THREE.BoxGeometry(.22, 1.7, .22), mat(0x4a56a0)); post.position.set(g.x, .85, z); dyn.add(post); });
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(.3, .22, 2.1), mat(0x4a56a0)); bar.position.set(g.x, 1.75, 0); bar.userData.key = 'gate:' + k; dyn.add(bar); pickables.push(bar);
-        const lamp = new THREE.Mesh(new THREE.SphereGeometry(.2, 18, 14), new THREE.MeshStandardMaterial({color: 0x3a4690, emissive: 0x3a4690, emissiveIntensity: .6})); lamp.position.set(g.x, 2.05, 0); lamp.userData.key = 'gate:' + k; dyn.add(lamp); lamps.push(lamp); pickables.push(lamp);
-        const gl = textSprite('GATE ' + (k + 1) + '  ' + g.label, '#eef1fa', .44); gl.position.set(g.x, k % 2 ? 3.3 : 2.7, 0); dyn.add(gl);
-        const bm = [];
-        g.bins.forEach((b, j) => {
-          const dx = b.x - g.x, L = Math.hypot(dx, 2.7); const bl = new THREE.Mesh(new THREE.BoxGeometry(g.bins.length > 1 ? .7 : 1, .22, L), mat(0x27305e)); bl.position.set(g.x + dx / 2, .11, 2.25); bl.rotation.y = -Math.atan2(dx, 2.7); dyn.add(bl);
-          const bin = new THREE.Mesh(new THREE.BoxGeometry(.95, .5, .95), mat(new THREE.Color(b.color).getHex(), {transparent: true, opacity: .85})); bin.position.set(b.x, .25, 4.4); bin.userData.key = 'lane:' + b.id; dyn.add(bin); pickables.push(bin); bm.push(bin);
-          const lb = textSprite(b.label, b.color, .42); lb.position.set(b.x, .18, j % 2 ? 5.75 : 5.15); dyn.add(lb);
-        });
-        binMeshes.push(bm);
-      });
-      const inL = textSprite('IN', '#aeb3c9', .4); inL.position.set(-9.3, 1.1, 0); dyn.add(inL);
-    }
-    function look(p) {
-      lastPk = p; if (pkgMesh) { scene.remove(pkgMesh); scene.remove(pkgLabel); const i = pickables.indexOf(pkgMesh); if (i >= 0) pickables.splice(i, 1); }
-      const s = .45 + .4 * Math.min(p.w, 80) / 80;
-      pkgMesh = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), mat(p.fr ? 0x38B0E0 : 0xE0B840, {roughness: .5})); pkgMesh.userData.key = 'pkg'; pkgMesh.userData.s = s; scene.add(pkgMesh); pickables.push(pkgMesh);
-      const tape = new THREE.Mesh(new THREE.BoxGeometry(s + .02, s * .18, s + .02), mat(p.fr ? 0x1B2150 : 0x8a6d1a)); pkgMesh.add(tape);
-      pkgLabel = textSprite(p.id.replace('PP-2026-', '#') + ' ' + p.w + ' lb' + (p.fr ? ' fragile' : ''), p.fr ? '#9FE7FF' : '#E0B840', .42); scene.add(pkgLabel);
-      place(P);
-    }
-    function place(P) { if (!pkgMesh) return; const s = pkgMesh.userData.s; pkgMesh.position.set(P.x, .3 + s / 2 + P.y, P.z); pkgMesh.rotation.y = P.rot * Math.PI / 180; pkgLabel.position.set(P.x, .3 + s + P.y + .55, P.z); }
-    function hide(h) { if (pkgMesh) { pkgMesh.visible = !h; pkgLabel.visible = !h; } }
-    function lamp(k, res) { const l = lamps[k]; if (!l) return; const c = new THREE.Color(LAMP[res] || LAMP.off); l.material.color.copy(c); l.material.emissive.copy(c); l.material.emissiveIntensity = res === 'S' || res === 'off' ? .4 : 1.2; }
-    function resetLamps() { lamps.forEach((l, k) => lamp(k, 'off')); binMeshes.forEach(bm => bm.forEach(b => { b.material.emissive.setHex(0); })); }
-    function binGlow(k, j, on) { const b = binMeshes[k] && binMeshes[k][j]; if (!b) return; if (on) { b.material.emissive.copy(b.material.color); b.material.emissiveIntensity = .35; } else b.material.emissive.setHex(0); }
-    function flashPackage() { if (!pkgMesh || !hasGSAP) return; const m = pkgMesh.material; m.emissive.set(0xF0786A); gsap.fromTo(m, {emissiveIntensity: 1}, {emissiveIntensity: 0, duration: 1.2}); }
-    function tgt() { return ctl ? ctl.target : HOME.tgt; }
-    function zoom(f) { const t = tgt(); const d = Math.min(40, Math.max(5, cam.position.distanceTo(t) * f)); const v = cam.position.clone().sub(t).normalize().multiplyScalar(d); cam.position.copy(t.clone().add(v)); }
-    function pan(dx, dz) { const t = tgt(); const v = new THREE.Vector3(dx * 1.2, 0, -dz * 1.2); t.add(v); cam.position.add(v); }
-    function fit() { if (hasGSAP && !reduced) { gsap.to(cam.position, {x: HOME.pos.x, y: HOME.pos.y, z: HOME.pos.z, duration: .6, ease: 'power2.inOut'}); if (ctl) gsap.to(ctl.target, {x: HOME.tgt.x, y: HOME.tgt.y, z: HOME.tgt.z, duration: .6}); } else { cam.position.copy(HOME.pos); if (ctl) ctl.target.copy(HOME.tgt); } }
-    function intro() { cam.position.copy(HOME.pos).multiplyScalar(1.8); gsap.to(cam.position, {x: HOME.pos.x, y: HOME.pos.y, z: HOME.pos.z, duration: 1.4, ease: 'power3.out'}); }
-    const ray = new THREE.Raycaster(), mv = new THREE.Vector2(); let down = null;
-    r.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
-    r.domElement.addEventListener('pointerup', e => {
-      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6 || !api.onPick) return;
-      const b = r.domElement.getBoundingClientRect(); mv.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); ray.setFromCamera(mv, cam);
-      const hit = ray.intersectObjects(pickables.concat([belt]), false)[0]; api.onPick(hit ? hit.object.userData.key : null);
-    });
-    let lastW = 0;
-    const resize = () => { const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return; r.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); const k0 = labelK; homeFor(); if (w !== lastW) { lastW = w; cam.position.copy(HOME.pos); if (ctl) ctl.target.copy(HOME.tgt); if (labelK !== k0 && lastGeo) { const vis = pkgMesh && pkgMesh.visible; build(lastGeo); if (lastPk) { look(lastPk); hide(!vis); } } } };
-    new ResizeObserver(resize).observe(stage);
-    (function loop() { requestAnimationFrame(loop); if (ctl) ctl.update(); r.render(scene, cam); })();
-    return {build, look, place, hide, lamp, resetLamps, binGlow, flashPackage, zoom, pan, fit, intro};
+  function shape(n, g) {
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 26 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
+    let s;
+    if (n.type === 'terminal') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'io') { const k = 16; s = el('polygon', {points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'decision') s = el('polygon', {points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    else if (n.type === 'call') { s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx - w / 2 + 8, y1: cy - h / 2, x2: cx - w / 2 + 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); el('line', {x1: cx + w / 2 - 8, y1: cy - h / 2, x2: cx + w / 2 - 8, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: fill, stroke: stroke, 'stroke-width': 1.5, 'stroke-dasharray': '6 5'}, g);
+    else s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4, fill: fill, stroke: stroke, 'stroke-width': 2}, g);
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke};
   }
-
-  // ---------- SVG renderer (top view) ----------
-  function flat() {
-    const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('class', 'flat'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Top view of the sorting floor');
-    stage.appendChild(svg);
-    const VB0 = {x: 0, y: 0, w: 640, h: 360}; let VB = Object.assign({}, VB0);
-    const setVB = () => svg.setAttribute('viewBox', VB.x + ' ' + VB.y + ' ' + VB.w + ' ' + VB.h); setVB();
-    const X = x => 330 + x * 32, Y = z => 70 + z * 50;
-    const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); (parent || svg).appendChild(n); return n; };
-    el('rect', {x: 4, y: 4, width: 632, height: 352, rx: 12, fill: '#121a4a', stroke: '#2a3470'});
-    for (let gx = 20; gx < 640; gx += 32) el('line', {x1: gx, y1: 4, x2: gx, y2: 356, stroke: '#1f2860', 'stroke-width': 1});
-    el('rect', {x: X(-9.5), y: Y(0) - 20, width: X(4) - X(-9.5), height: 40, rx: 4, fill: '#2b3566', stroke: '#3a4690', 'data-key': 'belt'});
-    for (let x = -9; x <= 3.5; x += .8) el('line', {x1: X(x), y1: Y(0) - 17, x2: X(x), y2: Y(0) + 17, stroke: '#4a56a0', 'stroke-width': 2});
-    el('rect', {x: X(4), y: Y(0) - 24, width: 6, height: 48, fill: '#F0786A'});
-    const t = el('text', {x: X(-9.4), y: Y(0) - 28, fill: '#aeb3c9', 'font-size': 11, 'font-family': MONO}); t.textContent = 'IN';
-    const dyn = el('g', {}); let lamps = [], binEls = [], pkgG = null, pkgRect = null, pkgText = null, pkgS = 20;
-    function build(geo) {
-      dyn.innerHTML = ''; lamps = []; binEls = [];
-      geo.forEach((g, k) => {
-        const gx = X(g.x); const bm = [];
-        g.bins.forEach((b, j) => {
-          const bx = X(b.x); el('line', {x1: gx, y1: Y(.9), x2: bx, y2: Y(3.6), stroke: '#27305e', 'stroke-width': g.bins.length > 1 ? 16 : 24, 'stroke-linecap': 'round'}, dyn);
-          const bin = el('rect', {x: bx - 15, y: Y(4.4) - 15, width: 30, height: 30, rx: 4, fill: b.color, 'fill-opacity': .85, stroke: b.color, 'data-key': 'lane:' + b.id}, dyn); bm.push(bin);
-          const tx = el('text', {x: bx, y: Y(4.4) + (j % 2 ? 42 : 30), fill: b.color, 'font-size': 10, 'text-anchor': 'middle', 'font-family': MONO, 'font-weight': 600}, dyn); tx.textContent = b.label;
-        });
-        binEls.push(bm);
-        const gg = el('g', {'data-key': 'gate:' + k}, dyn);
-        el('polygon', {points: [gx, Y(0) - 30, gx + 30, Y(0), gx, Y(0) + 30, gx - 30, Y(0)].join(','), fill: '#1a2257', stroke: '#4a56a0', 'stroke-width': 2}, gg);
-        lamps.push(el('circle', {cx: gx, cy: Y(0), r: 7, fill: LAMP.off}, gg));
-        const lt = el('text', {x: gx, y: Y(0) - (k % 2 ? 50 : 38), fill: '#eef1fa', 'font-size': 10.5, 'text-anchor': 'middle', 'font-family': MONO, 'font-weight': 600}, gg); lt.textContent = 'GATE ' + (k + 1) + ' ' + g.label;
-      });
-      if (pkgG) svg.appendChild(pkgG);
-    }
-    function look(p) {
-      if (pkgG) pkgG.remove();
-      pkgS = 14 + 12 * Math.min(p.w, 80) / 80;
-      pkgG = el('g', {'data-key': 'pkg'}); pkgRect = el('rect', {x: -pkgS / 2, y: -pkgS / 2, width: pkgS, height: pkgS, rx: 3, fill: p.fr ? '#38B0E0' : '#E0B840', stroke: p.fr ? '#1B2150' : '#8a6d1a', 'stroke-width': 2}, pkgG);
-      pkgText = el('text', {x: 0, y: -pkgS / 2 - 5, fill: p.fr ? '#9FE7FF' : '#E0B840', 'font-size': 10, 'text-anchor': 'middle', 'font-family': MONO, 'font-weight': 600}, pkgG);
-      pkgText.textContent = p.id.replace('PP-2026-', '#') + ' ' + p.w + ' lb' + (p.fr ? ' fragile' : ''); place(P);
-    }
-    function place(P) { if (!pkgG) return; pkgG.setAttribute('transform', 'translate(' + X(P.x) + ' ' + (Y(P.z) - P.y * 20) + ')'); pkgRect.setAttribute('transform', 'rotate(' + P.rot + ')'); }
-    function hide(h) { if (pkgG) pkgG.setAttribute('visibility', h ? 'hidden' : 'visible'); }
-    function lamp(k, res) { if (lamps[k]) lamps[k].setAttribute('fill', LAMP[res] || LAMP.off); }
-    function resetLamps() { lamps.forEach((l, k) => lamp(k, 'off')); binEls.forEach(bm => bm.forEach(b => b.setAttribute('stroke-width', 1))); }
-    function binGlow(k, j, on) { const b = binEls[k] && binEls[k][j]; if (b) b.setAttribute('stroke-width', on ? 4 : 1); }
-    function flashPackage() { if (!pkgRect) return; pkgRect.setAttribute('stroke', '#F0786A'); pkgRect.setAttribute('stroke-width', 4); setTimeout(() => { pkgRect.setAttribute('stroke-width', 2); }, 1200); }
-    function zoom(f) { const cx = VB.x + VB.w / 2, cy = VB.y + VB.h / 2; VB.w = Math.min(1280, Math.max(160, VB.w * f)); VB.h = VB.w * 360 / 640; VB.x = cx - VB.w / 2; VB.y = cy - VB.h / 2; setVB(); }
-    function pan(dx, dz) { VB.x += dx * 40; VB.y -= dz * 40; setVB(); }
-    function fit() { VB = Object.assign({}, VB0); setVB(); }
-    svg.addEventListener('click', e => { const g = e.target.closest('[data-key]'); if (api.onPick) api.onPick(g ? g.getAttribute('data-key') : null); });
-    return {build, look, place, hide, lamp, resetLamps, binGlow, flashPackage, zoom, pan, fit, intro() {}};
+  function text(n, g, geo) {
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11 : 12.5, lh = 15;
+    const t = el('text', {x: geo.cx, y: geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? '#aeb3c9' : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 600}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.cx, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    return t;
   }
+  function addNode(n) {
+    const g = el('g', {class: 'fk-node', 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': (n.type + ': ' + (n.text || n.id)).replace(/\n/g, ' '), style: 'cursor:pointer'}, L.nodes);
+    const geo = shape(n, g); const t = text(n, g, geo);
+    const rec = Object.assign({}, n, {g: g, geo: geo, t: t, state: null});
+    const fire = () => pick && pick(n.id);
+    g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    nodes[n.id] = rec; return rec;
+  }
+  // anchor points on a node: top, bottom, left, right
+  function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
+  function route(e) {
+    const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
+    if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
+    const pts = [];
+    if (b.row > a.row && !e.side) {              // downward: bottom to top, with a jog when the columns differ
+      const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
+      if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
+      pts.push(t); return pts;
+    }
+    if (e.side) {                                 // a branch: leave sideways, go to the target column, then down into the target
+      const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
+      if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
+      else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
+      return pts;
+    }
+    // loop back: bottom, down a bit, over to the lane, up above the target, over, into the top
+    const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
+    pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
+    return pts;
+  }
+  function addEdge(e) {
+    const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+    const g = el('g', {class: 'fk-edge'}, L.edges);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.2, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    let lab = null;
+    if (e.label) { const p0 = pts[0], p1 = pts[1], lx = p0[0] + (p1[0] - p0[0]) * (e.side ? .18 : 0) + (e.side === 'left' ? -8 : e.side === 'right' ? 8 : 10), ly = p0[1] + (p1[1] - p0[1]) * (e.side ? 0 : .5) + (e.side ? -8 : 4);
+      lab = el('text', {x: lx, y: ly, fill: C.arrow, 'font-size': 11, 'font-weight': 700, 'font-family': 'Figtree, sans-serif', 'text-anchor': e.side === 'left' ? 'end' : 'start'}, L.labels); lab.textContent = e.label; }
+    const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
+  }
+  O.nodes.forEach(addNode); O.edges.forEach(addEdge);
 
-  if (hasTHREE && window.WebGLRenderingContext) { try { R = three(); } catch (e) { console.error(e); R = null; } }
-  if (!R) { R = flat(); const n = document.createElement('div'); n.className = 'nogl'; n.textContent = 'Flat view: this browser has no WebGL, so the floor is drawn as a top view. Every step still works.'; stage.appendChild(n); }
-  // zoom buttons, pan pad, and keys (+ - 0, arrows while the pointer is over the floor)
-  (function zoomUI() {
-    const box = document.createElement('div'); box.className = 'zoomctl'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
-    box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in" title="Zoom in (+)">+</button><button type="button" data-z="out" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>' +
-      '<div class="pad" role="group" aria-label="Move the view"><button type="button" class="u" data-p="u" aria-label="Move the view up" title="Move up (arrow up)">&#9650;</button><button type="button" class="l" data-p="l" aria-label="Move the view left" title="Move left (arrow left)">&#9664;</button>' +
-      '<button type="button" class="c" data-z="fit" aria-label="Center the floor" title="Center the floor (0)">&#9679;</button><button type="button" class="r" data-p="r" aria-label="Move the view right" title="Move right (arrow right)">&#9654;</button><button type="button" class="d" data-p="d" aria-label="Move the view down" title="Move down (arrow down)">&#9660;</button></div>' +
-      '<button type="button" class="fit" data-z="fit" aria-label="Show the whole floor" title="Show the whole floor (0)">FIT</button>';
-    stage.appendChild(box);
-    ['pointerdown', 'pointerup', 'wheel', 'click'].forEach(ev => box.addEventListener(ev, e => e.stopPropagation()));
-    box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const pd = {l: [-1, 0], r: [1, 0], u: [0, 1], d: [0, -1]}[b.dataset.p];
-      if (pd) api.pan(pd[0], pd[1]); else if (b.dataset.z === 'in') api.zoom(.8); else if (b.dataset.z === 'out') api.zoom(1.25); else api.fit(); });
-    let over = false; stage.addEventListener('pointerenter', () => { over = true; }); stage.addEventListener('pointerleave', () => { over = false; });
-    document.addEventListener('keydown', e => { const t = e.target, tag = t && t.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
-      const ak = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1]}[e.key];
-      if (ak) { if (over || stage.contains(t)) { e.preventDefault(); api.pan(ak[0], ak[1]); } return; }
-      if (e.key === '+' || e.key === '=') api.zoom(.8); else if (e.key === '-' || e.key === '_') api.zoom(1.25); else if (e.key === '0') api.fit(); });
-  })();
+  function highlight(id, state) {
+    const r = nodes[id]; if (!r) return; r.state = state;
+    const base = r.geo.stroke;
+    r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4 : 2);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else r.geo.s.removeAttribute('filter');
+    r.g.setAttribute('opacity', state === 'done' ? .8 : 1);
+  }
+  function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), lh = 15; r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? 4.5 : 4.5 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.cx, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 7}}, {attr: {'stroke-width': 4}, duration: .5}); }
+  function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
+  function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
+  // a token travels along one or more edges (keys "from>to"); the pill carries the value
+  function token(keys, label, color) {
+    const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
+    const g = el('g', {class: 'fk-token'}, L.tokens);
+    const tw = Math.max(28, String(label).length * 7.2 + 16);
+    el('circle', {r: 15, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -11, width: tw, height: 22, rx: 11, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1}, g);
+    const t = el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
+    const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
+    const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
+    list.forEach(e => { e.path.setAttribute('stroke', C.active); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+    place(0);
+    if (!hasGSAP || reduce) { place(1); setTimeout(() => g.remove(), 500); return null; }
+    const o = {u: 0};
+    return gsap.timeline({onComplete: () => g.remove()}).to(o, {u: 1, duration: Math.max(.5, total / 320), ease: 'none', onUpdate: () => place(o.u)});
+  }
+  // view: zoom and pan through the viewBox
+  const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
+  const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * home.h / home.w; V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), home.h * 1.1 - V.h); }
+  function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
+  function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  function fit() { go(home); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * home.h / home.w}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply();
+  if (!document.getElementById('flowkit-css')) {
+    const st = document.createElement('style'); st.id = 'flowkit-css';
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4}' +
+      '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
+      '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
+      '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
+      '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
+      '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}';
+    document.head.appendChild(st);
+  }
+  const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+  box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
+  stage.appendChild(box);
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fit(); });
+  let drag = null;
+  svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
+  svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
+  svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
+
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  window.__flows = window.__flows || []; window.__flows.push(api);
   return api;
 }
+// memory boxes: FlowKit.memory(host, [{name, label}]) -> {set, get, reset}
+FlowKit.memory = function (host, vars) {
+  host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
+  const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+    get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
+};
+// the program's screen: FlowKit.console(host) -> {print, clear, lines}
+FlowKit.console = function (host) {
+  host.classList.add('fk-con'); const lines = []; const render = () => { host.textContent = lines.length ? lines.join('\n') : ''; const c = document.createElement('span'); c.className = 'cur'; host.appendChild(c); };
+  render();
+  return {print(t) { lines.push(String(t)); render(); }, clear() { lines.length = 0; render(); }, lines: () => lines.slice()};
+};
+// FLOWKIT END
 
-// ---- reference packages (the course plan's table; prices verified with Python) plus 0009, a plain Doral package for lane A ----
-const PK8 = [
-  {id: 'PP-2026-0001', city: 'Hialeah', w: 12, mi: 8, fr: 'no'},
-  {id: 'PP-2026-0002', city: 'Doral', w: 3, mi: 2, fr: 'yes'},
-  {id: 'PP-2026-0003', city: 'Miami Gardens', w: 55, mi: 14, fr: 'no'},
-  {id: 'PP-2026-0004', city: 'Kendall', w: 20, mi: 19, fr: 'no'},
-  {id: 'PP-2026-0005', city: 'Miami Gardens', w: 60, mi: 14, fr: 'yes'},
-  {id: 'PP-2026-0006', city: 'Hialeah', w: 50, mi: 8, fr: 'no'},
-  {id: 'PP-2026-0007', city: 'Homestead', w: 45, mi: 30, fr: 'yes'},
-  {id: 'PP-2026-0008', city: 'Fort Lauderdale', w: 5, mi: 25, fr: 'no'}];
-const PK9 = PK8.concat([{id: 'PP-2026-0009', city: 'Doral', w: 10, mi: 2, fr: 'no'}]);
-const byId = id => PK9.find(p => p.id === id);
-const money = v => (Math.round(v * 100) / 100).toFixed(2);
-const price = p => 4.5 + .8 * p.w + .25 * p.mi + (p.fr === 'yes' ? 3 : 0);
-const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
-const heavy = p => p.w > 50, frag = p => p.fr === 'yes', isDoral = p => p.city === 'Doral', isB = p => p.city === 'Hialeah' || p.city === 'Miami Gardens', isC = p => p.city === 'Kendall' || p.city === 'Homestead';
-const BIN = {FREIGHT: {id: 'FREIGHT', label: 'FREIGHT'}, FRAGILE: {id: 'FRAGILE', label: 'FRAGILE'}, A: {id: 'A', label: 'A'}, B: {id: 'B', label: 'B'}, C: {id: 'C', label: 'C'}, ASK: {id: 'ASK DISPATCH', label: 'ASK DISPATCH'}, VAN: {id: 'VAN', label: 'VAN'}, SUR: {id: 'SUR', label: '+3.00'}, NOSUR: {id: 'NOSUR', label: 'no surcharge'}};
-
-// ---- gate chains: each gate has conditions in order (test, bin, lines run when True, lines evaluated) and maybe an else ----
-const CITY_GATE = base => ({label: 'city', conds: [{t: isDoral, bin: BIN.A, lines: [base, base + 1], ev: [base]}, {t: isB, bin: BIN.B, lines: [base + 2, base + 3], ev: [base + 2]}, {t: isC, bin: BIN.C, lines: [base + 4, base + 5], ev: [base + 4]}], els: {bin: BIN.ASK, lines: [base + 6, base + 7]}});
-const C_FULL = [{label: 'weight > 50', conds: [{t: heavy, bin: BIN.FREIGHT, lines: [1, 2], ev: [1]}]}, {label: 'fragile == "yes"', conds: [{t: frag, bin: BIN.FRAGILE, lines: [3, 4], ev: [3]}]}, CITY_GATE(5)];
-const C_COP = [{label: 'fragile == "yes"', conds: [{t: frag, bin: BIN.FRAGILE, lines: [1, 2], ev: [1]}]}, {label: 'weight > 50', conds: [{t: heavy, bin: BIN.FREIGHT, lines: [3, 4], ev: [3]}]}, CITY_GATE(5)];
-const C_SUR = [{label: 'fragile == "yes"', conds: [{t: frag, bin: BIN.SUR, lines: [3, 4], ev: [1, 2]}], els: {bin: BIN.NOSUR, lines: [4]}}];
-const C_ZONE = [CITY_GATE(1)];
-const C_NEST = [{label: 'weight > 50', conds: [{t: heavy, bin: BIN.FREIGHT, lines: [1, 2], ev: [1]}]}, {label: 'fragile == "yes"', conds: [{t: frag, bin: BIN.FRAGILE, lines: [5], ev: [3, 4]}], els: {bin: BIN.VAN, lines: [6, 7]}}];
-const CODE_FULL = ['if weight > 50:', '    lane = "FREIGHT"', 'elif fragile == "yes":', '    lane = "FRAGILE"', 'elif city == "Doral":', '    lane = "A"', 'elif city == "Hialeah" or city == "Miami Gardens":', '    lane = "B"', 'elif city == "Kendall" or city == "Homestead":', '    lane = "C"', 'else:', '    lane = "ASK DISPATCH"'];
-const CODE_COP = ['if fragile == "yes":', '    lane = "FRAGILE"', 'elif weight > 50:', '    lane = "FREIGHT"'].concat(CODE_FULL.slice(4));
-const CODE_SUR = ['price = 4.50 + 0.80 * weight + 0.25 * miles', 'if fragile == "yes":', '    price = price + 3.00', 'print(f"Price: ${price:.2f}")'];
-const CODE_ZONE = CODE_FULL.slice(4).map((l, i) => i === 0 ? l.replace('elif', 'if') : l);
-const CODE_NEST = ['if weight > 50:', '    lane = "FREIGHT"', 'else:', '    if fragile == "yes":', '        lane = "FRAGILE"', '    else:', '        lane = "VAN"'];
-// walk a package through a chain: which gate took it, which bin, which lines ran
-function trace(chain, p) {
-  const steps = [], lit = new Set(); let gate = null, bin = null, branch = null;
-  chain.forEach((g, k) => {
-    if (branch) { steps.push({res: 'S'}); return; }
-    let hit = null, j = -1;
-    g.conds.forEach((c, i) => { if (hit) return; c.ev.forEach(l => lit.add(l)); if (c.t(p)) { hit = c; j = i; } });
-    if (hit) { hit.lines.forEach(l => lit.add(l)); steps.push({res: 'T', bin: j}); gate = k; bin = j; branch = hit.bin.id; }
-    else if (g.els) { g.els.lines.forEach(l => lit.add(l)); steps.push({res: 'E', bin: g.conds.length}); gate = k; bin = g.conds.length; branch = g.els.bin.id; }
-    else steps.push({res: 'F'});
-  });
-  return {steps: steps, gate: gate, bin: bin, branch: branch, lit: Array.from(lit)};
+// PYSANDBOX START
+// CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
+// Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
+//   const sb = PySandbox(hostEl, {title, code, inputs, tests: [{expr, expect}], timeout: 15000, onRun(result), onTests(passed, total)});
+//   sb.run(); sb.setCode(s); sb.getCode(); sb.setInputs(s); sb.reset(); sb.output()
+// result: {ok, out, err, tests: [{expr, expect, got, pass}]}. Without the CDN the box shows a plain fallback message.
+function PySandbox(host, opts) {
+  'use strict';
+  const O = Object.assign({title: 'Try it: edit and run the Python', code: 'print("hello")', inputs: '', tests: [], timeout: 15000,
+    pyodideUrl: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', runLabel: 'Run', resetLabel: 'Reset code'}, opts || {});
+  if (!document.getElementById('pysandbox-css')) {
+    const st = document.createElement('style'); st.id = 'pysandbox-css';
+    st.textContent = '.pysb{border:1px solid var(--line,#2a3270);border-radius:8px;background:rgba(11,15,43,.6);overflow:hidden;font-family:Figtree,system-ui,sans-serif}' +
+      '.pysb-head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line,#2a3270);font-size:13px}' +
+      '.pysb-head b{font-family:Archivo,sans-serif;font-weight:700}.pysb-status{margin-left:auto;font:500 11px "Red Hat Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-grid{display:grid;grid-template-columns:1fr 200px;gap:0}@media(max-width:700px){.pysb-grid{grid-template-columns:1fr}}' +
+      '.pysb textarea{width:100%;box-sizing:border-box;border:0;background:#0b0f2b;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;padding:10px 12px;resize:vertical;min-height:160px;outline:none;tab-size:4}' +
+      '.pysb textarea:focus{box-shadow:inset 0 0 0 2px var(--cbt-gold,#E0B840)}' +
+      '.pysb-in{border-left:1px solid var(--line,#2a3270)}@media(max-width:700px){.pysb-in{border-left:0;border-top:1px solid var(--line,#2a3270)}}' +
+      '.pysb-in label,.pysb-out label{display:block;padding:6px 12px 0;font:500 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-in textarea{min-height:60px}' +
+      '.pysb-bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line,#2a3270);flex-wrap:wrap}' +
+      '.pysb-bar button{font:600 13px Figtree,sans-serif;padding:7px 14px;border-radius:6px;border:1px solid var(--line,#2a3270);background:#1b2140;color:#eef1fa;cursor:pointer}' +
+      '.pysb-bar button.primary{background:var(--cbt-gold,#E0B840);color:#1a1205;border-color:transparent}.pysb-bar button:disabled{opacity:.5;cursor:default}' +
+      '.pysb-bar .hint{font-size:12px;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-prog{height:3px;background:transparent;position:relative;overflow:hidden}.pysb-prog i{position:absolute;left:-40%;top:0;bottom:0;width:40%;background:var(--cbt-sky,#38B0E0);animation:pysbp 1.2s linear infinite}@keyframes pysbp{to{left:100%}}' +
+      '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
+      '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
+      '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}';
+    document.head.appendChild(st);
+  }
+  host.classList.add('pysb');
+  host.innerHTML = '<div class="pysb-head"><b></b><span class="pysb-status">Python not loaded yet</span></div><div class="pysb-prog"></div>' +
+    '<div class="pysb-grid"><div><textarea class="pysb-code" spellcheck="false" aria-label="Python code"></textarea></div>' +
+    '<div class="pysb-in"><label>Inputs (one per input() call)</label><textarea class="pysb-inputs" spellcheck="false" aria-label="Inputs, one per line"></textarea></div></div>' +
+    '<div class="pysb-bar"><button type="button" class="primary pysb-run"></button><button type="button" class="pysb-reset"></button><span class="hint">Ctrl+Enter runs. The first run downloads Python (about 10 MB) once.</span></div>' +
+    '<div class="pysb-out"><label>Output</label><pre class="pysb-pre">Nothing run yet.</pre><ul class="pysb-tests" hidden></ul></div>';
+  const q = s => host.querySelector(s);
+  q('.pysb-head b').textContent = O.title; q('.pysb-run').textContent = O.runLabel; q('.pysb-reset').textContent = O.resetLabel;
+  const code = q('.pysb-code'), inputs = q('.pysb-inputs'), pre = q('.pysb-pre'), status = q('.pysb-status'), prog = q('.pysb-prog'), tests = q('.pysb-tests'), btnRun = q('.pysb-run');
+  code.value = O.code; inputs.value = O.inputs;
+  let worker = null, ready = false, loading = false, timer = null, last = null, failed = false;
+  const WORKER_SRC = [
+    'var py = null, url = "' + O.pyodideUrl + '";',
+    'self.onmessage = async function (e) {',
+    '  var m = e.data;',
+    '  try {',
+    '    if (!py) { importScripts(url + "pyodide.js"); py = await loadPyodide({indexURL: url}); postMessage({type: "ready", version: py.version}); }',
+    '    if (m.type !== "run") return;',
+    '    var lines = m.inputs.split(/\\r?\\n/); var out = [];',
+    '    py.setStdout({batched: function (s) { out.push(s); }}); py.setStderr({batched: function (s) { out.push(s); }});',
+    '    py.setStdin({stdin: function () { var l = lines.length ? lines.shift() : ""; return l + "\\n"; }, isatty: false});',
+    '    var ns = py.globals.get("dict")(); var result = {type: "done", ok: true, out: "", err: "", tests: []};',
+    '    try { await py.runPythonAsync(m.code, {globals: ns}); }',
+    '    catch (err) { result.ok = false; result.err = String(err.message || err); }',
+    '    result.out = out.join("\\n");',
+    '    for (var i = 0; i < m.tests.length; i++) { var t = m.tests[i], got;',
+    '      try { got = py.runPython("repr(" + t.expr + ")", {globals: ns}); } catch (e2) { got = "error: " + String(e2.message || e2).trim().split("\\n").pop(); }',
+    '      result.tests.push({expr: t.expr, expect: t.expect, got: got, pass: got === t.expect}); }',
+    '    ns.destroy(); postMessage(result);',
+    '  } catch (err) { postMessage({type: "fatal", err: String(err.message || err)}); }',
+    '};'].join('\n');
+  function spawn() {
+    const blob = new Blob([WORKER_SRC], {type: 'application/javascript'});
+    worker = new Worker(URL.createObjectURL(blob)); ready = false;
+    worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') { ready = true; loading = false; prog.innerHTML = ''; status.textContent = 'Python ' + m.version + ' ready'; return; }
+      if (m.type === 'fatal') { fail(m.err); return; }
+      if (m.type === 'done') { clearTimeout(timer); btnRun.disabled = false; show(m); }
+    };
+    worker.onerror = e => { fail(e.message || 'worker error'); };
+  }
+  function fail(msg) {
+    clearTimeout(timer); loading = false; ready = false; failed = true; btnRun.disabled = false; prog.innerHTML = '';
+    status.textContent = 'Python could not load';
+    pre.className = 'pysb-pre err'; pre.textContent = 'Python could not load here (the network may block cdn.jsdelivr.net). Copy the code into IDLE on the lab PC and run it there.' + (msg ? '\nDetails: ' + msg : '');
+    if (worker) { worker.terminate(); worker = null; }
+  }
+  function trimTrace(err) {
+    // keep from the first line that mentions the student's code; Pyodide adds its own frames above it
+    const i = err.indexOf('File "<exec>"'); if (i < 0) return err.trim();
+    const head = err.slice(0, i).split('\n').filter(l => /^Traceback/.test(l)).join('\n');
+    return (head ? head + '\n  ' : '') + err.slice(i).trim();
+  }
+  function show(m) {
+    last = m; const err = m.err ? trimTrace(m.err) : '';
+    pre.className = 'pysb-pre' + (m.ok ? '' : ' err');
+    pre.textContent = (m.out ? m.out + (m.out.endsWith('\n') ? '' : '\n') : '') + (err ? err : '') || '(no output)';
+    if (O.tests && O.tests.length) {
+      tests.hidden = false; tests.innerHTML = m.tests.map(t => '<li class="' + (t.pass ? 'pass' : 'fail') + '"><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">got ' + esc(t.got) + '</span></li>').join('');
+      const passed = m.tests.filter(t => t.pass).length; status.textContent = passed + ' of ' + m.tests.length + ' tests pass';
+      if (O.onTests) O.onTests(passed, m.tests.length, m);
+    } else status.textContent = m.ok ? 'Ran without errors' : 'Stopped with an error';
+    if (O.onRun) O.onRun(m);
+  }
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  function run() {
+    if (failed) { failed = false; }
+    if (!worker) spawn();
+    btnRun.disabled = true; tests.hidden = true; pre.className = 'pysb-pre'; pre.textContent = ready ? 'Running...' : 'Loading Python (about 10 MB, once)...';
+    if (!ready) { loading = true; status.textContent = 'Loading Python...'; prog.innerHTML = '<i></i>'; }
+    worker.postMessage({type: 'run', code: code.value, inputs: inputs.value, tests: O.tests || []});
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ready && loading) return; // still downloading; the fatal handler covers real failures
+      worker.terminate(); worker = null; ready = false; btnRun.disabled = false;
+      pre.className = 'pysb-pre err'; pre.textContent = 'Stopped after ' + Math.round(O.timeout / 1000) + ' seconds: the program never finished. Look for a loop whose condition never becomes False.';
+      status.textContent = 'Stopped (infinite loop?)'; if (O.onRun) O.onRun({ok: false, out: '', err: 'timeout', tests: []});
+    }, O.timeout + (ready ? 0 : 60000));
+  }
+  btnRun.addEventListener('click', run);
+  q('.pysb-reset').addEventListener('click', () => { code.value = O.code; inputs.value = O.inputs; pre.className = 'pysb-pre'; pre.textContent = 'Code reset. Press Run.'; tests.hidden = true; });
+  code.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if (e.key === 'Tab') { e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '    ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 4; } });
+  const api = {run: run, setCode: s => { code.value = s; }, getCode: () => code.value, setInputs: s => { inputs.value = s; }, setTests: t => { O.tests = t; },
+    reset: () => q('.pysb-reset').click(), output: () => pre.textContent, last: () => last, isReady: () => ready, el: host};
+  window.__pysandboxes = window.__pysandboxes || []; window.__pysandboxes.push(api);
+  return api;
 }
-const sceneDef = chain => ({gates: chain.map(g => ({label: g.label, bins: g.conds.map(c => c.bin).concat(g.els ? [g.els.bin] : [])}))});
-const branchesOf = chain => chain.flatMap(g => g.conds.map(c => c.bin).concat(g.els ? [g.els.bin] : []));
-const chipLabel = {SUR: 'fragile yes: +3.00 runs', NOSUR: 'fragile no: line 3 skipped'};
+// PYSANDBOX END
 
-const P = id => byId(id);
+
+/// ---- Palmetto Parcel: the nine packages on the shelf and the sorter's diamonds ----
+const PK = [
+  {t: 'PP-2026-0001', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 12, m: 8, f: false},
+  {t: 'PP-2026-0002', who: 'Doral Dental Group', city: 'Doral', w: 3, m: 2, f: true},
+  {t: 'PP-2026-0003', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 55, m: 14, f: false},
+  {t: 'PP-2026-0004', who: 'Kendall Office Supply', city: 'Kendall', w: 20, m: 19, f: false},
+  {t: 'PP-2026-0005', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 60, m: 14, f: true},
+  {t: 'PP-2026-0006', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 50, m: 8, f: false},
+  {t: 'PP-2026-0007', who: 'Casa Lopez Furniture', city: 'Homestead', w: 45, m: 30, f: true},
+  {t: 'PP-2026-0008', who: 'Blue Heron Clinic', city: 'Fort Lauderdale', w: 5, m: 25, f: false},
+  {t: 'PP-2026-0009', who: 'Doral Dental Group', city: 'Doral', w: 10, m: 2, f: false}
+];
+const price = p => 4.5 + 0.8 * p.w + 0.25 * p.m + (p.f ? 3 : 0);
+const short = p => p.t.slice(-4);
+const TF = b => b ? 'True' : 'False';
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const D = {
+  d_weight: {text: 'weight > 50?', lane: 'FREIGHT', pid: 'p_freight', cond: p => p.w > 50, say: p => p.w + ' > 50 is ' + TF(p.w > 50)},
+  d_fragile: {text: 'fragile == "yes"?', lane: 'FRAGILE', pid: 'p_fragile', cond: p => p.f, say: p => '"' + (p.f ? 'yes' : 'no') + '" == "yes" is ' + TF(p.f)},
+  d_doral: {text: 'city == "Doral"?', lane: 'A', pid: 'p_a', cond: p => p.city === 'Doral', say: p => '"' + p.city + '" == "Doral" is ' + TF(p.city === 'Doral')},
+  d_b: {text: 'Hialeah or\nMiami Gardens?', lane: 'B', pid: 'p_b', cond: p => p.city === 'Hialeah' || p.city === 'Miami Gardens', say: p => '"' + p.city + '" is Hialeah or Miami Gardens: ' + TF(p.city === 'Hialeah' || p.city === 'Miami Gardens')},
+  d_c: {text: 'Kendall or\nHomestead?', lane: 'C', pid: 'p_c', cond: p => p.city === 'Kendall' || p.city === 'Homestead', say: p => '"' + p.city + '" is Kendall or Homestead: ' + TF(p.city === 'Kendall' || p.city === 'Homestead')}
+};
+const DISPATCH = ['d_weight', 'd_fragile', 'd_doral', 'd_b', 'd_c'], COPILOT = ['d_fragile', 'd_weight', 'd_doral', 'd_b', 'd_c'], ZONE = ['d_doral', 'd_b', 'd_c'];
+const laneOf = (p, ids) => { const k = ids.find(id => D[id].cond(p)); return k ? D[k].lane : 'ASK DISPATCH'; };
+
+// ---- the charts: each returns {fk, run(p) -> {path, lane, desc}, names} ----
+const COLW = 230, NW = 170, DW = 180, HALF = {decision: DW / 2, io: NW / 2 - 8, process: NW / 2, terminal: NW / 2};
+const GREEN = '#6FD49B', GOLD = '#E0B840', SKY = '#38B0E0', CORAL = '#F0786A';
+function make(stage, spec) {
+  stage.querySelectorAll('.flow, .fk-zoom').forEach(e => e.remove());
+  const P = {}; spec.nodes.forEach(n => { P[n.id] = n; });
+  const hz = (a, b, extra) => Object.assign({from: a, to: b, side: 'right', points: [[P[a].col + HALF[P[a].type] / COLW, P[a].row], [P[b].col - HALF[P[b].type] / COLW, P[b].row]]}, extra || {});
+  const edges = spec.edges.map(e => e.hz ? hz(e.hz[0], e.hz[1], e) : e);
+  const fk = FlowKit(stage, {cols: spec.cols, rows: spec.rows, colW: COLW, nodeW: NW, nodes: spec.nodes, edges: edges});
+  const mk = fk.el('marker', {id: 'fk-arrow-ok', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, fk.svg.querySelector('defs'));
+  fk.el('path', {d: 'M0,0 L10,5 L0,10 z', fill: GREEN}, mk);
+  const names = {}; edges.forEach(e => { names[e.from + '>' + e.to] = e.nm || ('the arrow from ' + P[e.from].text.replace('\n', ' ') + ' to ' + P[e.to].text.replace('\n', ' ')); });
+  return {fk: fk, names: names, all: Object.keys(fk.edges), run: p => spec.run(p),
+    paint(keys, color) { keys.forEach(k => { const e = fk.edges[k]; if (!e) return; e.path.setAttribute('stroke', color); e.path.setAttribute('marker-end', color === GREEN ? 'url(#fk-arrow-ok)' : color === GOLD ? 'url(#fk-arrow-hot)' : 'url(#fk-arrow)'); }); }};
+}
+function chainSpec(ids) {
+  const n = ids.length, nodes = [{id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}], edges = [{from: 'start', to: ids[0], nm: 'the arrow from START'}];
+  ids.forEach((id, i) => { const d = D[id]; nodes.push({id: id, type: 'decision', text: d.text, col: i, row: 1, w: DW}, {id: d.pid, type: 'process', text: 'lane = "' + d.lane + '"', col: i, row: 2});
+    edges.push({from: id, to: d.pid, label: 'Yes', nm: 'the Yes arrow of ' + d.text.replace('\n', ' ')}, {hz: [id, i < n - 1 ? ids[i + 1] : 'p_ask'], label: 'No', nm: 'the No arrow of ' + d.text.replace('\n', ' ')},
+      {from: d.pid, to: 'out', points: [[i, 2.28], [i, 2.6], [Math.floor((n - 1) / 2), 2.6], [Math.floor((n - 1) / 2), 2.72]], nm: 'the arrow from lane = "' + d.lane + '" to OUTPUT'}); });
+  const oc = Math.floor((n - 1) / 2);
+  nodes.push({id: 'p_ask', type: 'process', text: 'lane =\n"ASK DISPATCH"', col: n, row: 1}, {id: 'out', type: 'io', text: 'OUTPUT lane', col: oc, row: 3}, {id: 'end', type: 'terminal', text: 'END', col: oc + 1, row: 3});
+  edges.push({from: 'p_ask', to: 'out', points: [[n, 1.28], [n, 2.6], [oc, 2.6], [oc, 2.72]], nm: 'the arrow from lane = "ASK DISPATCH" to OUTPUT'}, {hz: ['out', 'end'], nm: 'the arrow into END'});
+  return {cols: n + 1, rows: 4, nodes: nodes, edges: edges, run(p) {
+    const path = ['start>' + ids[0]], desc = []; let lane = null, from = ids[0];
+    for (let i = 0; i < n; i++) { const id = ids[i], d = D[id], r = d.cond(p); desc.push(d.say(p)); if (r) { lane = d.lane; path.push(id + '>' + d.pid, d.pid + '>out'); break; } const nx = i < n - 1 ? ids[i + 1] : 'p_ask'; path.push(id + '>' + nx); from = nx; }
+    if (!lane) { lane = 'ASK DISPATCH'; path.push('p_ask>out'); desc.push('every diamond False, so the else branch'); }
+    path.push('out>end'); return {path: path, lane: lane, desc: desc.join('; ') + ' → lane ' + lane, node: lane === 'ASK DISPATCH' ? 'p_ask' : D[ids.find(id => D[id].lane === lane)].pid}; }};
+}
+const SURCHARGE = {cols: 2, rows: 6, nodes: [
+    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}, {id: 'p_price', type: 'process', text: 'price = 4.50\n+ 0.80 * weight\n+ 0.25 * miles', col: 0, row: 1},
+    {id: 'd_sur', type: 'decision', text: 'fragile == "yes"?', col: 0, row: 2, w: DW}, {id: 'p_sur', type: 'process', text: 'price = price + 3.00', col: 1, row: 3},
+    {id: 'out', type: 'io', text: 'OUTPUT price', col: 0, row: 4}, {id: 'end', type: 'terminal', text: 'END', col: 0, row: 5}],
+  edges: [{from: 'start', to: 'p_price', nm: 'the arrow from START'}, {from: 'p_price', to: 'd_sur', nm: 'the arrow into the diamond'}, {from: 'd_sur', to: 'p_sur', side: 'right', label: 'Yes', nm: 'the Yes arrow (add the surcharge)'},
+    {from: 'd_sur', to: 'out', label: 'No', nm: 'the No arrow (no surcharge)'}, {from: 'p_sur', to: 'out', nm: 'the arrow from price = price + 3.00 to OUTPUT'}, {from: 'out', to: 'end', nm: 'the arrow into END'}],
+  run(p) { const path = ['start>p_price', 'p_price>d_sur']; if (p.f) path.push('d_sur>p_sur', 'p_sur>out'); else path.push('d_sur>out'); path.push('out>end');
+    return {path: path, lane: p.f ? 'surcharge' : 'no surcharge', desc: '"' + (p.f ? 'yes' : 'no') + '" == "yes" is ' + TF(p.f) + ' → price $' + price(p).toFixed(2), node: p.f ? 'p_sur' : 'out'}; }};
+const NESTED = {cols: 2, rows: 7, nodes: [
+    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}, {id: 'd_weight', type: 'decision', text: 'weight > 50?', col: 0, row: 1, w: DW}, {id: 'p_freight', type: 'process', text: 'lane = "FREIGHT"', col: 1, row: 2},
+    {id: 'd_fragile', type: 'decision', text: 'fragile == "yes"?', col: 0, row: 3, w: DW}, {id: 'p_fragile', type: 'process', text: 'lane = "FRAGILE"', col: 1, row: 4}, {id: 'p_van', type: 'process', text: 'lane = "VAN"', col: 0, row: 4},
+    {id: 'out', type: 'io', text: 'OUTPUT lane', col: 0, row: 5}, {id: 'end', type: 'terminal', text: 'END', col: 0, row: 6}],
+  edges: [{from: 'start', to: 'd_weight', nm: 'the arrow from START'}, {from: 'd_weight', to: 'p_freight', side: 'right', label: 'Yes', nm: 'the Yes arrow of weight > 50?'}, {from: 'd_weight', to: 'd_fragile', label: 'No', nm: 'the No arrow of weight > 50?'},
+    {from: 'd_fragile', to: 'p_fragile', side: 'right', label: 'Yes', nm: 'the Yes arrow of fragile == "yes"?'}, {from: 'd_fragile', to: 'p_van', label: 'No', nm: 'the No arrow of fragile == "yes"?'},
+    {from: 'p_van', to: 'out', nm: 'the arrow from lane = "VAN" to OUTPUT'}, {from: 'p_fragile', to: 'out', points: [[1, 4.28], [1, 4.55], [0, 4.55], [0, 4.72]], nm: 'the arrow from lane = "FRAGILE" to OUTPUT'},
+    {from: 'p_freight', to: 'out', points: [[1, 2.28], [1, 2.55], [1.45, 2.55], [1.45, 4.55], [0, 4.55], [0, 4.72]], nm: 'the arrow from lane = "FREIGHT" to OUTPUT'}, {from: 'out', to: 'end', nm: 'the arrow into END'}],
+  run(p) { const path = ['start>d_weight'], desc = [D.d_weight.say(p)]; let lane, node;
+    if (p.w > 50) { lane = 'FREIGHT'; node = 'p_freight'; path.push('d_weight>p_freight', 'p_freight>out'); }
+    else { path.push('d_weight>d_fragile'); desc.push(D.d_fragile.say(p)); if (p.f) { lane = 'FRAGILE'; node = 'p_fragile'; path.push('d_fragile>p_fragile', 'p_fragile>out'); } else { lane = 'VAN'; node = 'p_van'; path.push('d_fragile>p_van', 'p_van>out'); } }
+    path.push('out>end'); return {path: path, lane: lane, desc: desc.join('; ') + ' → lane ' + lane, node: node}; }};
+const CHARTS = {sorter: () => chainSpec(DISPATCH), copilot: () => chainSpec(COPILOT), zone: () => chainSpec(ZONE), surcharge: () => SURCHARGE, nested: () => NESTED};
+
+// ---- the ten rounds in a fixed order (answer choices shuffled); 10 points each ----
 const ROUNDS = [
-  {kind: 'cover', title: "Dante's sorter", q: 'This is the sorter in the right order. Light all six lanes with the fewest packages. Minimum: 6. Dante added PP-2026-0009 (Doral, 10 lb, not fragile) to the shelf because none of the eight reference packages is a plain Doral package: PP-2026-0002 is from Doral but it is fragile, so it never reaches the city lines.', code: CODE_FULL, chain: C_FULL, min: 6, shelf: PK9},
-  {kind: 'cover', title: 'Only the surcharge', q: 'This program has one decision and no else. How many packages does it take to run both paths, the one where line 3 runs and the one where it is skipped? Minimum: 2.', code: CODE_SUR, chain: C_SUR, min: 2, shelf: PK9},
-  {kind: 'cover', title: 'Zones only', q: 'A sorter that only looks at the city. Light the four lanes with the fewest packages. Minimum: 4.', code: CODE_ZONE, chain: C_ZONE, min: 4, shelf: PK9},
-  {kind: 'cover', title: 'A nested if', q: 'Here the fragile check sits inside the else of the weight check (a nested decision). Light all three lanes. Minimum: 3.', code: CODE_NEST, chain: C_NEST, min: 3, shelf: PK9},
-  {kind: 'mc', title: 'Predict the lane and price', q: "PP-2026-0004: 20 lb, 19 miles, Kendall, not fragile. Dante's sorter prints:", code: CODE_FULL, play: {chain: C_FULL, p: P('PP-2026-0004')}, opts: [
-    ['Lane: C and Price: $25.25', 10, '4.50 + 16.00 + 4.75 = 25.25 with no surcharge, and Kendall is zone C.'],
-    ['Lane: C and Price: $28.25', 4, 'The lane is right, but 28.25 adds a surcharge to a package that is not fragile.'],
-    ['Lane: B and Price: $25.25', 0, 'The price is right, but Kendall is zone C, not B.'],
-    ['Lane: ASK DISPATCH and Price: $25.25', 0, 'Kendall matches the zone C line, so the else never runs.']]},
-  {kind: 'mc', title: 'The boundary', q: "PP-2026-0006: exactly 50 lb, 8 miles, Hialeah, not fragile. Dante's sorter prints:", code: CODE_FULL, play: {chain: C_FULL, p: P('PP-2026-0006')}, opts: [
-    ['Lane: B and Price: $46.50', 10, '50 > 50 is False, so the package stays in a van and lands in zone B. 4.50 + 40.00 + 2.00 = 46.50.'],
-    ['Lane: FREIGHT and Price: $46.50', 0, 'The price is right, but exactly 50 is not above 50. The comparison is >, not >=.'],
-    ['Lane: B and Price: $49.50', 4, 'The lane is right, but 49.50 includes a surcharge the package does not have.'],
-    ['Lane: FRAGILE and Price: $46.50', 0, 'fragile is "no", so the FRAGILE line is False.']]},
-  {kind: 'mc', title: 'Fragile and far', q: "PP-2026-0007: 45 lb, 30 miles, Homestead, fragile. Dante's sorter prints:", code: CODE_FULL, play: {chain: C_FULL, p: P('PP-2026-0007')}, opts: [
-    ['Lane: FRAGILE and Price: $51.00', 10, '45 is not above 50 and fragile is "yes", so the second line is True: FRAGILE. 4.50 + 36.00 + 7.50 + 3.00 = 51.00.'],
-    ['Lane: C and Price: $51.00', 0, 'Homestead is zone C, but the fragile line comes first and it is True, so the city lines never run.'],
-    ['Lane: FRAGILE and Price: $48.00', 4, 'The lane is right, but the 3.00 fragile surcharge is missing.'],
-    ['Lane: FREIGHT and Price: $51.00', 0, '45 > 50 is False, so the package stays in a van.']]},
-  {kind: 'mc', title: "Read Copilot's sorter", q: 'Microsoft Copilot wrote this sorter with the fragile check first. Read it with PP-2026-0005: 60 lb, 14 miles, Miami Gardens, fragile. What does this code print?', code: CODE_COP, play: {chain: C_COP, p: P('PP-2026-0005'), flash: true}, opts: [
-    ['Lane: FRAGILE and Price: $59.00', 10, 'The first line, fragile == "yes", is True, so lane = "FRAGILE" and every elif is skipped, including weight > 50. The price is 4.50 + 48.00 + 3.50 + 3.00 = 59.00.'],
-    ['Lane: FREIGHT and Price: $59.00', 4, 'FREIGHT is what the business rule wants, but the question asks what this code prints. Python runs the first True branch, and that is the fragile line.'],
-    ['Lane: B and Price: $59.00', 0, 'The city lines never run: an earlier line was already True.'],
-    ['It stops with an error because two conditions are True', 0, 'Two True conditions are not an error. Python takes the first one and skips the rest.']]},
-  {kind: 'pick', title: 'Catch the bug', q: "Same Copilot sorter. Seven of the eight reference packages land in the right lane anyway. Click the one package that lands in a different lane than Dante's rule says. That package is the test case your plan must contain.", code: CODE_COP, chain: C_COP, rule: C_FULL, shelf: PK8, target: 'PP-2026-0005', play: {chain: C_COP, p: P('PP-2026-0005'), flash: true}},
-  {kind: 'mc', title: 'Pick the fix', q: 'You showed Copilot the failing row. Which fix is right?', code: CODE_COP, play: {chain: C_FULL, p: P('PP-2026-0005')}, opts: [
-    ['Move the weight > 50 check above the fragile check: it becomes the if, and the fragile line becomes an elif', 10, 'Weight is the rule that beats every other rule, so it must be checked first. All eight packages now land as the table says.'],
-    ['Change the first line to: if fragile == "yes" and weight <= 50:', 6, 'It works for all eight packages, but the limit 50 now lives in two lines. Change one and forget the other, and the bug is back.'],
-    ['Change weight > 50 to weight >= 50', 0, 'That does not move the check, so 0005 still lands on FRAGILE, and now 0006 (exactly 50) goes to FREIGHT by mistake.'],
-    ['Delete the fragile check', 0, 'Then 0002 and 0007 lose their shelf. The fragile rule is right; only its position is wrong.']]}
+  {kind: 'cover', chart: 'sorter', min: 6, name: 'Cover the sorter (6 lanes)', q: 'Dante\'s sorter: five diamonds and six lanes. Click packages on the shelf until every arrow on the chart above is green, using as few packages as you can (the minimum is 6). Then press Check coverage.'},
+  {kind: 'cover', chart: 'surcharge', min: 2, name: 'Cover the surcharge decision', q: 'The surcharge decision on its own: fragile == "yes"? adds 3.00 on the Yes arrow and skips it on the No arrow. Light both branches with the fewest packages (the minimum is 2), then press Check coverage.'},
+  {kind: 'cover', chart: 'zone', min: 4, name: 'Cover the zone chart (4 lanes)', q: 'The zone chart on its own: no weight check and no fragile check, only the three city diamonds and the else. Light every arrow with the fewest packages (the minimum is 4), then press Check coverage.'},
+  {kind: 'cover', chart: 'nested', min: 3, name: 'Cover a nested decision (3 lanes)', q: 'A nested decision: the fragile diamond sits inside the No branch of the weight diamond, and a package that answers No twice goes to a VAN. Light every arrow with the fewest packages (the minimum is 3), then press Check coverage.'},
+  {kind: 'mc', chart: 'sorter', play: 3, name: 'Predict 0004', q: 'PP-2026-0004, Kendall Office Supply: 20 lb, 19 miles, not fragile. Dante\'s sorter (weight, fragile, then city) runs it. What does the screen show?', opts: [
+    ['Lane: C and Price: $25.25', 10, '20 > 50 is False, "no" == "yes" is False, Kendall is not Doral and not Hialeah or Miami Gardens, but it is Kendall or Homestead: lane C. Price 4.50 + 16.00 + 4.75 = 25.25 with no surcharge.'],
+    ['Lane: C and Price: $28.25', 4, 'The lane is right, but 28.25 adds a surcharge that 0004 does not have. It is not fragile, so the price is 4.50 + 16.00 + 4.75 = 25.25.'],
+    ['Lane: B and Price: $25.25', 0, 'The price is right, but Kendall is zone C: the Hialeah or Miami Gardens diamond answers False for Kendall and the token moves on to the next diamond.'],
+    ['Lane: ASK DISPATCH and Price: $25.25', 0, 'ASK DISPATCH is the else branch, reached only when every diamond answers False. The Kendall or Homestead diamond answers True first.']]},
+  {kind: 'mc', chart: 'sorter', play: 5, name: 'Predict 0006 (exactly 50 lb)', q: 'PP-2026-0006, Sabor Cubano Bakery in Hialeah: exactly 50 lb, 8 miles, not fragile. The first diamond asks weight > 50. What does the screen show?', opts: [
+    ['Lane: B and Price: $46.50', 10, '50 > 50 is False: exactly 50 is not above 50, so the package stays in a van. It is not fragile, and Hialeah is zone B. Price 4.50 + 40.00 + 2.00 = 46.50.'],
+    ['Lane: B and Price: $49.50', 4, 'Lane B is right. 49.50 adds the 3.00 surcharge, but 0006 is not fragile: the price is 46.50.'],
+    ['Lane: FREIGHT and Price: $46.50', 0, 'That is what a sorter written with >= 50 would do. The rule says above 50, and 50 > 50 is False, so the token takes the No arrow.'],
+    ['Lane: FRAGILE and Price: $46.50', 0, 'The fragile answer is "no", so the fragile diamond answers False. Hialeah sends the package to lane B.']]},
+  {kind: 'mc', chart: 'sorter', play: 6, name: 'Predict 0007', q: 'PP-2026-0007, Casa Lopez Furniture in Homestead: 45 lb, 30 miles, fragile. What does the screen show?', opts: [
+    ['Lane: FRAGILE and Price: $51.00', 10, '45 > 50 is False, then "yes" == "yes" is True: lane FRAGILE, and the city is never checked. Price 4.50 + 36.00 + 7.50 + 3.00 = 51.00, surcharge included.'],
+    ['Lane: FRAGILE and Price: $48.00', 4, 'The lane is right, but 48.00 forgets the surcharge: fragile adds 3.00, so the price is 51.00.'],
+    ['Lane: C and Price: $51.00', 0, 'Homestead is zone C, but the fragile diamond comes before the city diamonds and answers True first. The city is never checked for this package.'],
+    ['Lane: FREIGHT and Price: $51.00', 0, '45 > 50 is False: 45 lb is not above 50, so the FREIGHT branch is not taken.']]},
+  {kind: 'mc', chart: 'copilot', play: 4, name: 'Read Copilot\'s sorter with 0005', q: 'Copilot wrote its sorter with the fragile check first (the chart above: fragile, then weight, then city). PP-2026-0005: 60 lb, 14 miles, fragile, from Miami Gardens. What does Copilot\'s code print? Not what the rule wants: what the code does.', opts: [
+    ['Lane: FRAGILE and Price: $59.00', 10, 'The first diamond asks fragile == "yes": True, so lane = "FRAGILE" and the weight diamond is never reached. The price is right (4.50 + 48.00 + 3.50 + 3.00 = 59.00) because the surcharge if is separate from the chain.'],
+    ['Lane: FREIGHT and Price: $59.00', 4, 'That is the lane the rule wants, and the price is right. But the question asks what the code prints: with fragile checked first, Python stops at the first True condition and prints FRAGILE.'],
+    ['Lane: B and Price: $59.00', 0, 'Miami Gardens is zone B, but the chain never gets to the city diamonds: the fragile diamond answers True first.'],
+    ['An error, because two conditions are True', 0, 'An if, elif, else chain never complains when several conditions are True. It runs the first True branch and skips the rest, quietly. That silence is why a test plan matters.']]},
+  {kind: 'find', chart: 'copilot', name: 'Find the package that exposes the bug', q: 'Copilot\'s sorter checks fragile first. Exactly one package on the shelf lands on a different lane in Copilot\'s order than in Dante\'s order. Click the package that exposes the bug: 10 points on the first pick, 5 on the second, 0 after that.'},
+  {kind: 'mc', chart: 'sorter', play: 4, name: 'Pick the fix', q: 'Pick the fix for Copilot\'s sorter so that PP-2026-0005 goes to FREIGHT and every other package, including 0006 at exactly 50 lb, keeps its lane.', opts: [
+    ['Move the weight > 50 check above the fragile check, so the chain starts with if weight > 50', 10, 'Weight first makes the freight rule win for every package above 50 lb, fragile or not, and every other package keeps its lane. The chart above shows 0005 taking the Yes arrow at the first diamond.'],
+    ['Change the first line to if fragile == "yes" and weight <= 50', 6, 'This works: a heavy fragile box fails the first condition and reaches weight > 50. But it repeats the 50 lb limit in two places, so a future change to the limit must be made twice. Moving the weight check first is simpler.'],
+    ['Change weight > 50 to weight >= 50', 0, 'This changes the limit, not the order. 0005 still hits the fragile diamond first, and 0006 (exactly 50) now goes to FREIGHT: two packages wrong instead of one.'],
+    ['Delete the fragile check from the chain', 0, 'Then 0002 and 0007 lose their FRAGILE shelf and go to zone lanes. The fix must keep every rule and only change which one is asked first.']]}
 ];
 const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
-let r = 0, picked = null, total = 0, log = [], G = null, cur = null, builtChain = null, lastPlay = null;
-let picks = [], lit = new Set(), covered = new Set(), attempts = 0, solved = false;
+let r = 0, picked = null, total = 0, log = [], G = null, lit = new Set(), used = [], picks = 0, busy = false, queue = [], done = false, anim = null;
+function killAnim() { if (anim && anim.kill) anim.kill(); anim = null; }
+function mkTL(onDone) { killAnim(); anim = hasGSAP ? gsap.timeline({onComplete: () => { anim = null; onDone(); }}) : {call: f => f(), add: () => {}, to: () => {}, _fake: true, finish: onDone}; return anim; }
+function runTL(t) { if (t._fake) t.finish(); }
 
-// ---- the scene: build the floor for a chain and run one package through it ----
-function buildFor(chain) { if (builtChain !== chain) { G.build(sceneDef(chain)); builtChain = chain; } }
-function playTrace(chain, p, flash) {
-  buildFor(chain); if (cur) { cur.kill(); cur = null; } G.reset(); G.setPackage({id: p.id, w: p.w, fr: p.fr === 'yes'});
-  const t = trace(chain, p), tl = hasGSAP ? gsap.timeline() : null;
-  G.enter(tl);
-  t.steps.forEach((s, k) => { if (s.res === 'S') { G.skip(k, tl); if (tl) tl.to({}, {duration: .3}); return; } G.rideTo(k, tl); G.lamp(k, s.res, tl); if (s.res === 'F') G.pass(k, tl); else G.divert(k, s.bin, tl); });
-  if (t.gate !== null) { G.land(t.gate, t.bin, tl); if (flash) G.flash(tl); }
-  cur = tl; lastPlay = {chain: chain, p: p, flash: flash};
-  $('#capT').textContent = p.id + ' rides the floor'; $('#capB').textContent = p.w + ' lb, ' + p.city + ', ' + (p.fr === 'yes' ? 'fragile' : 'not fragile') + '. Lands in ' + (t.branch === 'SUR' ? 'the +3.00 path' : t.branch === 'NOSUR' ? 'the no-surcharge path' : t.branch) + '.';
-  return t;
+// ---- the shelf and the token ----
+function renderShelf() {
+  $('#shelf').innerHTML = PK.map((p, i) => '<button type="button" class="pcard" data-i="' + i + '"><b>' + p.t + '</b><span>' + p.city + ' · ' + p.w + ' lb · ' + p.m + ' mi · ' + (p.f ? 'fragile' : 'not fragile') + '</span></button>').join('');
+  $('#plog').innerHTML = '';
 }
-function renderCode(code, litSet, on) {
-  const el = $('#rcode'); if (!code) { el.hidden = true; return; } el.hidden = false;
-  el.innerHTML = code.map((l, i) => '<span class="ln' + (litSet && litSet.has(i + 1) ? ' lit' : '') + (on && on.has(i + 1) ? ' on' : '') + '"><span style="color:#8b93b8;display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' + (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
+function covbar() { const R = ROUNDS[r]; if (R.kind !== 'cover') { $('#covbar').innerHTML = 'Packages tried: <b>' + picks + '</b>'; return; }
+  $('#covbar').innerHTML = 'Arrows green: <b class="lit">' + lit.size + '</b> of <b>' + G.all.length + '</b> · Packages used: <b>' + used.length + '</b> · Minimum: <b>' + R.min + '</b>'; }
+function sendToken(p, after) {   // the token runs the package through the chart; the arrows it travels turn green when it arrives
+  const res = G.run(p); busy = true;
+  G.fk.clear(); G.paint(Array.from(lit), GREEN);
+  const t = mkTL(() => { G.paint(res.path, GREEN); res.path.forEach(k => lit.add(k)); G.fk.highlight(res.node, 'done'); busy = false; if (after) after(res); const nx = queue.shift(); if (nx) nx(); });
+  const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2.4)); t.add(f); } t.to({}, {duration: .1}); runTL(t);
+  return res;
 }
-function renderChips(R) { const el = $('#chips'); if (R.kind !== 'cover') { el.hidden = true; return; } el.hidden = false; el.innerHTML = branchesOf(R.chain).map(b => '<span class="chip' + (covered.has(b.id) ? ' lit' : '') + '">' + esc(chipLabel[b.id] || b.label) + '</span>').join(''); }
-function renderShelf(R) {
-  const el = $('#shelf'); if (R.kind !== 'cover' && R.kind !== 'pick') { el.hidden = true; $('#count').hidden = true; return; } el.hidden = false;
-  el.innerHTML = R.shelf.map(p => '<button type="button" class="pcard' + (p.fr === 'yes' ? ' frag' : '') + '" data-id="' + p.id + '"><b>' + p.id.replace('PP-2026-', '#') + '</b><span>' + p.city + '</span><span>' + p.w + ' lb · ' + p.mi + ' mi</span><span class="fr">' + (p.fr === 'yes' ? 'fragile' : '&nbsp;') + '</span><span class="res"></span></button>').join('');
-  $('#count').hidden = R.kind !== 'cover'; $('#count').innerHTML = 'Packages used: <b>0</b> · minimum <b>' + R.min + '</b>';
-}
+$('#shelf').addEventListener('click', e => {
+  const b = e.target.closest('.pcard'); if (!b || b.disabled || done) return; const i = +b.dataset.i, p = PK[i], R = ROUNDS[r];
+  const go = () => {
+    if (R.kind === 'cover') {
+      b.disabled = true; b.classList.add('used');
+      const before = lit.size;
+      $('#capT').textContent = p.t; $('#capB').textContent = 'Running ' + p.t + ' through the chart...';
+      sendToken(p, res => { const added = lit.size - before; used.push({p: p, added: added}); covbar();
+        $('#capB').textContent = res.desc + '. ' + (added ? added + ' new arrow' + (added > 1 ? 's' : '') + ' turned green.' : 'No new arrow: this path was already green.');
+        const li = document.createElement('li'); li.className = added ? '' : 'none'; li.innerHTML = '<b>' + p.t + '</b>: ' + esc(res.desc) + (added ? ' (' + added + ' new)' : ' (nothing new)'); $('#plog').prepend(li);
+        guide(lit.size === G.all.length ? 2 : 1, lit.size === G.all.length ? 'Every arrow is green. Press <b>Check coverage</b>.' : 'Keep clicking packages until every arrow is green, then press <b>Check coverage</b>.'); });
+    } else if (R.kind === 'find') {
+      picks++; const wrong = laneOf(p, COPILOT) !== laneOf(p, DISPATCH); b.disabled = true; b.classList.add(wrong ? 'hit' : 'dud');
+      $('#capT').textContent = p.t; $('#capB').textContent = 'Running ' + p.t + ' through Copilot\'s chart...';
+      sendToken(p, res => { covbar();
+        const li = document.createElement('li'); li.className = wrong ? '' : 'none';
+        if (wrong) { G.fk.highlight(res.node, 'error'); li.innerHTML = '<b>' + p.t + '</b>: Copilot\'s order says ' + res.lane + ', Dante\'s order says ' + laneOf(p, DISPATCH) + '. This is the package that exposes the bug.';
+          $('#capB').textContent = res.desc + '. Dante\'s order says FREIGHT, because 60 > 50. The weight diamond was never reached.';
+          const pts = picks === 1 ? 10 : picks === 2 ? 5 : 0; settle(pts, 10, 'Found ' + p.t + ' on pick ' + picks, '<b>' + pts + ' of 10 points.</b> ' + p.t + ' is the only package where both of the first two conditions are True (60 lb and fragile). Whichever diamond comes first wins, so it is the only package that tells the two orders apart.' + (picks > 1 ? ' Each earlier pick had at most one True condition among the first two, so the order could not change its lane.' : '') + ' Round 10 asks for the fix.'); }
+        else { li.innerHTML = '<b>' + p.t + '</b>: lane ' + res.lane + ' in both orders. It cannot tell the two sorters apart.'; $('#capB').textContent = res.desc + '. Dante\'s order gives the same lane, so this package does not expose the bug. Try another.'; }
+        $('#plog').prepend(li); });
+    }
+  };
+  if (busy) queue.push(go); else go();
+});
+
+// ---- rounds ----
 function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
 function showRound() {
-  const R = ROUNDS[r]; picked = null; picks = []; lit = new Set(); covered = new Set(); attempts = 0; solved = false;
-  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.title; $('#qText').textContent = R.q; $('#fb').innerHTML = '';
-  renderCode(R.code, lit, null); renderChips(R); renderShelf(R);
-  if (R.kind === 'mc') { R._opts = shuffle(R.opts); $('#opts').innerHTML = R._opts.map((o, i) => '<button type="button" data-i="' + i + '">' + esc(o[0]) + '</button>').join(''); } else $('#opts').innerHTML = '';
-  $('#btnCheck').hidden = R.kind === 'pick'; $('#btnCheck').disabled = false; $('#btnCheck').textContent = R.kind === 'cover' ? 'Check coverage' : 'Check';
-  $('#btnClear').hidden = R.kind !== 'cover'; $('#btnClear').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true;
-  buildFor(R.kind === 'mc' ? R.play.chain : R.chain); G.reset(); $('#capT').textContent = 'Ready'; $('#capB').textContent = R.kind === 'mc' ? 'Pick an answer, press Check, then press Play the explanation to watch the package ride the floor.' : 'Click a package card below and watch it ride the floor.';
-  guide(1, R.kind === 'cover' ? 'Round ' + (r + 1) + ': <b>click package cards</b> until every branch chip turns green, using as few as you can. Then press <b>Check coverage</b>.' : R.kind === 'pick' ? 'Round ' + (r + 1) + ': <b>click the one package</b> that Copilot\'s sorter sends to the wrong lane.' : 'Read round ' + (r + 1) + ' below and <b>pick one answer</b>.');
-  drawProgress();
+  const R = ROUNDS[r]; picked = null; lit = new Set(); used = []; picks = 0; done = false; queue = []; killAnim(); busy = false;
+  G = make($('#stage'), CHARTS[R.chart]());
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.name; $('#qText').textContent = R.q; $('#fb').innerHTML = '';
+  $('#capT').textContent = 'Ready'; $('#capB').textContent = R.kind === 'cover' ? 'Click a package below. The token runs it through the chart and every arrow it travels turns green.' : R.kind === 'find' ? 'This is Copilot\'s order: fragile first. Click a package below to run it.' : 'Pick an answer and press Check, then press Play the explanation.';
+  $('#shelfWrap').hidden = R.kind === 'mc'; $('#opts').innerHTML = '';
+  if (R.kind === 'mc') { R._opts = shuffle(R.opts); $('#opts').innerHTML = R._opts.map((o, i) => '<button type="button" data-i="' + i + '">' + esc(o[0]) + '</button>').join(''); $('#btnCheck').textContent = 'Check'; $('#btnCheck').hidden = false; $('#btnCheck').disabled = false;
+    guide(1, 'Read round ' + (r + 1) + ' below and <b>pick one answer</b>.'); }
+  else { renderShelf(); covbar(); $('#btnCheck').textContent = 'Check coverage'; $('#btnCheck').hidden = R.kind === 'find'; $('#btnCheck').disabled = false;
+    guide(1, R.kind === 'cover' ? 'Click package cards below until every arrow on the chart is green, then press <b>Check coverage</b>.' : 'Click the one package that lands on a different lane in Copilot\'s order.'); }
+  $('#btnNext').disabled = true; $('#btnPlay').disabled = true; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
 }
-// ---- hands-on rounds: picking a package runs it ----
-$('#shelf').addEventListener('click', e => {
-  const b = e.target.closest('.pcard'); if (!b || b.disabled || b.classList.contains('used') || b.classList.contains('dud')) return;
-  const R = ROUNDS[r], p = byId(b.dataset.id);
-  if (R.kind === 'cover') {
-    const t = playTrace(R.chain, p, false); picks.push(p.id); t.lit.forEach(l => lit.add(l)); const isNew = !covered.has(t.branch); covered.add(t.branch);
-    b.classList.add('used'); b.querySelector('.res').textContent = (t.branch === 'SUR' ? '+3.00' : t.branch === 'NOSUR' ? 'no surcharge' : t.branch) + (isNew ? '' : ' (already lit)');
-    renderCode(R.code, lit, new Set(t.lit)); renderChips(R); $('#count').innerHTML = 'Packages used: <b>' + picks.length + '</b> · minimum <b>' + R.min + '</b>';
-    const all = branchesOf(R.chain).every(x => covered.has(x.id));
-    guide(all ? 2 : 1, all ? 'Every branch is lit. Press <b>Check coverage</b>.' : (isNew ? 'New branch lit. ' : 'That package followed a path that was already lit. ') + 'Keep <b>clicking cards</b> until every chip is green, then press <b>Check coverage</b>.');
-    return;
-  }
-  if (R.kind === 'pick') {
-    if (solved) return;
-    attempts++; const tc = playTrace(R.chain, p, false), tr = trace(R.rule, p);
-    if (tc.branch !== tr.branch) {
-      solved = true; G.flash(cur); b.classList.add('bug'); b.querySelector('.res').textContent = 'code: ' + tc.branch + ', rule: ' + tr.branch;
-      const pts = attempts === 1 ? 10 : attempts === 2 ? 5 : 0; total += pts; log[r] = {q: R.title, a: p.id + ' after ' + attempts + ' pick' + (attempts > 1 ? 's' : ''), pts: pts, max: 10};
-      $('#fb').innerHTML = '<div class="feedback ' + (pts === 10 ? 'ok' : pts ? 'info' : 'bad') + '"><b>' + pts + ' of 10 points.</b> ' + p.id + ' is the only reference package where both of the first two conditions are True: 60 > 50 and fragile == "yes". Copilot\'s sorter runs the fragile line first and never reaches the weight line, so a 60 lb box lands on the FRAGILE shelf instead of FREIGHT. Every other package has at most one of those two conditions True, so the order does not change its lane.' + (attempts > 1 ? ' You needed ' + attempts + ' picks: a test plan lists this case before any code runs.' : '') + '</div>';
-      document.querySelectorAll('#shelf .pcard').forEach(x => { x.disabled = true; }); $('#score').textContent = total; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; drawProgress();
-      guide(3, 'Press <b>Play the explanation</b> to watch it again, then <b>Next round</b>.');
-    } else {
-      b.classList.add('dud'); b.querySelector('.res').textContent = tc.branch + ' in both';
-      guide(1, p.id + ' lands in ' + tc.branch + ' in both orders, so it proves nothing. <b>Click another package</b>: look for one where two conditions are True at once.');
-    }
-  }
-});
-$('#btnClear').addEventListener('click', () => { const R = ROUNDS[r]; picks = []; lit = new Set(); covered = new Set(); renderCode(R.code, lit, null); renderChips(R); renderShelf(R); G.reset(); guide(1, 'Picks cleared. <b>Click package cards</b> again.'); });
+function settle(pts, max, answer, html) {
+  done = true; total += pts; log[r] = {q: ROUNDS[r].name, a: answer, pts: pts, max: max};
+  $('#fb').innerHTML = '<div class="feedback ' + (pts === max ? 'ok' : pts > 0 ? 'info' : 'bad') + '">' + html + '</div>';
+  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; document.querySelectorAll('.pcard').forEach(b => { b.disabled = true; }); drawProgress();
+  guide(3, 'Press <b>Play the explanation</b> to see it on the flowchart, then <b>Next round</b>.');
+}
 $('#opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); guide(2, 'Press <b>Check</b> to see your points.'); });
 $('#btnCheck').addEventListener('click', () => {
-  const R = ROUNDS[r];
-  if (R.kind === 'cover') {
-    if (!picks.length) { guide(1, 'Click at least one package card first, then press <b>Check coverage</b>.'); return; }
-    const all = branchesOf(R.chain), dark = all.filter(b => !covered.has(b.id)), extra = picks.length - R.min;
-    const pts = dark.length ? 0 : Math.max(0, 10 - 2 * extra);
-    total += pts; log[r] = {q: R.title, a: picks.length + ' package' + (picks.length > 1 ? 's' : '') + (dark.length ? ', ' + dark.length + ' branch' + (dark.length > 1 ? 'es' : '') + ' dark' : ', every branch lit'), pts: pts, max: 10};
-    $('#fb').innerHTML = '<div class="feedback ' + (pts === 10 ? 'ok' : pts ? 'info' : 'bad') + '"><b>' + pts + ' of 10 points.</b> ' + (dark.length ? 'Still dark: ' + dark.map(b => chipLabel[b.id] || b.label).join(', ') + '. A test plan with a dark branch cannot catch a bug hiding there. Press <b>Reset picks</b> and try again next time; the best set lights every chip with ' + R.min + ' packages.'
-      : extra <= 0 ? 'Every branch lit with ' + picks.length + ' packages, the minimum. Each package took a path no earlier package had taken.' : 'Every branch lit, but ' + extra + ' package' + (extra > 1 ? 's' : '') + ' added nothing new (' + extra * 2 + ' points off). A package that follows a path already lit tells you nothing you did not know.') + '</div>';
-    document.querySelectorAll('#shelf .pcard').forEach(x => { x.disabled = true; }); $('#btnClear').disabled = true;
-  } else {
+  const R = ROUNDS[r]; if (done) return;
+  if (R.kind === 'mc') {
     if (picked === null) { guide(1, 'Pick an answer first, then press <b>Check</b>.'); return; }
-    const o = R._opts[picked], max = Math.max(...R.opts.map(x => x[1])), best = R._opts.find(x => x[1] === max);
-    total += o[1]; log[r] = {q: R.title, a: o[0], pts: o[1], max: max};
+    const o = R._opts[picked], max = 10, best = R._opts.find(x => x[1] === max);
     document.querySelectorAll('#opts button').forEach((b, i) => { b.disabled = true; b.style.borderColor = ''; if (R._opts[i] === best) b.classList.add('right'); else if (i === picked) b.classList.add('wrong'); });
-    $('#fb').innerHTML = '<div class="feedback ' + (o[1] === max ? 'ok' : o[1] > 0 ? 'info' : 'bad') + '"><b>' + o[1] + ' of ' + max + ' points.</b> ' + esc(o[2]) + (o === best ? '' : ' The best answer: ' + esc(best[0]) + '. ' + esc(best[2])) + '</div>';
+    settle(o[1], max, o[0], '<b>' + o[1] + ' of ' + max + ' points.</b> ' + esc(o[2]) + (o === best ? '' : ' The best answer: ' + esc(best[0]) + '. ' + esc(best[2])));
+    return;
   }
-  guide(3, 'Read the explanation. Press <b>Play the explanation</b> to see it on the floor, then <b>Next round</b>.');
-  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
+  if (busy) { queue.push(() => $('#btnCheck').click()); return; }
+  if (!used.length) { guide(1, 'Click at least one package first, then press <b>Check coverage</b>.'); return; }
+  const dark = G.all.filter(k => !lit.has(k));
+  if (dark.length) {
+    G.paint(dark, CORAL);
+    const tips = dark.slice(0, 3).map(k => { const p = PK.find(x => G.run(x).path.includes(k)); return esc(G.names[k]) + (p ? ' (' + p.t + ' would light it)' : ''); });
+    settle(0, 10, used.length + ' packages, ' + dark.length + ' arrow' + (dark.length > 1 ? 's' : '') + ' dark', '<b>0 of 10 points.</b> ' + dark.length + ' arrow' + (dark.length > 1 ? 's' : '') + ' stayed dark (now shown in coral): ' + tips.join('; ') + '. A test plan that leaves a branch untested can miss a bug on exactly that branch.');
+  } else {
+    const extra = used.length - R.min, pts = Math.max(0, 10 - 2 * extra), duds = used.filter(u => !u.added).map(u => u.p.t);
+    settle(pts, 10, used.length + ' packages, every arrow green', '<b>' + pts + ' of 10 points.</b> Every arrow is green' + (extra ? ', but you used ' + used.length + ' packages and ' + R.min + ' are enough: minus 2 per extra package.' : ' with ' + used.length + ' packages, the minimum. One package per branch is a complete test plan with nothing wasted.') + (duds.length ? ' Packages that added nothing new: ' + duds.join(', ') + '.' : ''));
+  }
 });
 $('#btnPlay').addEventListener('click', () => {
-  const R = ROUNDS[r];
-  if (R.play) { playTrace(R.play.chain, R.play.p, !!R.play.flash); const best = R.opts ? R._opts.find(x => x[1] === Math.max(...R.opts.map(y => y[1]))) : null; $('#capT').textContent = 'Explanation'; $('#capB').textContent = best ? best[2] : 'PP-2026-0005 in Copilot\'s order: the fragile gate takes it first, and the weight gate is skipped.'; }
-  else if (lastPlay) playTrace(lastPlay.chain, lastPlay.p, lastPlay.flash);
-  $('#stage').scrollIntoView({behavior: 'smooth', block: 'center'});
+  const R = ROUNDS[r], l = log[r]; if (!l || busy) return;
+  G.fk.clear();
+  if (R.kind === 'cover') {   // the smallest set: pick the package that lights the most new arrows until every arrow is green
+    const left = new Set(G.all), set = [];
+    while (left.size) { let best = null, n = 0; PK.forEach(p => { const c = G.run(p).path.filter(k => left.has(k)).length; if (c > n) { n = c; best = p; } }); if (!best) break; set.push(best); G.run(best).path.forEach(k => left.delete(k)); }
+    $('#capT').textContent = 'A complete set'; $('#capB').textContent = set.map(p => p.t).join(', ') + ': ' + set.length + ' packages, one per branch. Watch each one light its own arrows.';
+    const seen = new Set(); busy = true;
+    const t = mkTL(() => { busy = false; $('#capB').textContent = set.map(p => short(p) + ' ' + G.run(p).lane).join(', ') + ': every arrow green with ' + set.length + ' packages.'; });
+    set.forEach(p => { const res = G.run(p); const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2)); t.add(f); } t.call(() => { G.paint(res.path, GREEN); res.path.forEach(k => seen.add(k)); G.fk.highlight(res.node, 'done'); }); t.to({}, {duration: .25}); });
+    runTL(t);
+  } else {
+    const p = PK[R.kind === 'find' ? 4 : R.play], res = G.run(p);
+    $('#capT').textContent = p.t + (R.chart === 'copilot' ? ' in Copilot\'s order' : ' in Dante\'s order'); $('#capB').textContent = res.desc + '. Price $' + price(p).toFixed(2) + '.';
+    lit = new Set(); busy = true;
+    const t = mkTL(() => { busy = false; G.paint(res.path, GREEN); G.fk.highlight(res.node, R.chart === 'copilot' && res.lane !== laneOf(p, DISPATCH) ? 'error' : 'done'); });
+    const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2.4)); t.add(f); } t.to({}, {duration: .1}); runTL(t);
+  }
 });
-$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); $('#qTitle').scrollIntoView({behavior: 'smooth', block: 'start'}); } else finishAll(); });
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); } else finishAll(); });
 function finishAll() {
   guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
-  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.'; $('#opts').innerHTML = ''; $('#rcode').hidden = true; $('#chips').hidden = true; $('#shelf').hidden = true; $('#count').hidden = true; $('#btnCheck').disabled = true; $('#btnNext').disabled = true; $('#btnClear').hidden = true;
-  $('#resTable').innerHTML = '<tr><th>Round</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + ' · ' + esc(l.q) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent: you can cover every branch and read a chain the way Python does.' : ' Press Try again to improve it; the rounds keep their order, so you can plan the minimum sets.'); $('#opts').innerHTML = ''; $('#shelfWrap').hidden = true; $('#btnCheck').disabled = true; $('#btnNext').disabled = true;
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>What you did</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '. ' + esc(l.q) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
   if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
   drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 function start() { r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
 $('#btnAgain').addEventListener('click', start);
-G = FloorScene($('#stage'));
-start(); G.intro();
-// test hooks
-window.__round = () => ({r: r, kind: ROUNDS[r].kind, total: total, log: log, picks: picks, covered: Array.from(covered)});
-window.__pickCard = id => { const b = document.querySelector('#shelf .pcard[data-id="' + id + '"]'); if (b) b.click(); };
-window.__choose = txt => { const i = ROUNDS[r]._opts.findIndex(o => o[0].startsWith(txt)); document.querySelector('#opts button[data-i="' + i + '"]').click(); };
-window.__trace = (which, id) => trace({full: C_FULL, cop: C_COP, sur: C_SUR, zone: C_ZONE, nest: C_NEST}[which], byId(id));
+window.__cover = {rounds: ROUNDS, pk: PK, lane: laneOf, charts: CHARTS, state: () => ({r: r, total: total, log: log, lit: lit.size, all: G.all.length, busy: busy})};
+start();
 })();
 </script>
 </body>
