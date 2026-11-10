@@ -393,6 +393,8 @@
   html[data-theme=light] .btn:disabled,html[data-theme=light] .btn[disabled]{opacity:1;background:var(--panel-2);border-color:var(--line);color:var(--silk-dim)}
   html[data-theme=light] .pysb-bar button:disabled{opacity:1;background:var(--panel-2);border-color:var(--line);color:var(--silk-dim)}
   html[data-theme=light] .pysb{background:#FFFFFF}
+  /* a progress tile with partial credit also carries the class part: keep it a tile, not a card */
+  .progress i.part,html[data-theme=light] .progress i.part{border:0;padding:0;margin-top:0;border-radius:2px;background:var(--warn)}
 </style>
 </head>
 <body>
@@ -434,7 +436,7 @@
     <pre class="symptom" id="symptom"></pre>
     <div class="part" id="part1">
       <h3>Part 1: the wrong symbol <span class="pts">4 points</span></h3>
-      <p class="hint">On the flowchart above, click the symbol that causes the symptom. It lights gold. Then press Check symbol.</p>
+      <p class="hint" id="hint1">On the flowchart above, click the symbol that causes the symptom. It lights gold. Then press Check symbol.</p>
       <div class="stepper"><span class="picked" id="pickMsg">No symbol picked yet.</span><button class="btn primary" id="btnSym" type="button" style="margin-left:auto">Check symbol</button></div>
       <div id="fb1"></div>
     </div>
@@ -867,6 +869,7 @@ const E = (from, to, o) => Object.assign({from: from, to: to}, o || {});
 const byId = (nodes, id) => nodes.find(n => n.id === id);
 const loop = (nodes, from, to, lane, topRow) => { const a = byId(nodes, from), b = byId(nodes, to); return [AN(a, 'bottom'), [a.col, a.row + 0.5], [lane, a.row + 0.5], [lane, topRow], [b.col, topRow], AN(b, 'top')]; };
 const PKG = 'packages = ["PP-2026-0001", "PP-2026-0002", "PP-2026-0003", "PP-2026-0004", "PP-2026-0005"]';
+const PICK_HINT = 'On the flowchart above, click the symbol that causes the symptom. It lights gold. Then press Check symbol.';
 const rep = (path, times) => { let out = []; for (let i = 0; i < times; i++) out = out.concat(path); return out; };
 
 function priceChart(early, w) {
@@ -875,13 +878,6 @@ function priceChart(early, w) {
     return {cols: 2, rows: 6, pad: PAD, nodes: nodes, edges: [E('s', 'p'), E('p', 'r1'), E('r1', 'd'), E('d', 'a', {label: 'Yes', side: 'right'}), E('d', 'r2', {label: 'No'}), E('a', 'r2')]}; }
   nodes.push(N('d', 'decision', 'fragile?', 0, 2), N('a', 'process', 'p = p + 3.00', 1, 3), N('r', 'terminal', 'RETURN p', 0, 4));
   return {cols: 2, rows: 5, pad: PAD, nodes: nodes, edges: [E('s', 'p'), E('p', 'd'), E('d', 'a', {label: 'Yes', side: 'right'}), E('d', 'r', {label: 'No'}), E('a', 'r')]};
-}
-function zoneChart(kendallInB, noElse) {
-  const nodes = [N('s', 'terminal', 'START zone', 0, 0), N('d1', 'decision', 'city == "Doral"?', 0, 1, 230), N('rA', 'terminal', 'RETURN "A"', 1, 1.5),
-    N('d2', 'decision', kendallInB ? 'city == "Hialeah" or\n"Miami Gardens"\nor "Kendall"?' : 'city == "Hialeah" or\n"Miami Gardens"?', 0, 2, kendallInB ? 270 : 250), N('rB', 'terminal', 'RETURN "B"', 1, 2.5),
-    N('d3', 'decision', kendallInB ? 'city == "Homestead"?' : 'city == "Kendall" or\n"Homestead"?', 0, 3, 250), N('rC', 'terminal', 'RETURN "C"', 1, 3.5),
-    noElse ? N('end', 'terminal', 'END (no return)', 0, 4) : N('rAsk', 'terminal', 'RETURN "Ask dispatch"', 0, 4, 210)];
-  return {cols: 2, rows: 5, pad: PAD, nodes: nodes, edges: [E('s', 'd1'), E('d1', 'rA', {label: 'Yes', side: 'right'}), E('d1', 'd2', {label: 'No'}), E('d2', 'rB', {label: 'Yes', side: 'right'}), E('d2', 'd3', {label: 'No'}), E('d3', 'rC', {label: 'Yes', side: 'right'}), E('d3', noElse ? 'end' : 'rAsk', {label: 'No'})]};
 }
 function totalChart(start, prints) {
   const nodes = [N('s', 'terminal', 'START manifest_total', 0, 0, 200), N('t', 'process', 'total = ' + start, 0, 1), N('d', 'decision', 'more weights?', 0, 2), N('w', 'process', 'w = next weight', 0, 3), N('add', 'process', 'total = total + w', 0, 4)];
@@ -894,26 +890,46 @@ function findChart(item) {
   const nodes = [N('s', 'terminal', 'START find_package', 0, 0, 200), N('i0', 'process', 'i = 0', 0, 1), N('d1', 'decision', 'i < len(packages)?', 0, 2, 230), N('rm', 'terminal', 'RETURN -1', 1, 2.5), N('d2', 'decision', 'packages[i] ==\ntracking?', 0, 3, 230), N('ri', 'terminal', item ? 'RETURN packages[i]' : 'RETURN i', 1, 4), N('inc', 'process', 'i = i + 1', 0, 4)];
   return {cols: 2, rows: 5, pad: PAD, nodes: nodes, edges: [E('s', 'i0'), E('i0', 'd1'), E('d1', 'rm', {label: 'No', side: 'right'}), E('d1', 'd2', {label: 'Yes'}), E('d2', 'ri', {label: 'Yes', side: 'right'}), E('d2', 'inc', {label: 'No'}), E('inc', 'd1', {points: loop(nodes, 'inc', 'd1', LANE, 1.45)})]};
 }
-function sortChart(bug) {
-  const nodes = [N('s', 'terminal', 'START sort_by_weight', 0, 0, 200), N('n', 'process', 'n = len(weights)', 0, 1), N('d1', 'decision', 'i < n - 1?\n(more passes)', 0, 2, 230), N('d2', 'decision', (bug ? 'j < n - i?' : 'j < n - 1 - i?') + '\n(more pairs)', 0, 3, 230),
-    N('d3', 'decision', 'weights[j] >\nweights[j + 1]?', 0, 4, 230), N('sw', 'process', 'swap weights[j]\nand weights[j + 1]', 0, 5, 210), N('rw', 'terminal', 'RETURN weights', 1, 6.2)];
-  const d1 = byId(nodes, 'd1'), d2 = byId(nodes, 'd2'), d3 = byId(nodes, 'd3'), sw = byId(nodes, 'sw'), rw = byId(nodes, 'rw');
-  return {cols: 2, rows: 7.2, pad: PAD, nodes: nodes, edges: [E('s', 'n'), E('n', 'd1'), E('d1', 'rw', {label: 'No', side: 'right', points: [AN(d1, 'right'), [1.6, 2], [1.6, 6.2], AN(rw, 'right')]}), E('d1', 'd2', {label: 'Yes'}),
-    E('d2', 'd1', {label: 'No', side: 'left', points: [AN(d2, 'left'), [LANE, 3], [LANE, 1.45], [0, 1.45], AN(d1, 'top')]}), E('d2', 'd3', {label: 'Yes'}), E('d3', 'sw', {label: 'Yes'}),
-    E('d3', 'd2', {label: 'No', side: 'right', points: [AN(d3, 'right'), [1.35, 4], [1.35, 2.5], [0, 2.5], AN(d2, 'top')]}), E('sw', 'd2', {points: [AN(sw, 'bottom'), [0, 5.6], [1.35, 5.6], [1.35, 2.5], [0, 2.5], AN(d2, 'top')]})]};
-}
 function labelChart(swapped) {
   const nodes = [N('s', 'terminal', 'START (MAIN)', 0, 0), N('w', 'process', 'weight = 12', 0, 1), N('m', 'process', 'miles = 8', 0, 2), N('c', 'call', swapped ? 'label = price(miles,\nweight, False)' : 'label = price(weight,\nmiles, False)', 0, 3, 210), N('o', 'io', 'OUTPUT "Package\nprice: $" label', 0, 4, 230), N('e', 'terminal', 'END', 0, 5)];
   return {cols: 1.2, rows: 6, pad: PAD, nodes: nodes, edges: [E('s', 'w'), E('w', 'm'), E('m', 'c'), E('c', 'o'), E('o', 'e')]};
 }
-function countChart(bug) {
-  const nodes = [N('s', 'terminal', 'START count_fragile', 1, 0, 200), N('c0', 'process', 'count = 0', 1, 1), N('i0', 'process', 'i = 0', 1, 2), N('d1', 'decision', 'i < len(flags)?', 1, 3, 230), N('rc', 'terminal', 'RETURN count', 0, 4), N('d2', 'decision', 'flags[i]?', 1, 4),
-    N('cnt', 'process', 'count = count + 1', bug ? 1 : 2, 5), N('inc', 'process', 'i = i + 1', 1, 6)];
-  const d1 = byId(nodes, 'd1'), d2 = byId(nodes, 'd2'), inc = byId(nodes, 'inc');
-  const edges = [E('s', 'c0'), E('c0', 'i0'), E('i0', 'd1'), E('d1', 'rc', {label: 'No', side: 'left'}), E('d1', 'd2', {label: 'Yes'})];
-  if (bug) edges.push(E('d2', 'cnt', {label: 'Yes'}), E('d2', 'd1', {label: 'No', side: 'right', points: [AN(d2, 'right'), [2.0, 4], [2.0, 2.45], [1, 2.45], AN(d1, 'top')]}), E('cnt', 'inc'), E('inc', 'd1', {points: [AN(inc, 'bottom'), [1, 6.5], [2.2, 6.5], [2.2, 2.45], [1, 2.45], AN(d1, 'top')]}));
-  else edges.push(E('d2', 'cnt', {label: 'Yes', side: 'right'}), E('d2', 'inc', {label: 'No'}), E('cnt', 'inc'), E('inc', 'd1', {points: [AN(inc, 'bottom'), [1, 6.5], [2.5, 6.5], [2.5, 2.45], [1, 2.45], AN(d1, 'top')]}));
-  return {cols: 3, rows: 7, pad: PAD, nodes: nodes, edges: edges};
+function dupChart(bug) {
+  const nodes = [N('s', 'terminal', 'START has_duplicate', 0, 0, 200), N('init', 'process', 'n = len(trackings)\ni = 0', 0, 1, 200), N('d1', 'decision', 'i < n?', 0, 2), N('rF', 'terminal', 'RETURN False', 1, 2.5),
+    N('j0', 'process', bug ? 'j = i' : 'j = i + 1', 0, 3), N('d2', 'decision', 'j < n?', 0, 4), N('iinc', 'process', 'i = i + 1', 1, 4.5),
+    N('d3', 'decision', 'trackings[i] ==\ntrackings[j]?', 0, 5, 240), N('rT', 'terminal', 'RETURN True', 1, 5.6), N('jinc', 'process', 'j = j + 1', 0, 6)];
+  const d1 = byId(nodes, 'd1'), iinc = byId(nodes, 'iinc');
+  return {cols: 2.2, rows: 7, pad: PAD, nodes: nodes, edges: [E('s', 'init'), E('init', 'd1'), E('d1', 'rF', {label: 'No', side: 'right'}), E('d1', 'j0', {label: 'Yes'}), E('j0', 'd2'),
+    E('d2', 'iinc', {label: 'No', side: 'right'}), E('d2', 'd3', {label: 'Yes'}), E('iinc', 'd1', {points: [AN(iinc, 'right'), [1.72, 4.5], [1.72, 1.45], [0, 1.45], AN(d1, 'top')]}),
+    E('d3', 'rT', {label: 'Yes', side: 'right'}), E('d3', 'jinc', {label: 'No'}), E('jinc', 'd2', {points: loop(nodes, 'jinc', 'd2', LANE, 3.45)})]};
+}
+function factChart(fixed) {
+  if (!fixed) return {cols: 2, rows: 3, pad: PAD, nodes: [N('s', 'terminal', 'START factorial', 0.5, 0), N('c', 'call', 'smaller =\nfactorial(n - 1)', 0.5, 1, 210), N('r', 'terminal', 'RETURN n * smaller', 0.5, 2, 200)], edges: [E('s', 'c'), E('c', 'r')]};
+  return {cols: 2, rows: 4, pad: PAD, nodes: [N('s', 'terminal', 'START factorial', 0, 0), N('d', 'decision', 'n == 0?', 0, 1), N('r1', 'terminal', 'RETURN 1', 1, 1.6), N('c', 'call', 'smaller =\nfactorial(n - 1)', 0, 2, 210), N('r', 'terminal', 'RETURN n * smaller', 0, 3, 200)],
+    edges: [E('s', 'd'), E('d', 'r1', {label: 'Yes', side: 'right'}), E('d', 'c', {label: 'No'}), E('c', 'r')]};
+}
+function powerChart(bug) {
+  return {cols: 2, rows: 4, pad: PAD, nodes: [N('s', 'terminal', 'START power', 0, 0), N('d', 'decision', 'exp == 0?', 0, 1), N('r0', 'terminal', bug ? 'RETURN 0' : 'RETURN 1', 1, 1.6), N('c', 'call', 'smaller = power(\nbase, exp - 1)', 0, 2, 220), N('r', 'terminal', 'RETURN base * smaller', 0, 3, 210)],
+    edges: [E('s', 'd'), E('d', 'r0', {label: 'Yes', side: 'right'}), E('d', 'c', {label: 'No'}), E('c', 'r')]};
+}
+function countdownChart(bug) {
+  return {cols: 2, rows: 5, pad: PAD, nodes: [N('s', 'terminal', 'START countdown', 0, 0), N('d', 'decision', 'n == 0?', 0, 1), N('a1', 'process', 'ticks.append("Go")', 1, 1.6, 200), N('r1', 'terminal', 'RETURN ticks', 1, 2.6),
+    N('a2', 'process', 'ticks.append(n)', 0, 2), N('c', 'call', bug ? 'result = countdown(\nn, ticks)' : 'result = countdown(\nn - 1, ticks)', 0, 3, 220), N('r', 'terminal', 'RETURN result', 0, 4)],
+    edges: [E('s', 'd'), E('d', 'a1', {label: 'Yes', side: 'right'}), E('a1', 'r1'), E('d', 'a2', {label: 'No'}), E('a2', 'c'), E('c', 'r')]};
+}
+function greedyChart(fixed) {
+  const GL = -0.78;
+  const nodes = [N('s', 'terminal', 'START greedy_load', 0, 0, 200), N('init', 'process', 'used = all False\ntaken = [ ], load = 0', 0, 1, 220), N('c1', 'call', 'i = pick_next(\nused, rule)', 0, 2, 200), N('d1', 'decision', 'i != -1?', 0, 3), N('r', 'terminal', 'RETURN taken', 1, 3.6), N('u', 'process', 'used[i] = True', 0, 4)];
+  const edges = [E('s', 'init'), E('init', 'c1'), E('c1', 'd1'), E('d1', 'r', {label: 'No', side: 'right'}), E('d1', 'u', {label: 'Yes'})];
+  if (fixed) {
+    nodes.push(N('d2', 'decision', 'load + weights[i]\n<= capacity?', 0, 5, 250), N('t', 'process', 'taken.append(i)\nload = load + weights[i]', 1.1, 5.9, 220), N('c2', 'call', 'i = pick_next(\nused, rule)', 0, 6.9, 200));
+    const t = byId(nodes, 't'), c2 = byId(nodes, 'c2');
+    edges.push(E('u', 'd2'), E('d2', 't', {label: 'Yes', side: 'right'}), E('d2', 'c2', {label: 'No'}), E('t', 'c2', {points: [AN(t, 'bottom'), [1.1, 6.9], AN(c2, 'right')]}), E('c2', 'd1', {points: loop(nodes, 'c2', 'd1', GL, 2.45)}));
+    return {cols: 2.3, rows: 7.9, pad: PAD, nodes: nodes, edges: edges};
+  }
+  nodes.push(N('t', 'process', 'taken.append(i)\nload = load + weights[i]', 0, 5, 220), N('c2', 'call', 'i = pick_next(\nused, rule)', 0, 6, 200));
+  edges.push(E('u', 't'), E('t', 'c2'), E('c2', 'd1', {points: loop(nodes, 'c2', 'd1', GL, 2.45)}));
+  return {cols: 2, rows: 7, pad: PAD, nodes: nodes, edges: edges};
 }
 const findPlay = ['s>i0', 'i0>d1'].concat(rep(['d1>d2', 'd2>inc', 'inc>d1'], 3), ['d1>d2', 'd2>ri']);
 const totalPlay = ['s>t', 't>d'].concat(rep(['d>w', 'w>add', 'add>d'], 5), ['d>r']);
@@ -928,14 +944,6 @@ const ROUNDS = [
     fix: 'Delete the early return p (line 3), so the if runs before the return at the end.',
     opts: [['Delete the early return p on line 3, so the if runs before the return at the end.', true], ['Change p = p + 3.00 to p + 3.00.', false], ['Replace if fragile: with if fragile == "yes":.', false], ['Move print(price(3, 2, True)) inside the function.', false]],
     play: {path: ['s>p', 'p>d', 'd>a', 'a>r'], label: '10.4', cap: 'price(3, 2, True) now returns 10.4: the token reaches the fragile decision, takes Yes to the surcharge, and only then returns.'}},
-  {title: 'Kendall on the wrong shelf', q: 'Copilot wrote zone(). Kendall Office Supply is in Kendall, which is zone C. Dante ran zone("Kendall") and saw:', symptom: 'B',
-    chart: fixed => zoneChart(!fixed, false), bad: ['d2'], badWhy: 'The second diamond lists Kendall with the zone B cities, so Kendall returns "B" before the zone C diamond is ever reached.',
-    code: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens" or city == "Kendall":', '        return "B"', '    elif city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"', '', 'print(zone("Kendall"))'],
-    fixed: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"', '', 'print(zone("Kendall"))'],
-    tests: [{expr: 'zone("Kendall")', expect: "'C'"}, {expr: 'zone("Hialeah")', expect: "'B'"}, {expr: 'zone("Homestead")', expect: "'C'"}],
-    fix: 'Remove or city == "Kendall" from the zone B line and add it to the zone C line: elif city == "Kendall" or city == "Homestead":.',
-    opts: [['Remove or city == "Kendall" from the zone B condition and add it to the zone C condition.', true], ['Change the Homestead condition so it returns "B".', false], ['Move the Doral check to the end of the chain.', false], ['Return "C" before checking the city.', false]],
-    play: {path: ['s>d1', 'd1>d2', 'd2>d3', 'd3>rC'], label: "'C'", cap: 'zone("Kendall") now returns \'C\': Doral is False, Hialeah or Miami Gardens is False, Kendall or Homestead is True.'}},
   {title: 'One pound from nowhere', q: 'Copilot wrote manifest_total(). The VAN-1 manifest (12, 3, 20, 50, 45) weighs 130 lb. The program printed:', symptom: '131',
     chart: fixed => totalChart(fixed ? 0 : 1, false), bad: ['t'], badWhy: 'The accumulator starts at 1 instead of 0, so every total is one pound too high, and an empty manifest totals 1.',
     code: ['def manifest_total(weights):', '    total = 1', '    for w in weights:', '        total = total + w', '    return total', '', 'print(manifest_total([12, 3, 20, 50, 45]))'],
@@ -950,16 +958,8 @@ const ROUNDS = [
     fixed: ['def find_package(tracking, packages):', '    for i in range(len(packages)):', '        if packages[i] == tracking:', '            return i', '    return -1', '', PKG, 'print(find_package("PP-2026-0004", packages))'],
     tests: [{expr: 'find_package("PP-2026-0004", packages)', expect: '3'}, {expr: 'find_package("PP-2026-0009", packages)', expect: '-1'}, {expr: 'find_package("PP-2026-0001", packages)', expect: '0'}],
     fix: 'Change return packages[i] to return i.',
-    opts: [['Change return packages[i] to return i.', true], ['Change return -1 to return 0.', false], ['Change range(len(packages)) to range(len(packages) - 1).', false], ['Replace the loop with return packages.index(tracking).', false]],
+    opts: [['Change return packages[i] to return i.', true], ['Change return -1 to return 0.', false], ['Change range(len(packages)) to range(len(packages) - 1).', false], ['Change if packages[i] == tracking: to if i == tracking:.', false]],
     play: {path: findPlay, label: '3', cap: 'find_package("PP-2026-0004", packages) now returns 3: indexes 0, 1, and 2 do not match, index 3 does, and the loop returns the position.'}},
-  {title: 'One step too far', q: 'Copilot wrote sort_by_weight(). Sorting the VAN-1 weights [12, 3, 20, 50, 45] stopped with this traceback:', symptom: 'Traceback (most recent call last):\n  File "<exec>", line 9, in <module>\n  File "<exec>", line 5, in sort_by_weight\nIndexError: list index out of range',
-    chart: fixed => sortChart(!fixed), bad: ['d2'], badWhy: 'The inner loop runs j up to n - i - 1, one pair too far: on the first pass j reaches 4 and weights[j + 1] is weights[5], which does not exist in a list of 5.',
-    code: ['def sort_by_weight(weights):', '    n = len(weights)', '    for i in range(n - 1):', '        for j in range(n - i):', '            if weights[j] > weights[j + 1]:', '                weights[j], weights[j + 1] = weights[j + 1], weights[j]', '    return weights', '', 'print(sort_by_weight([12, 3, 20, 50, 45]))'],
-    fixed: ['def sort_by_weight(weights):', '    n = len(weights)', '    for i in range(n - 1):', '        for j in range(n - 1 - i):', '            if weights[j] > weights[j + 1]:', '                weights[j], weights[j + 1] = weights[j + 1], weights[j]', '    return weights', '', 'print(sort_by_weight([12, 3, 20, 50, 45]))'],
-    tests: [{expr: 'sort_by_weight([12, 3, 20, 50, 45])', expect: '[3, 12, 20, 45, 50]'}, {expr: 'sort_by_weight([50, 45, 20, 12, 3])', expect: '[3, 12, 20, 45, 50]'}, {expr: 'sort_by_weight([7])', expect: '[7]'}],
-    fix: 'Change range(n - i) to range(n - 1 - i).',
-    opts: [['Change range(n - i) to range(n - 1 - i).', true], ['Change range(n - 1) to range(n).', false], ['Change weights[j + 1] to weights[j - 1].', false], ['Change n = len(weights) to n = len(weights) - 1.', false]],
-    play: {path: ['s>n', 'n>d1', 'd1>d2', 'd2>d3', 'd3>sw', 'sw>d2', 'd2>d3', 'd3>d2', 'd2>d3', 'd3>d2', 'd2>d3', 'd3>sw', 'sw>d2', 'd2>d1', 'd1>rw'], label: '[3, 12, 20, 45, 50]', cap: 'Pass 1 with the fix: 4 comparisons and 2 swaps (12 with 3, then 50 with 45) give [3, 12, 20, 45, 50]. The replay skips passes 2 to 4 (no swaps) and returns the list.'}},
   {title: 'The total that vanished', q: 'Copilot changed manifest_total() so it "shows the total". MAIN then tried to print the total with units and saw:', symptom: '130\nTotal: None lb',
     chart: fixed => totalChart(0, !fixed), bad: ['out'], badWhy: 'The function prints the total instead of returning it. print shows 130 on the screen, but the function hands back nothing, so MAIN receives None.',
     code: ['def manifest_total(weights):', '    total = 0', '    for w in weights:', '        total = total + w', '    print(total)', '', 'weights = [12, 3, 20, 50, 45]', 'print(f"Total: {manifest_total(weights)} lb")'],
@@ -976,30 +976,48 @@ const ROUNDS = [
     fix: 'Change the call to price(weight, miles, False).',
     opts: [['Change the call to price(weight, miles, False).', true], ['Change the def line to def price(miles, weight, fragile):.', false], ['Change weight = 12 to weight = 8.', false], ['Change :.2f to :.1f in the print.', false]],
     play: {path: ['s>w', 'w>m', 'm>c', 'c>o', 'o>e'], label: '16.10', cap: 'price(weight, miles, False) sends 12 to weight and 8 to miles: 4.50 + 9.60 + 2.00 = 16.10.'}},
-  {title: 'The count that never ends', q: 'Copilot wrote count_fragile(flags), which counts how many True values a list holds. With [False, True, False, False, True] the program never printed anything. The sandbox stopped it:', symptom: '(nothing printed)\nStopped after 15 seconds: the program never finished. Look for a loop whose condition never becomes False.',
-    chart: fixed => countChart(!fixed), bad: ['inc'], badWhy: 'i = i + 1 sits on the Yes branch only. When flags[i] is False, i never changes, the condition i < len(flags) stays True forever, and the loop never ends.',
-    code: ['def count_fragile(flags):', '    count = 0', '    i = 0', '    while i < len(flags):', '        if flags[i]:', '            count = count + 1', '            i = i + 1', '    return count', '', 'print(count_fragile([False, True, False, False, True]))'],
-    fixed: ['def count_fragile(flags):', '    count = 0', '    i = 0', '    while i < len(flags):', '        if flags[i]:', '            count = count + 1', '        i = i + 1', '    return count', '', 'print(count_fragile([False, True, False, False, True]))'],
-    tests: [{expr: 'count_fragile([False, True, False, False, True])', expect: '2'}, {expr: 'count_fragile([])', expect: '0'}, {expr: 'count_fragile([True, True])', expect: '2'}],
-    fix: 'Move i = i + 1 out of the if: four spaces less, so it runs on every pass of the loop.',
-    opts: [['Move i = i + 1 out of the if (same indentation as the if), so it runs on every pass.', true], ['Change while i < len(flags): to while i <= len(flags):.', false], ['Change count = count + 1 to i = i + 1.', false], ['Change i = 0 to i = 1.', false]],
-    play: {path: ['s>c0', 'c0>i0', 'i0>d1', 'd1>d2', 'd2>inc', 'inc>d1', 'd1>d2', 'd2>cnt', 'cnt>inc', 'inc>d1', 'd1>d2', 'd2>inc', 'inc>d1', 'd1>d2', 'd2>inc', 'inc>d1', 'd1>d2', 'd2>cnt', 'cnt>inc', 'inc>d1', 'd1>rc'], label: '2', cap: 'With i = i + 1 after the if, every pass moves i forward: five passes, two of them count, and the loop ends with count = 2.'}},
-  {title: 'The lane that is not there', q: 'Copilot wrote zone() without a last branch. Blue Heron Clinic is in Fort Lauderdale, a city the chain does not list. MAIN printed:', symptom: 'Lane: None',
-    chart: fixed => zoneChart(false, !fixed), bad: ['end', 'd3'], badWhy: 'The No arrow of the last diamond leads to the end of the function with no RETURN. A function that reaches its end without returning hands back None.',
-    code: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '', 'print("Lane:", zone("Fort Lauderdale"))'],
-    fixed: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"', '', 'print("Lane:", zone("Fort Lauderdale"))'],
-    tests: [{expr: 'zone("Fort Lauderdale")', expect: "'Ask dispatch'"}, {expr: 'zone("Doral")', expect: "'A'"}, {expr: 'zone("Homestead")', expect: "'C'"}],
-    fix: 'Add an else branch at the end of the chain: else: return "Ask dispatch".',
-    opts: [['Add else: return "Ask dispatch" at the end of the chain.', true], ['Change the last elif to else.', false], ['Put return "Ask dispatch" before the first if.', false], ['Add return None at the end of the function.', false]],
-    play: {path: ['s>d1', 'd1>d2', 'd2>d3', 'd3>rAsk'], label: "'Ask dispatch'", cap: 'No diamond matches Fort Lauderdale, so the else branch returns \'Ask dispatch\' and MAIN prints "Lane: Ask dispatch".'}},
-  {title: 'Four spaces short', q: 'Copilot pasted price() with one line out of place. Python refused to run the file at all:', symptom: 'Traceback (most recent call last):\n  File "<exec>", line 4\n    p = p + 3.00\n    ^\nIndentationError: expected an indented block after \'if\' statement on line 3',
-    chart: fixed => priceChart(false), bad: ['a'], badWhy: 'The chart puts p = p + 3.00 on the Yes branch of the fragile decision, but in the Python that line is not indented under if fragile:. Indentation is how Python knows which lines belong to the if.',
-    code: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '    p = p + 3.00', '    return p', '', 'print(price(3, 2, True))'],
-    fixed: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '        p = p + 3.00', '    return p', '', 'print(price(3, 2, True))'],
-    tests: [{expr: 'price(3, 2, True)', expect: '10.4'}, {expr: 'price(12, 8, False)', expect: '16.1'}],
-    fix: 'Indent p = p + 3.00 four more spaces so it sits under if fragile:.',
-    opts: [['Indent p = p + 3.00 four more spaces, under if fragile:.', true], ['Delete the line if fragile:.', false], ['Add a colon after p = p + 3.00.', false], ['Indent return p under the if.', false]],
-    play: {path: ['s>p', 'p>d', 'd>a', 'a>r'], label: '10.4', cap: 'With the surcharge line indented under the if, Python accepts the file and price(3, 2, True) returns 10.4.'}}
+  {title: "Every list has a twin", q: "Copilot wrote has_duplicate(), which should answer True only when a tracking number appears twice in the list. Dante gave it three different numbers (the list named clean) and saw:", symptom: "True",
+    chart: fixed => dupChart(!fixed), bad: ["j0"], badWhy: "The inner loop starts j at i, so the first comparison is trackings[0] against trackings[0]: an item compared with itself. That is always equal, so the function answers True for any list that is not empty.",
+    code: ["def has_duplicate(trackings):", "    n = len(trackings)", "    for i in range(n):", "        for j in range(i, n):", "            if trackings[i] == trackings[j]:", "                return True", "    return False", "", "clean = [\"PP-2026-0001\", \"PP-2026-0002\", \"PP-2026-0004\"]", "repeat = [\"PP-2026-0001\", \"PP-2026-0002\", \"PP-2026-0001\"]", "print(has_duplicate(clean))"],
+    fixed: ["def has_duplicate(trackings):", "    n = len(trackings)", "    for i in range(n):", "        for j in range(i + 1, n):", "            if trackings[i] == trackings[j]:", "                return True", "    return False", "", "clean = [\"PP-2026-0001\", \"PP-2026-0002\", \"PP-2026-0004\"]", "repeat = [\"PP-2026-0001\", \"PP-2026-0002\", \"PP-2026-0001\"]", "print(has_duplicate(clean))"],
+    tests: [{expr: "has_duplicate(clean)", expect: "False"}, {expr: "has_duplicate(repeat)", expect: "True"}, {expr: "has_duplicate([\"PP-2026-0007\"])", expect: "False"}],
+    fix: "Change range(i, n) to range(i + 1, n), so j starts one item after i.",
+    opts: [["Change range(i, n) to range(i + 1, n), so j starts one item after i.", true], ["Change range(n) to range(n - 1) in the outer loop.", false], ["Change == to != in the comparison.", false], ["Change return True to return False.", false]],
+    play: {path: ['s>init', 'init>d1', 'd1>j0', 'j0>d2', 'd2>d3', 'd3>jinc', 'jinc>d2', 'd2>d3', 'd3>rT'], label: 'True', cap: "has_duplicate(repeat) now compares item 0 with item 1 (different), then item 0 with item 2 (equal), and returns True. With the three different numbers it makes 3 comparisons and returns False."}},
+  {title: "The call that never comes back", q: "Copilot wrote factorial() with recursion: the function calls itself with a smaller number. factorial(4) should be 24. Python stopped with this traceback instead (the repeat count changes a little from one Python to another):", symptom: "Traceback (most recent call last):\n  File \"<exec>\", line 5, in <module>\n  File \"<exec>\", line 2, in factorial\n  File \"<exec>\", line 2, in factorial\n  File \"<exec>\", line 2, in factorial\n  [Previous line repeated 992 more times]\nRecursionError: maximum recursion depth exceeded",
+    chart: fixed => factChart(fixed), bad: ["c"], badWhy: "The call symbol runs on every call, and no decision comes before it. factorial(4) calls factorial(3), then 2, 1, 0, -1, -2, and so on: there is no base case to stop the calls. Each call waits on the call stack until Python reaches its limit (about 1,000 calls) and raises RecursionError. That is a stack overflow.",
+    pickHint: "One symbol is missing from this chart. Click the symbol that runs on every call with nothing to stop it. It lights gold. Then press Check symbol.",
+    code: ["def factorial(n):", "    smaller = factorial(n - 1)", "    return n * smaller", "", "print(factorial(4))"],
+    fixed: ["def factorial(n):", "    if n == 0:", "        return 1", "    smaller = factorial(n - 1)", "    return n * smaller", "", "print(factorial(4))"],
+    tests: [{expr: "factorial(4)", expect: "24"}, {expr: "factorial(0)", expect: "1"}, {expr: "factorial(5)", expect: "120"}],
+    fix: "Add the base case as the first lines of the function: if n == 0: return 1.",
+    opts: [["Add the base case before the recursive call: if n == 0: return 1.", true], ["Change factorial(n - 1) to factorial(n).", false], ["Change return n * smaller to return smaller.", false], ["Add if n == 0: return 1 after the line return n * smaller.", false]],
+    play: {path: ['s>d', 'd>c', 'c>r'], label: '24', cap: "With the base case, factorial(4) calls factorial(3), then 2, 1, and 0. factorial(0) answers 1 without calling again, and the waiting calls finish in turn: 1, 2, 6, 24."}},
+  {title: "Everything times zero", q: "Copilot wrote power() with recursion. power(2, 3) should be 8 (2 × 2 × 2). The program printed:", symptom: "0",
+    chart: fixed => powerChart(!fixed), bad: ["r0"], badWhy: "The base case returns 0. Every answer is built by multiplying on the way back, and anything times 0 is 0: 2 × 0, then 2 × 0 again. Any number to the power 0 is 1, so the base case must return 1.",
+    code: ["def power(base, exp):", "    if exp == 0:", "        return 0", "    smaller = power(base, exp - 1)", "    return base * smaller", "", "print(power(2, 3))"],
+    fixed: ["def power(base, exp):", "    if exp == 0:", "        return 1", "    smaller = power(base, exp - 1)", "    return base * smaller", "", "print(power(2, 3))"],
+    tests: [{expr: "power(2, 3)", expect: "8"}, {expr: "power(2, 10)", expect: "1024"}, {expr: "power(5, 0)", expect: "1"}],
+    fix: "Change return 0 to return 1 in the base case.",
+    opts: [["Change return 0 to return 1 in the base case.", true], ["Change exp - 1 to exp + 1 in the recursive call.", false], ["Change if exp == 0: to if exp == 1:.", false], ["Change return base * smaller to return base + smaller.", false]],
+    play: {path: ['s>d', 'd>c', 'c>r'], label: '8', cap: "power(2, 3) now waits for power(2, 2), power(2, 1), and power(2, 0). The base case returns 1, and the waiting calls compute 2, 4, and 8."}},
+  {title: "Stuck at 3", q: "Copilot wrote countdown() for the van departure board. countdown(3, []) should return [3, 2, 1, 'Go']. This function has a base case, and Python still stopped with:", symptom: "Traceback (most recent call last):\n  File \"<exec>\", line 9, in <module>\n  File \"<exec>\", line 6, in countdown\n  File \"<exec>\", line 6, in countdown\n  File \"<exec>\", line 6, in countdown\n  [Previous line repeated 992 more times]\nRecursionError: maximum recursion depth exceeded",
+    chart: fixed => countdownChart(!fixed), bad: ["c"], badWhy: "The call passes n again, not n - 1. countdown(3, ticks) calls countdown(3, ticks) forever: n never gets closer to 0, so the base case is never reached. A base case only helps when every call moves toward it.",
+    code: ["def countdown(n, ticks):", "    if n == 0:", "        ticks.append(\"Go\")", "        return ticks", "    ticks.append(n)", "    result = countdown(n, ticks)", "    return result", "", "print(countdown(3, []))"],
+    fixed: ["def countdown(n, ticks):", "    if n == 0:", "        ticks.append(\"Go\")", "        return ticks", "    ticks.append(n)", "    result = countdown(n - 1, ticks)", "    return result", "", "print(countdown(3, []))"],
+    tests: [{expr: "countdown(3, [])", expect: "[3, 2, 1, 'Go']"}, {expr: "countdown(1, [])", expect: "[1, 'Go']"}, {expr: "countdown(0, [])", expect: "['Go']"}],
+    fix: "Change countdown(n, ticks) to countdown(n - 1, ticks).",
+    opts: [["Change the recursive call to countdown(n - 1, ticks).", true], ["Change if n == 0: to if n == 1:.", false], ["Delete the line ticks.append(n).", false], ["Change return result to return ticks.", false]],
+    play: {path: ['s>d', 'd>a2', 'a2>c', 'c>r'], label: "[3, 2, 1, 'Go']", cap: "Each call now passes n - 1: 3, then 2, then 1, then 0, where the base case adds \"Go\" and returns the list [3, 2, 1, 'Go']."}},
+  {title: "The van that takes everything", q: "Copilot wrote greedy_load() for the Saturday rush trip. VAN-2 carries 900 lb, and the highest fee rule should take R1 and R2 (positions 0 and 1 in the lists, 850 lb). The program printed:", symptom: "[0, 1, 4, 3, 2, 5]\nLoad: 1800 lb",
+    chart: fixed => greedyChart(fixed), bad: ["t"], badWhy: "taken.append(i) runs for every order that pick_next returns. No decision asks whether the order still fits, so all six orders are taken and the load is 1,800 lb, twice what VAN-2 can carry.",
+    pickHint: "A decision is missing from this chart. Click the symbol that runs for every order with no check before it. It lights gold. Then press Check symbol.", scrollLine: 22,
+    code: ["names = [\"R1\", \"R2\", \"R3\", \"R4\", \"R5\", \"R6\"]", "weights = [400, 450, 100, 200, 300, 350]", "fees = [240, 210, 130, 140, 160, 120]", "", "def pick_next(used, rule):", "    best = -1", "    for i in range(len(names)):", "        if not used[i]:", "            if best == -1:", "                best = i", "            elif rule == \"fee\" and fees[i] > fees[best]:", "                best = i", "            elif rule == \"per_pound\" and fees[i] / weights[i] > fees[best] / weights[best]:", "                best = i", "    return best", "", "def total(values, taken):", "    t = 0", "    for i in taken:", "        t = t + values[i]", "    return t", "", "def greedy_load(orders, capacity, rule):", "    used = []", "    for name in orders:", "        used.append(False)", "    taken = []", "    load = 0", "    i = pick_next(used, rule)", "    while i != -1:", "        used[i] = True", "        taken.append(i)", "        load = load + weights[i]", "        i = pick_next(used, rule)", "    return taken", "", "taken = greedy_load(names, 900, \"fee\")", "print(taken)", "print(\"Load:\", total(weights, taken), \"lb\")"],
+    fixed: ["names = [\"R1\", \"R2\", \"R3\", \"R4\", \"R5\", \"R6\"]", "weights = [400, 450, 100, 200, 300, 350]", "fees = [240, 210, 130, 140, 160, 120]", "", "def pick_next(used, rule):", "    best = -1", "    for i in range(len(names)):", "        if not used[i]:", "            if best == -1:", "                best = i", "            elif rule == \"fee\" and fees[i] > fees[best]:", "                best = i", "            elif rule == \"per_pound\" and fees[i] / weights[i] > fees[best] / weights[best]:", "                best = i", "    return best", "", "def total(values, taken):", "    t = 0", "    for i in taken:", "        t = t + values[i]", "    return t", "", "def greedy_load(orders, capacity, rule):", "    used = []", "    for name in orders:", "        used.append(False)", "    taken = []", "    load = 0", "    i = pick_next(used, rule)", "    while i != -1:", "        used[i] = True", "        if load + weights[i] <= capacity:", "            taken.append(i)", "            load = load + weights[i]", "        i = pick_next(used, rule)", "    return taken", "", "taken = greedy_load(names, 900, \"fee\")", "print(taken)", "print(\"Load:\", total(weights, taken), \"lb\")"],
+    tests: [{expr: "greedy_load(names, 900, \"fee\")", expect: "[0, 1]"}, {expr: "total(weights, greedy_load(names, 900, \"fee\"))", expect: "850"}, {expr: "greedy_load(names, 900, \"per_pound\")", expect: "[2, 3, 0]"}],
+    fix: "Add the check above the two lines that take the order, and indent them under it: if load + weights[i] <= capacity:.",
+    opts: [["Add if load + weights[i] <= capacity: above taken.append(i), and indent the two lines that take the order under it.", true], ["Change while i != -1: to while load < capacity:.", false], ["Change the call to greedy_load(names, 1800, \"fee\").", false], ["Delete the line used[i] = True.", false]],
+    play: {path: ['s>init', 'init>c1', 'c1>d1'].concat(rep(['d1>u', 'u>d2', 'd2>t', 't>c2', 'c2>d1'], 2), ['d1>u', 'u>d2', 'd2>c2', 'c2>d1', 'd1>r']), label: '[0, 1]', cap: "With the check, R1 (400 lb) and R2 (450 lb) are taken: 850 lb. R5 does not fit, so the token takes the No branch (the replay shows it once), and R4, R3, and R6 are skipped the same way. The function returns [0, 1]."}}
 ];
 const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 let order = [], r = 0, total = 0, log = [], fk = null, G = null, SB = null, pyFailed = false;
@@ -1007,7 +1025,7 @@ let order = [], r = 0, total = 0, log = [], fk = null, G = null, SB = null, pyFa
 // ---- the chart card ----
 function buildChart(spec) { const stage = $('#stage'); stage.querySelectorAll('svg.flow, .fk-zoom').forEach(e => e.remove()); if (window.__flows) window.__flows.length = 0; fk = FlowKit(stage, spec); fk.onPick(onPick); return fk; }
 function playFixed() {
-  const R = ROUNDS[order[r]]; buildChart(R.chart(true));
+  const R = ROUNDS[order[r]], spec = R.chart(true); buildChart(spec); fk.fitAll();
   $('#capT').textContent = 'The fixed function'; $('#capB').textContent = R.play.cap;
   const first = R.play.path[0].split('>')[0], last = R.play.path[R.play.path.length - 1].split('>')[1];
   fk.highlight(first, 'done');
@@ -1030,8 +1048,10 @@ function showRound() {
   $('#pickMsg').textContent = 'No symbol picked yet.'; $('#fb1').innerHTML = ''; $('#fb2').innerHTML = '';
   $('#part1').classList.remove('done'); $('#part2').classList.add('locked'); $('#part2').classList.remove('done');
   $('#btnSym').disabled = false; $('#btnShow').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round';
-  buildChart(R.chart(false)); $('#capT').textContent = 'Copilot\'s version'; $('#capB').textContent = 'Click the symbol you think is wrong, then press Check symbol below. After your fix passes the tests, the chart plays the fixed function.';
+  const spec = R.chart(false); buildChart(spec); $('#capT').textContent = 'Copilot\'s version'; $('#capB').textContent = 'Click the symbol you think is wrong, then press Check symbol below. After your fix passes the tests, the chart plays the fixed function.' + (spec.rows >= 5 ? ' This chart is tall: drag it, or press FIT, to see every symbol.' : '');
   SB.reset(); SB.setCode(R.code.join('\n')); SB.setTests(R.tests); SB.setInputs('');
+  $('#hint1').textContent = R.pickHint || PICK_HINT;
+  const ta = $('#sb .pysb-code'); ta.style.height = Math.min(520, Math.max(160, R.code.length * 19.5 + 26)) + 'px'; ta.scrollTop = (R.scrollLine || 0) * 19.5;
   const list = $('#sb .pysb-tests'); list.hidden = false; list.innerHTML = R.tests.map(t => '<li><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">not run yet</span></li>').join('');
   setMode(pyFailed ? 'fallback' : 'sandbox');
   guide(1, 'Read round ' + (r + 1) + ' below, then <b>click the wrong symbol</b> on the chart above.'); drawProgress();
@@ -1063,7 +1083,9 @@ function scoreFix(points, why) {
 function onRun(m) {
   const L = log[r]; if (!L || !L.symDone || L.fixDone || L.fallback) return;
   L.runs++;
-  if (m.err === 'timeout') { fb('#fb2', 'bad', 'Stopped after 15 seconds: the loop never ended, which is the symptom itself. Change the code so the loop variable moves on every pass, then press Run again. (Python reloads after a stop; the next Run can take a minute.)'); return; }
+  if (m.err === 'timeout') { fb('#fb2', 'bad', 'Stopped after 15 seconds: the program never finished. Look for a loop whose variable never changes, fix it, and press Run again. (Python reloads after a stop; the next Run can take a minute.)'); return; }
+  if (!m.ok && STACK_RE.test(m.err || '') && !/RecursionError/.test(m.err)) { $('#sb .pysb-pre').className = 'pysb-pre err'; $('#sb .pysb-pre').textContent = STACK_NOTE; m = {ok: false, out: '', err: 'RecursionError: maximum recursion depth exceeded', tests: []}; }
+  if (!m.ok && /RecursionError/.test(m.err || '')) { fb('#fb2', 'bad', 'Python stopped with <code>RecursionError</code>: the calls never reached a base case, so the call stack filled up (a stack overflow). Check that the function has a base case and that every call moves toward it, then press Run again.' + (L.shown ? '' : ' Stuck? Show the fix loads the corrected code (2 points).')); return; }
   const passed = (m.tests || []).filter(t => t.pass).length, n = (m.tests || []).length;
   if (m.ok && n && passed === n) { const pts = L.shown ? 2 : L.runs === 1 ? 6 : 4; scoreFix(pts, L.shown ? 'The shown fix passes every test.' : L.runs === 1 ? 'Every test passed on your first Run.' : 'Every test passes now (Run number ' + L.runs + ').'); }
   else fb('#fb2', 'bad', (m.ok ? passed + ' of ' + n + ' tests pass. Read which expected value did not come back, change the code, and Run again.' : 'Python stopped with an error. Read the last line of the message, fix that line, and Run again.') + (L.shown ? '' : ' Stuck? Show the fix loads the corrected code (2 points).'));
@@ -1088,17 +1110,23 @@ $('#btnCheckFix').addEventListener('click', () => {
 $('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); window.scrollTo({top: 0, behavior: 'smooth'}); } else finishAll(); });
 function finishAll() {
   guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
-  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.'; $('#symptom').textContent = ''; $('#part1').hidden = true; $('#part2').hidden = true; $('#btnNext').disabled = true;
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.'; $('#symptom').hidden = true; $('#part1').hidden = true; $('#part2').hidden = true; $('#btnNext').disabled = true; $('#btnNext').hidden = true;
   $('#resTable').innerHTML = '<tr><th>Round</th><th>Symbol</th><th>Fix</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '. ' + esc(l.title) + '</td><td>' + l.sym + ' / 4</td><td>' + l.fix + ' / 6' + (l.shown ? ' (shown)' : l.fallback ? ' (picked)' : '') + '</td><td>' + l.pts + ' / 10</td></tr>').join('') + '<tr><td colspan="3"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
   if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
   drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
-function start() { order = shuffle(ROUNDS.map((_, i) => i)); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#part1').hidden = false; $('#part2').hidden = false; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+function start() { order = shuffle(ROUNDS.map((_, i) => i)); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#part1').hidden = false; $('#part2').hidden = false; $('#symptom').hidden = false; $('#btnNext').hidden = false; $('#specRounds').textContent = ROUNDS.length; showRound(); }
 $('#btnAgain').addEventListener('click', start);
 
+// some browsers run out of their own call stack before Python can raise RecursionError: show Python's message and keep the sandbox usable
+const STACK_RE = /call stack|too much recursion|RangeError|InternalError|stack overflow/i;
+const STACK_NOTE = 'RecursionError: maximum recursion depth exceeded\n(This browser ran out of call stack before Python could print the whole traceback. The cause is the same: the calls never reach a base case. The next Run reloads Python, which can take a minute.)';
 // ---- the sandbox (one for the page; each round loads its code and tests) and the no-Python fallback ----
 SB = PySandbox($('#sb'), {title: 'Fix it: edit and run the Python', code: '', inputs: '', tests: [], onRun: onRun});
-new MutationObserver(() => { if ($('#sb .pysb-status').textContent === 'Python could not load' && !pyFailed) { pyFailed = true; const L = log[r]; if (L && !L.fixDone) { setMode('fallback'); fb('#fb2', 'info', 'Python could not load in this browser (the network may block cdn.jsdelivr.net). Pick the fix from the list for the same points.'); } } }).observe($('#sb .pysb-status'), {childList: true, characterData: true, subtree: true});
+new MutationObserver(() => {
+  const st = $('#sb .pysb-status'), pre = $('#sb .pysb-pre');
+  if (st.textContent === 'Python could not load' && STACK_RE.test(pre.textContent)) { st.textContent = 'Stopped with an error'; pre.className = 'pysb-pre err'; pre.textContent = STACK_NOTE; onRun({ok: false, out: '', err: 'RecursionError: maximum recursion depth exceeded', tests: []}); return; }
+  if (st.textContent === 'Python could not load' && !pyFailed) { pyFailed = true; const L = log[r]; if (L && !L.fixDone) { setMode('fallback'); fb('#fb2', 'info', 'Python could not load in this browser (the network may block cdn.jsdelivr.net). Pick the fix from the list for the same points.'); } } }).observe($('#sb .pysb-status'), {childList: true, characterData: true, subtree: true});
 start();
 window.__bh = {rounds: ROUNDS, order: () => order, r: () => r, log: () => log, total: () => total, sb: SB, pick: onPick, next: () => $('#btnNext').click()};
 })();

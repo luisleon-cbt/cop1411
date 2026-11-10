@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load the van</title>
+<meta name="description" content="COP1411 Week 2 interactive: Load each van so every stop finds its package at the rear door: the last package in is the first one out. Then predict pushes and pops, change a list by index, and sort four data structures.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+    /* ----- CBT light variant (course.yaml theme: light): CBT colors on white, the stage at 75 percent with the instructions at its right ----- */
+  :root{
+    --board:#F6F7FB; --board-deep:#FFFFFF; --panel:#FFFFFF; --panel-2:#EEF0F8; --line:#DADDEA; --line-2:#C5CAE0;
+    --silk:#1A1D2E; --silk-dim:#5d6178; --copper:#E0B840;
+    --addr:#B8921F; --data:#1F86B5; --ctrl:#D6473C; --alu:#2E9E63; --oper:#5B66C9; --out:#1F7FA8; --led:#2E9E63;
+    --ok:#2E9E63; --bad:#D6473C; --warn:#B8921F; --neon:#1B7F3B;
+    --ink:#1A1D2E; --ink-2:#3a3f5c; --muted:#5d6178; --bg:#FFFFFF; --card:#FFFFFF; --edge:#DADDEA; --edge-2:#C5CAE0; --dim:#5d6178; --silk-2:#3a3f5c;
+    --code-bg:#F4F5FA; --code-ink:#1A1D2E;
+    --net-blue:#1F86B5; --net-green:#2E9E63; --net-amber:#B8921F; --net-purple:#5B66C9; --net-teal:#1E9E8F;
+    --ok-soft:rgba(46,158,99,.10); --bad-soft:rgba(214,71,60,.10); --warn-soft:rgba(184,146,31,.12);
+    --shadow:0 1px 2px rgba(26,29,46,.06);
+    color-scheme:light;
+  }
+  html{background:#FFFFFF}
+  body{background:#FFFFFF;color:var(--silk)}
+  body::before{display:none}
+  a{color:var(--cbt-navy)}
+  h1,h2,h3{color:var(--cbt-navy)}
+  .eyebrow{color:var(--data)}
+  .lede,.muted{color:var(--silk-dim)}
+  .card{background:#FFFFFF;background-image:none;box-shadow:var(--shadow)}
+  .card[data-ref]::after{color:#9a9fbd}
+  .spec{background:var(--line)}
+  .spec div{background:#FFFFFF}
+  .btn{background:#FFFFFF;border-color:var(--line-2);color:var(--cbt-navy)}
+  .btn:hover:not(:disabled){border-color:var(--cbt-navy);background:var(--panel-2)}
+  .btn.primary,.btn.go{background:var(--cbt-gold);border-color:var(--cbt-gold);color:#1a1205}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data);background:#E6F5FB}
+  .feedback{color:var(--silk)}
+  .feedback.ok{background:var(--ok-soft);border-color:rgba(46,158,99,.5)}
+  .feedback.bad{background:var(--bad-soft);border-color:rgba(214,71,60,.5)}
+  .feedback.info{background:rgba(31,134,181,.08);border-color:rgba(31,134,181,.5)}
+  .score .big{color:var(--cbt-navy)}
+  th,table.data th{background:var(--panel-2);color:var(--silk-dim)}
+  td,table.data td{border-bottom:1px solid var(--line)}
+  .caption,.narr{background:var(--panel-2);border-color:var(--line);color:var(--silk)}
+  .caption .t{color:var(--cap,var(--addr))}
+  .reg.on,.reg.flash{background:var(--warn-soft)}
+  .notice li::marker{color:var(--addr)}
+  .legend{color:var(--silk-dim)}
+  .legend i{box-shadow:none}
+  .ptag{color:var(--silk)}
+  footer.foot .byline,.byline{color:var(--cbt-navy)!important;text-shadow:none;font-weight:700}
+  /* landing page cards */
+  html[data-theme="light"] .wk a.item{background:var(--panel-2);border-color:var(--line);color:var(--silk)}
+  html[data-theme="light"] .wk a.item:hover{background:#FBF4DD;border-color:var(--cbt-gold)}
+  html[data-theme="light"] .wk:not(.featured)::before{color:rgba(40,48,104,.07)}
+  html[data-theme="light"] .wk.featured{background:#FFFFFF;border-color:var(--cbt-gold);box-shadow:var(--shadow)}
+  html[data-theme="light"] .wk.featured p{color:var(--silk-dim)!important}
+  .credit{color:var(--cbt-navy)}
+  .foot{color:var(--silk-dim);border-top:1px solid var(--line)}
+  .topbar{box-shadow:0 3px 0 var(--cbt-gold)}
+  /* stage and HUD on a light board */
+  .stage,.stage.flowstage,.card .stage,.stage3d{background:#F3F5FB;border:1px solid var(--line)}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(255,255,255,.94);border-color:var(--line);backdrop-filter:none}
+  .phases li{color:var(--silk-dim)}
+  .phases li.on{background:var(--c,var(--cbt-gold));color:#1a1205}
+  .hud .views button{color:var(--cbt-navy)}
+  .hud .views button.on{background:var(--cbt-navy);color:#FFFFFF}
+  .nogl{background:rgba(255,255,255,.9);color:var(--silk)}
+  .tag,.stage3d .label3d{color:var(--silk);text-shadow:none}
+  /* guide: the instructions */
+  .guide ol.steps li{background:#FFFFFF;border-color:var(--line);color:var(--silk)}
+  .guide ol.steps li::before{background:var(--panel-2);color:var(--cbt-navy)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:#FBF4DD}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{background:var(--ok);color:#FFFFFF}
+  .guide ol.steps li b,.guide .now b{color:#8a6a08}
+  .guide .now{background:#E6F5FB;border-left-color:var(--cbt-sky);color:var(--silk)}
+  .guide .now .k{color:var(--data)}
+  .guide .tips{color:var(--silk-dim)}
+  .panel{background:none}
+  /* page-level blocks that pages define after the theme (code panels, scenes): the html attribute wins over the page's own rule */
+  html[data-theme="light"] .code{background:#F4F5FA;border:1px solid var(--line);color:#1A1D2E}
+  html[data-theme="light"] .code .ln.on{background:#FBF4DD;box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  html[data-theme="light"] .token.keyword{color:#5B66C9}html[data-theme="light"] .token.string{color:#1F7FA8}html[data-theme="light"] .token.number{color:#B8921F}
+  html[data-theme="light"] .token.function{color:#2E9E63}html[data-theme="light"] .token.comment{color:#7c819e}html[data-theme="light"] .token.builtin{color:#9a5b00}html[data-theme="light"] .token.operator,html[data-theme="light"] .token.punctuation{color:#3a3f5c}
+  html[data-theme="light"] .flowcard,html[data-theme="light"] .scene,html[data-theme="light"] .stage.flowstage{background:#F3F5FB;border:1px solid var(--line)}
+  html[data-theme="light"] pre,html[data-theme="light"] code{color:var(--silk)}
+  /* side layout: the stage at the left (three quarters), the instructions at its right (one quarter), the panel below */
+  @media(min-width:960px){
+    .app{display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,1fr);gap:0 22px;max-width:1400px;margin:0 auto;padding:0 16px;height:auto;min-height:0}
+    .app>.lab-head{grid-column:1/-1;max-width:none;padding:18px 0 14px}
+    .app>.stage{grid-column:1;grid-row:2;width:100%;height:clamp(420px,70vh,860px);border:1px solid var(--line);border-radius:8px}
+    .app>.guide{grid-column:2;grid-row:2;max-width:none;padding:0;display:block;align-self:start;max-height:clamp(420px,70vh,860px);overflow:auto}
+    .app>.guide h2{margin:0 0 10px;font-size:16px}
+    .app>.guide ol.steps{gap:6px}
+    .app>.guide ol.steps li{font-size:13.5px;padding:7px 8px 7px 40px}
+    .app>.guide .now{margin-top:10px;font-size:14.5px;padding:12px 14px}
+    .app>.guide .tips{font-size:12.5px}
+    .panel{grid-column:1/-1;max-width:none;padding:22px 0 28px}
+    .wrap{display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,1fr);gap:0 22px;max-width:1400px}
+    .wrap>.hero{grid-column:1/-1}
+    .wrap>aside.card{grid-column:1;grid-row:2}
+    .wrap>section.guide{grid-column:2;grid-row:2;padding:0;display:block;align-self:start;max-height:85vh;overflow:auto}
+    .wrap>section.guide h2{margin:0 0 10px;font-size:16px}
+    .wrap>section.guide ol.steps li{font-size:13.5px;padding:7px 8px 7px 40px}
+    .wrap>section.guide .now{margin-top:10px;font-size:14.5px;padding:12px 14px}
+    .wrap>section.card,.wrap>#results,.wrap>section:not(.guide):not(.hero){grid-column:1/-1}
+  }
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS below (flowchart challenge): the van stack beside the push and pop charts, then the hands-on rounds */
+  .flowcard{position:relative;width:100%;aspect-ratio:16/9;min-height:240px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  @media(max-width:640px){.flowcard{aspect-ratio:4/3}}
+  @media(min-width:641px){.vanrow.novan .flowcard{aspect-ratio:3/2}}
+  .flowcard .flow{position:absolute;inset:0;width:100%;height:100%}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
+  .vanrow{display:grid;grid-template-columns:176px minmax(0,1fr);gap:14px;align-items:stretch}
+  .vanrow.novan{grid-template-columns:minmax(0,1fr)}
+  .vanrow.novan .van{display:none}
+  @media(max-width:700px){.vanrow{grid-template-columns:minmax(0,1fr)}}
+  .van{position:relative;border:2px solid var(--cbt-navy);border-radius:12px;background:var(--panel-2);padding:8px 8px 10px;display:flex;flex-direction:column;gap:6px}
+  html:not([data-theme=light]) .van{border-color:var(--line-2)}
+  .van .door,.van .cab{font:700 10px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;text-align:center;border-radius:6px;padding:4px 6px}
+  .van .door{color:#1a1205;background:var(--cbt-gold)}
+  .van .cab{color:var(--silk-dim);border:1px solid var(--line-2);background:var(--panel)}
+  .cargo{position:relative;display:flex;flex-direction:column;gap:5px;flex:1;justify-content:center}
+  .vs{display:grid;grid-template-columns:22px minmax(0,1fr) 36px;align-items:center;gap:5px;min-height:40px}
+  .vs .ix{font:500 10.5px var(--font-mono);color:var(--silk-dim);text-align:right}
+  .van .pk{border:2px solid var(--data);border-radius:6px;background:var(--panel);text-align:center;padding:3px 2px;font:700 14px/1.2 var(--font-mono);color:var(--silk);box-sizing:border-box}
+  .van .pk small{display:block;font:500 10.5px/1.2 var(--font-body);color:var(--silk-dim)}
+  .van .pk.none{border:1px dashed var(--line-2);background:transparent;color:var(--silk-dim);font-weight:500;font-size:11px;padding:10px 2px}
+  .vs.top .pk{border-color:var(--cbt-gold);box-shadow:0 0 0 2px rgba(224,184,64,.35)}
+  .van .pk.ghost{position:absolute;pointer-events:none;border-color:var(--cbt-gold)}
+  .vs .ptr{font:700 10.5px var(--font-mono);color:var(--addr);visibility:hidden;white-space:nowrap}
+  .vs.top .ptr{visibility:visible}
+  .vs .ptr::before{content:"";display:inline-block;border:5px solid transparent;border-right-color:currentColor;margin-right:2px;vertical-align:-1px}
+  .vmeta{display:flex;justify-content:space-between;gap:8px;font:600 11.5px var(--font-mono);color:var(--silk-dim)}
+  .vmeta b{color:var(--silk);font-size:13px}
+  .vbtns{display:flex;gap:6px}
+  .vbtns .btn{flex:1 1 0;padding:7px 4px;font-size:13px;min-width:0}
+  .vnote{font-size:11.5px;color:var(--silk-dim);margin:0;line-height:1.35}
+  #pyline{margin-top:10px;min-height:22px}
+  .rgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start;margin-top:10px}
+  @media(max-width:760px){.rgrid{grid-template-columns:minmax(0,1fr)}}
+  .mini{font:700 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--silk-dim);margin:0 0 6px}
+  .mini.gap{margin-top:14px}
+  .qnote{font-size:13.5px;color:var(--silk-dim);margin:0 0 8px}
+  .stops{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .stops li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--panel-2);font-size:14px}
+  .stops li .n{font:700 11px var(--font-mono);color:var(--silk-dim);text-transform:uppercase;letter-spacing:.06em}
+  .stops li .st{grid-column:1/-1;font:600 12px var(--font-mono);min-height:0}
+  .stops li.ok{border-color:var(--ok);background:var(--ok-soft)}.stops li.ok .st{color:var(--ok)}
+  .stops li.bad{border-color:var(--bad);background:var(--bad-soft)}.stops li.bad .st{color:var(--bad)}
+  .dz{min-height:50px;border:2px dashed var(--line-2);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;padding:4px;font-size:11.5px;color:var(--silk-dim);background:var(--panel);box-sizing:border-box}
+  .tray{justify-content:flex-start;background:var(--panel-2);padding:8px;margin-bottom:12px}
+  .chip{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;border:2px solid var(--data);border-radius:6px;background:var(--panel);padding:4px 9px;font:700 13.5px/1.25 var(--font-mono);color:var(--silk);text-align:center;min-width:66px;box-sizing:border-box}
+  .chip small{display:block;font:500 10.5px/1.25 var(--font-body);color:var(--silk-dim)}
+  .chip.drag{cursor:grabbing;box-shadow:0 8px 18px rgba(0,0,0,.28)}
+  .chip.locked{cursor:default}
+  .chip.ok{border-color:var(--ok);background:var(--ok-soft)}.chip.bad{border-color:var(--bad);background:var(--bad-soft)}
+  .slots{display:grid;gap:6px}
+  .slots .edge{font:700 10px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;text-align:center;border-radius:6px;padding:3px 6px}
+  .slots .edge.door{color:#1a1205;background:var(--cbt-gold)}
+  .slots .edge.cab{color:var(--silk-dim);border:1px solid var(--line-2)}
+  .slotrow{display:grid;grid-template-columns:minmax(0,1fr) 100px minmax(0,1fr);gap:8px;align-items:center}
+  .slotrow .lab{font-size:12px;color:var(--silk-dim);line-height:1.3}
+  .slotrow .lab b{color:var(--silk);display:block;font-size:13px}
+  select.pick{width:100%;box-sizing:border-box;padding:7px 6px;border-radius:6px;border:1px solid var(--line-2);background:var(--code-bg);color:var(--silk);font:500 12.5px var(--font-body)}
+  select.pick:focus{outline:2px solid var(--cbt-gold);outline-offset:1px}
+  .ans{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin:0 0 10px;font-size:14.5px}
+  .cell{width:64px;box-sizing:border-box;padding:6px 4px;border-radius:5px;border:1px solid var(--line-2);background:var(--code-bg);color:var(--silk);font:600 13.5px var(--font-mono);text-align:center}
+  .cell.wide{width:120px}
+  .cell:focus{outline:2px solid var(--cbt-gold);outline-offset:1px}
+  .res{display:inline-block;min-width:58px;padding:5px 6px;border-radius:5px;font:700 13.5px var(--font-mono);text-align:center;box-sizing:border-box}
+  .res.ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
+  .res.bad{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+  html[data-theme=light] .res.ok{background:#E3F7EC}html[data-theme=light] .res.bad{background:#FBE4E1}
+  .res .was{display:block;font-size:10.5px;font-weight:500;text-decoration:line-through;color:var(--silk-dim)}
+  .boxes{display:flex;flex-wrap:wrap;gap:6px;min-height:50px;margin-bottom:4px}
+  .boxes .b{width:54px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel-2);text-align:center;padding:4px 0 3px}
+  .boxes .b .v{font:700 15px var(--font-mono);color:var(--silk)}
+  .boxes .b .i,.cellbox .i{font:500 10px var(--font-mono);color:var(--silk-dim)}
+  .boxes .b .i{border-top:1px solid var(--line);margin-top:3px;padding-top:2px}
+  .cells{display:flex;flex-wrap:wrap;gap:6px}
+  .cellbox{display:grid;gap:3px;justify-items:center}
+  .bins{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .bin{min-height:96px;align-content:flex-start;align-items:flex-start;justify-content:flex-start;padding:6px}
+  .bin .bt{flex:1 1 100%;font:700 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--silk)}
+  .scard{text-align:left;min-width:0;width:100%;font:700 13px/1.3 var(--font-body);padding:6px 8px}
+  .scard small{font-size:11.5px;margin:1px 0 5px}
+  .scard select.pick{font-size:12px;padding:5px 4px}
+  .tray .scard{width:calc(50% - 4px)}
+  @media(max-width:520px){.tray .scard{width:100%}}
+  .board + .board{margin-top:0}
+  .jobs{display:grid;gap:8px;margin-top:8px}
+  .job{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:6px 12px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:9px 12px;background:var(--panel-2);font-size:14.5px}
+  @media(max-width:640px){.job{grid-template-columns:minmax(0,1fr)}}
+  .job .why{grid-column:1/-1;font-size:13px;display:none}
+  .job.ok{border-color:var(--ok)}.job.ok .why{display:block;color:var(--ok)}
+  .job.bad{border-color:var(--bad)}.job.bad .why{display:block;color:var(--bad)}
+  .copi{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:10px 14px;font-size:14.5px;margin:8px 0 10px}
+  .copi .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--data);margin-bottom:4px}
+  .opts button{text-align:left}
+  .opts button code{display:block;white-space:pre-wrap;font:500 13px/1.5 var(--font-mono);color:inherit;background:none}
+  .opts button .ol{display:block;font:700 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim);margin-bottom:3px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 2 · Interactive B</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero split reveal" style="--i:0">
+    <div><span class="eyebrow">COP1411 · Week 2 · Challenge</span><h1>Load the van</h1><p class="lede">Load each van so every stop finds its package at the rear door: the last package in is the first one out. Then predict pushes and pops, change a list by index, and sort four data structures.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit per stop and per cell</span></div><div><b>Hands-on</b><span>drag, type, sort</span></div></div>
+  </section>
+  <aside class="card reveal" style="--i:1" data-ref="VAN AND FLOWCHART">
+    <h2>Watch it on the van and the flowchart</h2>
+    <div class="vanrow" id="vanrow">
+      <div class="van" id="van" aria-label="The cargo area of the van, drawn as a stack. The rear door is at the top.">
+        <div class="door">Rear door: in and out</div>
+        <div class="cargo" id="cargo"></div>
+        <div class="cab">Cab: front of the van</div>
+        <div class="vmeta"><span>size <b id="vSize">0</b> of <b id="vCap">5</b></span><span>top <b id="vTop">none</b></span></div>
+        <div class="vbtns" role="group" aria-label="Try the stack"><button class="btn" id="btnPush" type="button" disabled>Push</button><button class="btn" id="btnPop" type="button" disabled>Pop</button><button class="btn" id="btnPeek" type="button" disabled>Peek</button></div>
+        <p class="vnote" id="vnote">Push, Pop, and Peek wake up after you check a round.</p>
+      </div>
+      <div class="flowcard" id="stage"></div>
+    </div>
+    <pre class="code" id="pyline" aria-label="The Python line for the operation that is running"></pre>
+    <div class="caption" id="cap" style="margin-top:12px" aria-live="polite"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">The van is a stack: packages go in and come out through the rear door only.</p></div>
+    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
+  </aside>
+  <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How this challenge works</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Read the round below. In rounds 1 to 3, <b>drag each package into a slot</b> (or pick it in the list beside the slot). In the other rounds, <b>type your answers</b>, <b>sort the cards</b>, or <b>pick one answer</b>.</li>
+      <li data-h="2">Press <b>Deliver</b>, <b>Run</b>, or <b>Check</b>. The van above plays your answer, and the token runs the push chart or the pop chart for every operation.</li>
+      <li data-h="3">Read your points and the explanation. Press <b>Play the explanation</b> to watch the right answer, or try <b>Push</b>, <b>Pop</b>, and <b>Peek</b> on the van.</li>
+      <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> if you want a better score.</li>
+    </ol>
+    <div>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and load the van.</span></div>
+      <ul class="tips"><li>Each round is worth 10 points, with partial credit per stop, per answer, or per cell. The rounds come in the same order every time.</li><li>Over the flowchart: + and - zoom, drag to move, FIT shows the whole chart. Click a symbol to read what it does.</li></ul>
+    </div>
+  </section>
+  <section class="card reveal" style="--i:3" data-ref="ROUND">
+    <div class="progress" id="prog"></div>
+    <h2 id="qTitle">Round 1</h2>
+    <p id="qText" style="margin:0 0 6px"></p>
+    <div id="body"></div>
+    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
+    <div id="fb" aria-live="polite"></div>
+  </section>
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
+    <h2>Your results</h2>
+    <div class="scroll-x"><table class="data" id="resTable"></table></div>
+    <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
+  </section>
+</main>
+<footer class="foot">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+if (hasGSAP && window.Draggable) gsap.registerPlugin(Draggable);
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+// FLOWKIT START
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot) drawn the way a
+// textbook draws them: saturated outlines, a small icon that says what the symbol does, bold text, Yes and No badges on the branches,
+// a symbol key under the chart; orthogonal arrows with loop-back routes, a data token that travels the arrows carrying the real value,
+// node highlighting, memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows, key});
+//   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
+//   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
+//   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   key: true (default) draws the symbol key under the chart; key: false hides it; startFit: true opens with the whole chart in view instead of zoomed to START
+//   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
+//   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() (the default view: whole chart when readable, else zoomed to START) / fk.fitAll() (whole chart, the FIT button) / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
+//   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
+function FlowKit(stage, opts) {
+  'use strict';
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, key: true, nodes: [], edges: []}, opts || {});
+  const NS = 'http://www.w3.org/2000/svg';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  const C = light ? {ink: '#1A1D2E', line: '#3F4A8F', arrow: '#3F4A8F', active: '#E0B840', done: '#2E9E63', error: '#D6473C', label: '#1A1D2E', yes: '#2E9E63', no: '#D6473C', paper: '#FFFFFF', edge: '#C5CAE0', grid: '#E8EAF3', keyInk: '#3a3f5c',
+      fill: {terminal: '#FBEFC4', io: '#D9EEFA', process: '#FFFFFF', decision: '#E1E4FF', call: '#DCF4E6', slot: 'rgba(40,48,104,.05)'},
+      stroke: {terminal: '#B8921F', io: '#1F86B5', process: '#3F4A8F', decision: '#5B66C9', call: '#2E9E63', slot: '#8A90B8'}}
+    : {ink: '#1A1D2E', line: '#8a94d8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa', yes: '#2E9E63', no: '#D6473C', paper: '#161c4d', edge: '#2a3270', grid: '#2a3270', keyInk: '#aeb3c9',
+      fill: {terminal: '#FBF0C8', io: '#DCEFFA', process: '#F7F8FC', decision: '#E1E4FF', call: '#DDF4E6', slot: 'rgba(238,240,248,.08)'},
+      stroke: {terminal: '#B8921F', io: '#1F86B5', process: '#4a5490', decision: '#5B66C9', call: '#2E9E63', slot: '#8A90B8'}};
+  const KEY_H = O.key ? 56 : 0;
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2 + KEY_H;
+  const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const marker = (id, color) => { const m = el('marker', {id: id, viewBox: '0 0 10 10', refX: 8.5, refY: 5, markerWidth: 9, markerHeight: 9, orient: 'auto-start-reverse'}, defs); el('path', {d: 'M0,0 L10,5 L0,10 z', fill: color}, m); };
+  marker('fk-arrow', C.arrow); marker('fk-arrow-hot', C.active);
+  const glow = el('filter', {id: 'fk-glow', x: '-25%', y: '-25%', width: '150%', height: '150%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3.5, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  const shadow = el('filter', {id: 'fk-shadow', x: '-10%', y: '-10%', width: '120%', height: '140%'}, defs);
+  el('feDropShadow', {dx: 0, dy: 2, stdDeviation: 2, 'flood-color': '#1A1D2E', 'flood-opacity': light ? .18 : .5}, shadow);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: C.paper, stroke: C.edge, 'stroke-width': 1.5});
+  const grid = el('g', {opacity: light ? .7 : .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - KEY_H - 8, stroke: C.grid, 'stroke-dasharray': '3 6'}, grid);
+  const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
+  const nodes = {}, edges = {};
+  let pick = null;
+
+  // ---- icons: small glyphs that say what a symbol does (drawn with strokes so they scale cleanly) ----
+  function icon(kind, x, y, color, g) {
+    const k = el('g', {transform: 'translate(' + x + ',' + y + ')', fill: 'none', stroke: color, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}, g);
+    if (kind === 'keyboard') { el('rect', {x: -9, y: -6, width: 18, height: 12, rx: 2}, k); el('path', {d: 'M-6,-2.5 h2 M-2,-2.5 h2 M2,-2.5 h2 M6,-2.5 h0.5 M-6,1 h2 M-2,1 h2 M2,1 h2 M-4,4 h8'}, k); }
+    else if (kind === 'screen') { el('rect', {x: -9, y: -7, width: 18, height: 12, rx: 2}, k); el('path', {d: 'M-4,8 h8 M0,5 v3 M-5,-3 h7 M-5,0 h5'}, k); }
+    else if (kind === 'process') { el('rect', {x: -8, y: -8, width: 16, height: 16, rx: 3}, k); el('path', {d: 'M-4,-2 h8 M-4,2 h8'}, k); }
+    else if (kind === 'decision') { const t = el('text', {x: 0, y: 5, 'text-anchor': 'middle', fill: color, stroke: 'none', 'font-size': 15, 'font-weight': 800, 'font-family': 'Archivo, Arial, sans-serif'}, k); t.textContent = '?'; }
+    else if (kind === 'call') { el('rect', {x: -8, y: -8, width: 16, height: 16, rx: 3}, k); const t = el('text', {x: 0, y: 4.5, 'text-anchor': 'middle', fill: color, stroke: 'none', 'font-size': 12, 'font-style': 'italic', 'font-weight': 700, 'font-family': 'Georgia, serif'}, k); t.textContent = 'f'; }
+    else if (kind === 'return') { el('path', {d: 'M7,-5 v4 a3,3 0 0 1 -3,3 h-9 M-2,-1 l-4,3 l4,3'}, k); }
+    else if (kind === 'start') { el('circle', {r: 8}, k); el('path', {d: 'M-2.5,-4 L4,0 L-2.5,4 z', fill: color, stroke: 'none'}, k); }
+    else if (kind === 'end') { el('circle', {r: 8}, k); el('rect', {x: -3.5, y: -3.5, width: 7, height: 7, rx: 1, fill: color, stroke: 'none'}, k); }
+    return k;
+  }
+  function iconFor(n) {
+    const t = String(n.text || '').trim().toUpperCase();
+    if (n.type === 'terminal') return /^END|^STOP|RETURN/.test(t) ? (t.startsWith('RETURN') ? 'return' : 'end') : 'start';
+    if (n.type === 'io') return /^OUTPUT|^PRINT|^DISPLAY|^SHOW|^RETURN/.test(t) ? 'screen' : 'keyboard';
+    if (n.type === 'process') return 'process';
+    if (n.type === 'decision') return 'decision';
+    if (n.type === 'call') return 'call';
+    return null;
+  }
+  function shape(n, g) {
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 28 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
+    let s;
+    const common = {fill: fill, stroke: stroke, 'stroke-width': 2.5, filter: n.type === 'slot' ? '' : 'url(#fk-shadow)'};
+    if (n.type === 'terminal') s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2}, common), g);
+    else if (n.type === 'io') { const k = 18; s = el('polygon', Object.assign({points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' ')}, common), g); }
+    else if (n.type === 'decision') s = el('polygon', Object.assign({points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' ')}, common), g);
+    else if (n.type === 'call') { s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4}, common), g); el('line', {x1: cx - w / 2 + 9, y1: cy - h / 2, x2: cx - w / 2 + 9, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2.5}, g); el('line', {x1: cx + w / 2 - 9, y1: cy - h / 2, x2: cx + w / 2 - 9, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2.5}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: C.fill.slot, stroke: C.stroke.slot, 'stroke-width': 1.8, 'stroke-dasharray': '7 5'}, g);
+    else s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4}, common), g);
+    // the icon sits at the left edge of rectangles and parallelograms, and in the top corner of a diamond
+    const ic = iconFor(n);
+    let textX = cx, maxW = w - 16;
+    if (ic && n.type !== 'decision') {
+      const ix = n.type === 'io' ? cx - w / 2 + 26 : n.type === 'call' ? cx - w / 2 + 26 : cx - w / 2 + 20;
+      icon(ic, ix, cy, stroke, g); textX = cx + 12; maxW = w - 44;
+    } else if (ic) { icon(ic, cx, cy - h / 2 + 16, stroke, g); }
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke, textX: textX, maxW: maxW};
+  }
+  function text(n, g, geo) {
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11.5 : lines.some(l => l.length > 26) ? 12 : 13, lh = fs + 3;
+    const t = el('text', {x: geo.textX, y: geo.cy + (lines.length === 1 ? fs * .36 : fs * .36 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? (light ? '#6b739a' : '#aeb3c9') : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 700}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.textX, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    return t;
+  }
+  function addNode(n) {
+    const g = el('g', {class: 'fk-node', 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': (n.type + ': ' + (n.text || n.id)).replace(/\n/g, ' '), style: 'cursor:pointer'}, L.nodes);
+    const geo = shape(n, g); const t = text(n, g, geo);
+    const rec = Object.assign({}, n, {g: g, geo: geo, t: t, state: null});
+    const fire = () => pick && pick(n.id);
+    g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    nodes[n.id] = rec; return rec;
+  }
+  function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
+  function route(e) {
+    const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
+    if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
+    const pts = [];
+    if (b.row > a.row && !e.side) {
+      const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
+      if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
+      pts.push(t); return pts;
+    }
+    if (e.side) {
+      const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
+      if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
+      else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
+      return pts;
+    }
+    const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
+    pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
+    return pts;
+  }
+  function badge(label, x, y, side) {
+    const up = String(label).trim().toUpperCase(), col = /^(YES|TRUE|Y|T)$/.test(up) ? C.yes : /^(NO|FALSE|N|F)$/.test(up) ? C.no : C.line;
+    const w = Math.max(30, String(label).length * 7.5 + 12), g = el('g', {class: 'fk-badge'}, L.labels);
+    const bx = side === 'left' ? x - w - 4 : side === 'right' ? x + 4 : x + 6;
+    el('rect', {x: bx, y: y - 10, width: w, height: 20, rx: 10, fill: col, stroke: C.paper, 'stroke-width': 1.5}, g);
+    const t = el('text', {x: bx + w / 2, y: y + 4, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 11, 'font-weight': 800, 'font-family': 'Figtree, Arial, sans-serif', 'letter-spacing': '.04em'}, g); t.textContent = label;
+    return g;
+  }
+  function addEdge(e) {
+    const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+    const g = el('g', {class: 'fk-edge'}, L.edges);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.6, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    let lab = null;
+    if (e.label) {
+      const p0 = pts[0], p1 = pts[1];
+      if (e.side) lab = badge(e.label, p0[0] + (p1[0] - p0[0]) * .22, p0[1], e.side);
+      else lab = badge(e.label, p0[0], p0[1] + Math.min(22, (p1[1] - p0[1]) * .45), 'down');
+    }
+    const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
+  }
+  O.nodes.forEach(addNode); O.edges.forEach(addEdge);
+
+  // ---- the symbol key under the chart ----
+  if (O.key) {
+    const ky = H - KEY_H + 10, items = [['terminal', 'START / END'], ['io', 'INPUT / OUTPUT'], ['process', 'PROCESS (compute, store)'], ['decision', 'DECISION (Yes / No)'], ['call', 'CALL a function']];
+    const kg = el('g', {class: 'fk-key', opacity: .95});
+    el('line', {x1: 12, y1: H - KEY_H, x2: W - 12, y2: H - KEY_H, stroke: C.edge, 'stroke-width': 1}, kg);
+    let kx = 18;
+    items.forEach(it => {
+      const type = it[0], fill = C.fill[type], stroke = C.stroke[type], sx = kx, sy = ky + 8, sw = 34, sh = 18;
+      if (type === 'terminal') el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 9, fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'io') el('polygon', {points: [sx + 7, sy, sx + sw, sy, sx + sw - 7, sy + sh, sx, sy + sh].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'decision') el('polygon', {points: [sx + sw / 2, sy - 3, sx + sw + 2, sy + sh / 2, sx + sw / 2, sy + sh + 3, sx - 2, sy + sh / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'call') { el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 2, fill: fill, stroke: stroke, 'stroke-width': 2}, kg); el('line', {x1: sx + 5, y1: sy, x2: sx + 5, y2: sy + sh, stroke: stroke, 'stroke-width': 2}, kg); el('line', {x1: sx + sw - 5, y1: sy, x2: sx + sw - 5, y2: sy + sh, stroke: stroke, 'stroke-width': 2}, kg); }
+      else el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 2, fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      const t = el('text', {x: sx + sw + 8, y: sy + 13, fill: C.keyInk, 'font-size': 10.5, 'font-weight': 700, 'font-family': 'Figtree, Arial, sans-serif', 'letter-spacing': '.04em'}, kg); t.textContent = it[1];
+      kx += sw + 8 + it[1].length * 6.6 + 26;
+    });
+    const tk = el('text', {x: W - 18, y: ky + 21, 'text-anchor': 'end', fill: C.keyInk, 'font-size': 10.5, 'font-weight': 600, 'font-family': 'Figtree, Arial, sans-serif'}, kg); tk.textContent = 'Arrows show the order. The token carries the value.';
+    if (kx > W - 300) tk.remove();
+  }
+
+  function highlight(id, state) {
+    const r = nodes[id]; if (!r) return; r.state = state;
+    const base = r.geo.stroke;
+    r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4.5 : 2.5);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else if (r.type !== 'slot') r.geo.s.setAttribute('filter', 'url(#fk-shadow)');
+    r.g.setAttribute('opacity', state === 'done' ? .85 : 1);
+  }
+  function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), fs = lines.some(l => l.length > 26) ? 12 : 13, lh = fs + 3; r.t.setAttribute('font-size', fs); r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? fs * .36 : fs * .36 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.textX, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4.5); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 8}}, {attr: {'stroke-width': 4.5}, duration: .5}); }
+  function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
+  function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
+  function token(keys, label, color) {
+    const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
+    const g = el('g', {class: 'fk-token'}, L.tokens);
+    const tw = Math.max(32, String(label).length * 7.6 + 18);
+    el('circle', {r: 17, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -12, width: tw, height: 24, rx: 12, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1.2}, g);
+    const t = el('text', {y: 4.5, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 12.5, 'font-weight': 800, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
+    const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
+    const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
+    list.forEach(e => { e.path.setAttribute('stroke', C.active); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+    place(0);
+    if (!hasGSAP || reduce) { place(1); setTimeout(() => g.remove(), 500); return null; }
+    const o = {u: 0};
+    return gsap.timeline({onComplete: () => g.remove()}).to(o, {u: 1, duration: Math.max(.5, total / 320), ease: 'none', onUpdate: () => place(o.u)});
+  }
+  // view: zoom and pan through the viewBox
+  const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
+  const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
+  const asp = () => (stage.clientWidth && stage.clientHeight) ? stage.clientHeight / stage.clientWidth : home.h / home.w;  // the view keeps the stage's aspect
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * asp(); V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), Math.max(-home.h * .1, home.h * 1.1 - V.h)); }
+  function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
+  function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  function fitAll() { go(home); }
+  // the default view: the whole chart when its symbols stay readable (about 150 px wide on screen), otherwise zoomed in around the first symbol
+  function comfortable(animate) {
+    const sw = stage.clientWidth || 0, sh = stage.clientHeight || 0, first = O.nodes.length ? nodes[O.nodes[0].id] : null;
+    const scale = (sw && sh) ? Math.min(sw / home.w, sh / home.h) : 1;   // screen pixels per chart unit when the whole chart fits
+    if (!first || O.startFit || !sw || O.nodeW * scale >= 140) { if (animate) go(home); else { Object.assign(V, home); apply(); } return; }
+    const w = Math.min(home.w * 1.2, sw * O.nodeW / 150);
+    const tgt = {w: w, h: w * asp()}; tgt.x = first.geo.cx - w / 2; tgt.y = first.geo.cy - O.rowH * 0.9;
+    Object.assign(V, tgt); clamp(); if (animate) go(Object.assign({}, V)); else apply();
+  }
+  function fit() { comfortable(true); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * asp()}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply(); comfortable(false);
+  if (!document.getElementById('flowkit-css')) {
+    const st = document.createElement('style'); st.id = 'flowkit-css';
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4.5}' +
+      '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
+      '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
+      '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
+      '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
+      '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}' +
+      'html[data-theme=light] .fk-zoom{background:rgba(255,255,255,.95);border-color:#DADDEA}html[data-theme=light] .fk-zoom button{color:#283068}html[data-theme=light] .fk-zoom button:hover{background:#EEF0F8;color:#283068}' +
+      'html[data-theme=light] .fk-box{background:#FFFFFF;border-color:#DADDEA}html[data-theme=light] .fk-box .n{color:#5d6178}html[data-theme=light] .fk-box .v{color:#1A1D2E}html[data-theme=light] .fk-box .v.empty{color:#9a9fbd}html[data-theme=light] .fk-box .l{color:#5d6178}' +
+      'html[data-theme=light] .fk-con{background:#1A1D2E;border-color:#DADDEA;color:#9FE7FF}';
+    document.head.appendChild(st);
+  }
+  const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+  box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
+  stage.appendChild(box);
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fitAll(); });
+  let drag = null;
+  svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
+  svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
+  svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
+
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, fitAll: fitAll, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  window.__flows = window.__flows || []; window.__flows.push(api);
+  return api;
+}
+// memory boxes: FlowKit.memory(host, [{name, label}]) -> {set, get, reset}
+FlowKit.memory = function (host, vars) {
+  host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
+  const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: document.documentElement.getAttribute('data-theme') === 'light' ? '#1A1D2E' : '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+    get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
+};
+// the program's screen: FlowKit.console(host) -> {print, clear, lines}
+FlowKit.console = function (host) {
+  host.classList.add('fk-con'); const lines = []; const render = () => { host.textContent = lines.length ? lines.join('\n') : ''; const c = document.createElement('span'); c.className = 'cur'; host.appendChild(c); };
+  render();
+  return {print(t) { lines.push(String(t)); render(); }, clear() { lines.length = 0; render(); }, lines: () => lines.slice()};
+};
+// FLOWKIT END
+
+// ------------------------------------------------------------------ data ----
+const SKY = '#38B0E0', CORAL = '#F0786A', GREEN = '#6FD49B', GOLD = '#E0B840';
+const EDGE = document.documentElement.getAttribute('data-theme') === 'light' ? '#3F4A8F' : '#8a94d8';   // the FlowKit arrow color at rest
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const hl = l => window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l);
+const py = (lines, id) => '<pre class="code"' + (id ? ' id="' + id + '"' : '') + '>' + lines.map((l, i) => '<span class="ln" data-l="' + (i + 1) + '"><span style="color:var(--silk-dim);display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' + hl(l) + '</span>').join('') + '</pre>';
+const lightLine = n => document.querySelectorAll('#rcode .ln').forEach(e => e.classList.toggle('on', +e.dataset.l === n));
+const pyList = a => '[' + a.join(', ') + ']';
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+const PK = {'0001': 'Hialeah', '0002': 'Doral', '0004': 'Kendall', '0006': 'Hialeah', '0007': 'Homestead', '0009': 'Doral'};   // the city of each package (tracking PP-2026-xxxx)
+const ORD = ['first', 'second', 'third', 'fourth', 'fifth'];
+const chipHtml = (id, cls) => '<div class="chip' + (cls ? ' ' + cls : '') + '" data-id="' + id + '">' + id + '<small>' + PK[id] + '</small></div>';
+
+// ------------------------------------------------- the logic (plain functions) ----
+// a stack is a list used at one end only: push adds on top, pop takes the top, peek looks at the top
+function stackOp(items, cap, op, x) {
+  if (op === 'push') return items.length >= cap ? {err: 'overflow', items: items} : {items: items.concat([x])};
+  if (op === 'pop') return items.length ? {items: items.slice(0, -1), result: items[items.length - 1]} : {err: 'underflow', items: items};
+  return items.length ? {items: items, result: items[items.length - 1]} : {err: 'empty', items: items};
+}
+function runStack(ops, cap) { let items = [], last = null; const trace = []; ops.forEach(o => { const res = stackOp(items, cap, o.op, o.x); items = res.items; if (o.op === 'pop' && !res.err) last = res.result; trace.push(o.op === 'push' ? 'push ' + o.x : 'pop gives ' + res.result); }); return {items: items, lastPop: last, trace: trace}; }
+const loadOrder = route => route.slice().reverse();                      // push the route backward
+function deliver(place, route) { const van = place.slice(); return route.map(want => { const got = van.pop(); return {want: want, got: got, ok: got === want}; }); }
+function listOps(start, ops) { const a = start.slice(), states = []; ops.forEach(o => { if (o.op === 'append') a.push(o.v); else if (o.op === 'insert') a.splice(o.i, 0, o.v); else if (o.op === 'pop') a.splice(o.i, 1); else a[o.i] = o.v; states.push(a.slice()); }); return states; }
+
+const STRUCTS = [
+  {id: 'list', name: 'Manifest list', sub: 'weights = [] in Python, then one append per package', linear: true, fixed: false},
+  {id: 'stack', name: 'Van stack', sub: 'van = [] in Python; push and pop at the top only', linear: true, fixed: false},
+  {id: 'array', name: 'Shelf array', sub: 'Integer Array shelf[5] in Flowgorithm', linear: true, fixed: true},
+  {id: 'map', name: 'Route map', sub: 'cities joined by roads; Dante adds a city when service expands', linear: false, fixed: false}
+];
+const KINDS = [['list', 'List (grows with append)'], ['stack', 'Stack (push and pop at the top)'], ['array', 'Fixed array (five slots)'], ['graph', 'Graph (like the route map)']];
+const JOBS = [
+  {t: 'Keep the weights of today\'s packages in the order they arrive. Nobody knows how many will come.', a: 'list', why: 'A list keeps the items in order and grows with append, so the count does not have to be known ahead of time.', path: ['ks>k1', 'k1>k2', 'k2>k3', 'k3>ko4', 'ko4>ke']},
+  {t: 'Load a van through the rear door: the last package in must be the first one out.', a: 'stack', why: 'Last in, first out is the rule of a stack: push on top, pop from the top.', path: ['ks>k1', 'k1>ko1', 'ko1>ke']},
+  {t: 'A wall rack with exactly five numbered slots. It never gets a sixth slot.', a: 'array', why: 'A fixed number of numbered slots is an array: a static structure whose size is set when it is declared.', path: ['ks>k1', 'k1>k2', 'k2>ko2', 'ko2>ke']},
+  {t: 'Show which cities are joined by a road. One city can connect to several others.', a: 'graph', why: 'When one item can connect to several others the structure is non-linear. Cities and roads form a graph.', path: ['ks>k1', 'k1>k2', 'k2>k3', 'k3>ko3', 'ko3>ke']}
+];
+const JOB_POINTS = [0, 3, 5, 8, 10];
+const push = (x, line) => ({op: 'push', x: x, line: line}), pop = line => ({op: 'pop', line: line});
+const ROUNDS = [
+  {kind: 'load', name: 'Load VAN-1', route: ['0002', '0001', '0006', '0004', '0007'],
+    q: 'VAN-1 is loaded through the rear door, so the last package in is the first one Yusniel can reach. He delivers in the order of the route below. Put every package in a loading slot so that each stop finds its package at the door, then press Deliver.'},
+  {kind: 'load', name: 'Three stops', route: ['0009', '0001', '0004'],
+    q: 'A short afternoon run with Keisha: three stops. Load the van so each stop finds its package at the door, then press Deliver.'},
+  {kind: 'load', name: 'Four stops', route: ['0001', '0006', '0009', '0007'],
+    q: 'Tomás starts in Hialeah today because the bakery opens early, then drives to Doral and Homestead. Four stops. Load the van, then press Deliver.'},
+  {kind: 'ops', name: 'Push and pop',
+    q: 'The van starts empty. In Python the stack is a list: append is push (load on top) and pop takes the top package. Type what the last pop returns and how many packages are left, then press Run.',
+    code: ['van = []', 'van.append("0007")', 'van.append("0004")', 'van.append("0006")', 'x = van.pop()', 'van.append("0002")', 'x = van.pop()'],
+    ops: [push('0007', 2), push('0004', 3), push('0006', 4), pop(5), push('0002', 6), pop(7)]},
+  {kind: 'ops', name: 'Empty and load again',
+    q: 'A longer list. The van empties in the middle and is loaded again. Type what the last pop returns and how many packages are left, then press Run.',
+    code: ['van = []', 'van.append("0002")', 'van.append("0009")', 'x = van.pop()', 'x = van.pop()', 'van.append("0004")', 'van.append("0001")', 'van.append("0006")', 'x = van.pop()', 'x = van.pop()'],
+    ops: [push('0002', 2), push('0009', 3), pop(4), pop(5), push('0004', 6), push('0001', 7), push('0006', 8), pop(9), pop(10)]},
+  {kind: 'cells', name: 'Append, insert, update', start: [12, 3, 20],
+    q: 'The manifest is a list, and a list can change in the middle, not only at the top. Follow the three changes and type the final list, one value per box. Then press Run.',
+    code: ['weights = [12, 3, 20]', 'weights.append(50)', 'weights.insert(1, 45)', 'weights[0] = 15', 'print(weights)'],
+    ops: [{op: 'append', v: 50, line: 2}, {op: 'insert', i: 1, v: 45, line: 3}, {op: 'set', i: 0, v: 15, line: 4}]},
+  {kind: 'cells', name: 'Remove, insert, update', start: [12, 3, 20, 50, 45],
+    q: 'Remove, insert, and update by index. After pop(1) every later item moves one place to the left, so the indexes change before the next line runs. Type the final list, then press Run.',
+    code: ['weights = [12, 3, 20, 50, 45]', 'weights.pop(1)', 'weights.insert(3, 10)', 'weights[2] = 55', 'print(weights)'],
+    ops: [{op: 'pop', i: 1, line: 2}, {op: 'insert', i: 3, v: 10, line: 3}, {op: 'set', i: 2, v: 55, line: 4}]},
+  {kind: 'bins', name: 'Sort the structures',
+    q: 'Four structures from this week. Sort them twice: first by shape (linear or non-linear), then by size (static or dynamic). Drag each card into a bin, or use the list on the card. Then press Check.'},
+  {kind: 'jobs', name: 'Pick the structure',
+    q: 'Dante describes four jobs. Pick the structure that fits each one, then press Check.'},
+  {kind: 'choice', name: 'Check Copilot\'s claim',
+    q: 'You asked Microsoft Copilot how a stack works, and one sentence of its answer was: "pop() removes the first package that was loaded." Which short test proves that sentence wrong?',
+    opts: [
+      ['van = []\nvan.append("0007")\nvan.append("0004")\nvan.append("0006")\nprint(van.pop())', 'It prints 0006', 10, 'Right. 0007 was loaded first and 0006 last, and pop() returned 0006. One run that contradicts the sentence is enough to disprove it.'],
+      ['van = []\nvan.append("0007")\nprint(van.pop())', 'It prints 0007', 3, 'This test does call pop(), but with one package the first and the last are the same box, so it cannot tell the two ideas apart.'],
+      ['van = ["0007", "0004", "0006"]\nprint(van[0])', 'It prints 0007', 0, 'van[0] reads the item at index 0. It never calls pop(), so it says nothing about what pop() removes.'],
+      ['van = []\nvan.append("0007")\nvan.append("0004")\nprint(len(van))', 'It prints 2', 0, 'len counts the packages. No package is removed, so the claim about pop() is not tested.']]}
+];
+
+// --------------------------------------------------------------- the charts ----
+const N = (id, type, text, col, row, w) => Object.assign({id: id, type: type, text: text, col: col, row: row}, w ? {w: w} : {});
+const E = (from, to, x) => Object.assign({from: from, to: to}, x || {});
+function chartStack() {
+  return {cols: 4, rows: 4, colW: 196, rowH: 86, nodeW: 176, nodeH: 54, pad: 24, key: false, nodes: [
+    N('ps', 'terminal', 'START push(x)', 0, 0), N('pq', 'decision', 'van full?', 0, 1), N('pp', 'process', 'place x on top\nsize = size + 1', 0, 2), N('po', 'io', 'OUTPUT "Overflow:\nno room"', 1, 2, 184), N('pe', 'terminal', 'END', 0, 3),
+    N('qs', 'terminal', 'START pop()', 2, 0), N('qq', 'decision', 'van empty?', 2, 1), N('qp', 'process', 'take the top\nsize = size - 1', 2, 2), N('qo', 'io', 'OUTPUT "Underflow:\nnothing to take"', 3, 2, 184), N('qe', 'terminal', 'END', 2, 3)],
+    edges: [E('ps', 'pq'), E('pq', 'pp', {label: 'No'}), E('pq', 'po', {label: 'Yes', side: 'right'}), E('pp', 'pe'), E('po', 'pe'),
+      E('qs', 'qq'), E('qq', 'qp', {label: 'No'}), E('qq', 'qo', {label: 'Yes', side: 'right'}), E('qp', 'qe'), E('qo', 'qe')]};
+}
+function chartOps(R) {
+  const h = 27 / 80;
+  return {cols: 2, rows: 4, colW: 300, rowH: 80, nodeW: 264, nodeH: 54, pad: 40, key: false, nodes: [
+    N('start', 'terminal', 'START', 0, 0, 180), N('n1', 'process', R.code[0], 0, 1), N('n2', 'process', R.code[1], 0, 2), N('n3', 'process', R.code[2], 0, 3),
+    N('n4', 'process', R.code[3], 1, 0), N('out', 'io', 'OUTPUT weights', 1, 1, 200), N('end', 'terminal', 'END', 1, 2, 180)],
+    edges: [E('start', 'n1'), E('n1', 'n2'), E('n2', 'n3'), E('n3', 'n4', {points: [[0, 3 + h], [0, 3.62], [0.5, 3.62], [0.5, -0.62], [1, -0.62], [1, -h]]}), E('n4', 'out'), E('out', 'end')]};
+}
+function chartClassify() {
+  return {cols: 3, rows: 6, colW: 220, rowH: 84, nodeW: 180, nodeH: 54, pad: 32, key: false, nodes: [
+    N('cs', 'terminal', 'START', 1, 0), N('c1', 'decision', 'items in\none line?', 1, 1), N('cl', 'io', 'OUTPUT "linear"', 0, 2), N('cn', 'io', 'OUTPUT "non-linear"', 2, 2, 196),
+    N('c2', 'decision', 'size fixed\nwhen declared?', 1, 3), N('cst', 'io', 'OUTPUT "static"', 0, 4), N('cdy', 'io', 'OUTPUT "dynamic"', 2, 4), N('ce', 'terminal', 'END', 1, 5)],
+    edges: [E('cs', 'c1'), E('c1', 'cl', {label: 'Yes', side: 'left'}), E('c1', 'cn', {label: 'No', side: 'right'}), E('cl', 'c2'), E('cn', 'c2'),
+      E('c2', 'cst', {label: 'Yes', side: 'left'}), E('c2', 'cdy', {label: 'No', side: 'right'}), E('cst', 'ce'), E('cdy', 'ce')]};
+}
+function chartPick() {
+  const dw = 105 / 230, iw = 81 / 230, tw = 90 / 230, yes = r => ({label: 'Yes', side: 'right', points: [[dw, r], [1 - iw, r]]}), toEnd = r => ({points: [[1 + iw, r], [1.74, r], [1.74, 5], [tw, 5]]});
+  return {cols: 2.35, rows: 6, colW: 230, rowH: 98, nodeW: 180, nodeH: 54, pad: 32, key: false, nodes: [
+    N('ks', 'terminal', 'START', 0, 0), N('k1', 'decision', 'last in,\nfirst out?', 0, 1), N('ko1', 'io', 'OUTPUT "stack"', 1, 1),
+    N('k2', 'decision', 'size never\nchanges?', 0, 2), N('ko2', 'io', 'OUTPUT "array"', 1, 2),
+    N('k3', 'decision', 'one item links\nto several?', 0, 3), N('ko3', 'io', 'OUTPUT "graph"', 1, 3),
+    N('ko4', 'io', 'OUTPUT "list"', 0, 4), N('ke', 'terminal', 'END', 0, 5)],
+    edges: [E('ks', 'k1'), E('k1', 'ko1', yes(1)), E('k1', 'k2', {label: 'No'}), E('k2', 'ko2', yes(2)), E('k2', 'k3', {label: 'No'}), E('k3', 'ko3', yes(3)), E('k3', 'ko4', {label: 'No'}),
+      E('ko4', 'ke'), E('ko1', 'ke', toEnd(1)), E('ko2', 'ke', toEnd(2)), E('ko3', 'ke', toEnd(3))]};
+}
+const NOTES = {
+  ps: 'START push(x). Push means "load package x on top". In Python: van.append(x).', pq: 'DECISION. A real van has a limit. If every slot is taken there is no room for one more package.',
+  pp: 'PROCESS. The package goes on top, next to the rear door, and size grows by 1. Nothing below it moves.', po: 'OUTPUT. Overflow: a push on a full stack. The package stays on the dock.', pe: 'END of push.',
+  qs: 'START pop(). Pop means "take the top package out". In Python: van.pop() removes the last item of the list and gives it back.', qq: 'DECISION. You cannot take a package out of an empty van, so pop checks first.',
+  qp: 'PROCESS. The top package (the last one loaded) comes out and size shrinks by 1.', qo: 'OUTPUT. Underflow: a pop on an empty stack. In Python, pop on an empty list stops the program with IndexError: pop from empty list.', qe: 'END of pop.',
+  start: 'START. The program begins at line 1.', n1: 'PROCESS. Line 1 creates the list.', n2: 'PROCESS. Line 2 changes the list.', n3: 'PROCESS. Line 3 changes the list again: check the indexes first.', n4: 'PROCESS. Line 4 changes one more thing.', out: 'OUTPUT. print(weights) shows the final list.', end: 'END.',
+  cs: 'START. One structure goes through both questions.', c1: 'DECISION. In a linear structure the items sit in one line: each item has one item before it and one after it.', cl: 'OUTPUT. Linear: a list, a stack, an array.', cn: 'OUTPUT. Non-linear: one item can connect to several others, as in a map of cities and roads (a graph).',
+  c2: 'DECISION. A static structure gets its size when it is declared and keeps it. A dynamic structure can grow and shrink while the program runs.', cst: 'OUTPUT. Static: a Flowgorithm array such as Integer Array shelf[5].', cdy: 'OUTPUT. Dynamic: a Python list, which grows with append and insert.', ce: 'END.',
+  ks: 'START. One job goes through the questions.', k1: 'DECISION. Last in, first out is the rule of a stack.', ko1: 'OUTPUT. A stack: push and pop at the top only.', k2: 'DECISION. A size that never changes points to a fixed array.', ko2: 'OUTPUT. A fixed array: numbered slots, set when declared.',
+  k3: 'DECISION. If one item can connect to several others, the structure is non-linear.', ko3: 'OUTPUT. A graph: items joined by links, like the route map.', ko4: 'OUTPUT. A list: items in order, growing with append.', ke: 'END.'
+};
+
+// ------------------------------------------------------------------ state ----
+let r = 0, total = 0, log = [], cur = null, st = null, checked = false, picked = null, fk = null, chartKey = null, chartKind = null, playing = null, drags = [];
+const VAN = {items: [], cap: 5};
+const say = (title, body) => { $('#capT').textContent = title; $('#capB').textContent = body; };
+const setPy = line => { $('#pyline').innerHTML = hl(line); };
+const narrow = () => $('#stage').clientWidth < 560;
+const follow = id => { if (fk && narrow()) fk.focus(id); };
+function softClear() { if (!fk) return; Object.keys(fk.nodes).forEach(id => fk.highlight(id, null)); Object.values(fk.edges).forEach(e => { e.path.setAttribute('stroke', EDGE); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); }
+function setPractice() { const on = checked && chartKind === 'stack' && !playing; ['#btnPush', '#btnPop', '#btnPeek'].forEach(s => { $(s).disabled = !on; });
+  $('#vnote').textContent = checked && chartKind === 'stack' ? 'Your turn: push until the van is full, pop until it is empty, and watch the charts.' : 'Push, Pop, and Peek wake up after you check a round.'; }
+function killPlay() { if (playing) { playing.kill(); playing = null; } if (fk) fk.clear(); setPractice(); }
+function loadChart(kind, R) {
+  const key = kind === 'ops' ? 'ops' + r : kind;
+  $('#vanrow').classList.toggle('novan', kind !== 'stack');
+  if (key === chartKey) { fk.clear(); fk.fit(); return; }
+  const stage = $('#stage'); stage.querySelectorAll('svg.flow, .fk-zoom').forEach(e => e.remove());
+  fk = FlowKit(stage, kind === 'stack' ? chartStack() : kind === 'ops' ? chartOps(R) : kind === 'classify' ? chartClassify() : chartPick());
+  chartKey = key; chartKind = kind;
+  fk.onPick(id => { if (NOTES[id]) say('Symbol', NOTES[id]); });
+}
+// build a token now, show it (and light its arrows) only when its turn comes in the timeline
+function tokens(t) {
+  return (edges, label, color) => {
+    if (!t) return;
+    const f = fk.token(edges, label, color), g = fk.layers.tokens.lastElementChild, keys = edges.filter(k => fk.edges[k]);
+    if (!f) return;
+    g.setAttribute('opacity', 0); keys.forEach(k => { fk.edges[k].path.setAttribute('stroke', EDGE); fk.edges[k].path.setAttribute('marker-end', 'url(#fk-arrow)'); });
+    t.call(() => { g.setAttribute('opacity', 1); keys.forEach(k => { fk.edges[k].path.setAttribute('stroke', GOLD); fk.edges[k].path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); }); });
+    t.add(f);
+  };
+}
+function begin() { killPlay(); const t = hasGSAP ? gsap.timeline() : null; return {t: t, call: f => t ? t.call(f) : f(), tok: tokens(t), wait: d => { if (t) t.to({}, {duration: d}); }}; }
+function launch(T, speed, onDone) {
+  const end = () => { playing = null; setPractice(); if (onDone) onDone(); };
+  if (!T.t) { end(); return null; }
+  T.t.call(end); T.t.timeScale((speed || 1) * (window.__vanFast ? 10 : 1)); playing = T.t; setPractice(); return T.t;
+}
+
+// ---------------------------------------------------------------- the van ----
+function vanShow(cells, cap, how) {
+  how = how || {}; const cargo = $('#cargo'); let ghost = null;
+  if (how.pop && hasGSAP) { const p = cargo.querySelector('.vs.top .pk'); if (p) ghost = {l: p.offsetLeft, t: p.offsetTop, w: p.offsetWidth, h: p.innerHTML}; }
+  VAN.items = cells.slice(); VAN.cap = cap;
+  let top = -1, size = 0; cells.forEach((c, k) => { if (c) { top = k; size++; } });
+  let html = '';
+  for (let k = cap - 1; k >= 0; k--) html += '<div class="vs' + (k === top ? ' top' : '') + '" data-k="' + k + '"><span class="ix">[' + k + ']</span>' + (cells[k] ? '<div class="pk">' + cells[k] + '<small>' + PK[cells[k]] + '</small></div>' : '<div class="pk none">empty</div>') + '<span class="ptr">top</span></div>';
+  cargo.innerHTML = html; $('#vSize').textContent = size; $('#vCap').textContent = cap; $('#vTop').textContent = top >= 0 ? cells[top] : 'none';
+  if (!hasGSAP) return;
+  const tp = cargo.querySelector('.vs.top .pk');
+  if (how.push && tp) gsap.fromTo(tp, {y: -34, opacity: 0}, {y: 0, opacity: 1, duration: .4, ease: 'power2.out'});
+  if (how.peek && tp) gsap.fromTo(tp, {scale: 1.14}, {scale: 1, duration: .55});
+  if (ghost) { const g = document.createElement('div'); g.className = 'pk ghost'; g.innerHTML = ghost.h; g.style.left = ghost.l + 'px'; g.style.top = ghost.t + 'px'; g.style.width = ghost.w + 'px'; cargo.appendChild(g); gsap.to(g, {y: -42, opacity: 0, duration: .5, onComplete: () => g.remove()}); }
+  if (how.shake) gsap.fromTo('#van', {x: -7}, {x: 0, duration: .45, ease: 'elastic.out(1.2, .3)'});
+}
+const pyOf = (op, res) => op.op === 'push' ? 'van.append("' + op.x + '")' + (res.err ? '    # the real van has no room' : '') : op.op === 'pop' ? 'package = van.pop()' + (res.err ? '    # IndexError: pop from empty list' : '    # "' + res.result + '"') : 'van[-1]' + (res.err ? '    # IndexError: list index out of range' : '    # "' + res.result + '"');
+// play a list of stack operations on the van; the token runs the push chart or the pop chart for each one
+function playStack(ops, o) {
+  const T = begin(); softClear();
+  let items = (o.start || []).slice(); const cap = o.cap; vanShow(items, cap);
+  ops.forEach((op, k) => {
+    const before = items.slice(), res = stackOp(before, cap, op.op, op.x); items = res.items; const after = items.slice();
+    if (op.op === 'peek') {
+      T.call(() => { softClear(); setPy(pyOf(op, res)); vanShow(after, cap, {peek: true}); say('Peek', res.err ? 'The van is empty, so there is no top package to look at. In Python, van[-1] on an empty list stops the program with IndexError: list index out of range.' : 'Peek looks at the top package without moving it: ' + res.result + '. In Python, van[-1] reads the last item of the list. The size stays ' + after.length + '.'); if (o.onOp) o.onOp(k, op, res, after); });
+      T.wait(.6); return;
+    }
+    const P = op.op === 'push' ? 'p' : 'q', lab = op.op === 'push' ? op.x : res.err ? 'empty' : res.result, col = res.err ? CORAL : SKY, last = P + (res.err ? 'o' : 'p');
+    T.call(() => { softClear(); fk.highlight(P + 's', 'done'); follow(P + 'q'); setPy(pyOf(op, res)); if (o.onStart) o.onStart(k, op);
+      say(op.op === 'push' ? 'Push ' + op.x : 'Pop', op.op === 'push' ? 'Is the van full? The size is ' + before.length + ' of ' + cap + '.' : 'Is the van empty? The size is ' + before.length + '.'); });
+    T.tok([P + 's>' + P + 'q'], lab, col); T.call(() => fk.highlight(P + 'q', 'active'));
+    T.tok([P + 'q>' + last], lab, col);
+    T.call(() => { fk.highlight(P + 'q', 'done'); fk.highlight(last, res.err ? 'error' : 'active'); vanShow(after, cap, res.err ? {shake: true} : op.op === 'push' ? {push: true} : {pop: true});
+      say(op.op === 'push' ? 'Push ' + op.x : 'Pop', res.err === 'overflow' ? 'Yes, the van is full (' + cap + ' of ' + cap + '). Overflow: there is no room for ' + op.x + ', so it stays on the dock.'
+        : res.err ? 'Yes, the van is empty. Underflow: there is nothing to take. In Python, van.pop() on an empty list stops the program with IndexError: pop from empty list.'
+        : op.op === 'push' ? 'No, there is room. ' + op.x + ' goes on top, next to the rear door. The size is now ' + after.length + '.'
+        : 'No, it holds ' + plural(before.length, 'package') + '. The top one comes out: ' + res.result + ', the last one loaded. The size is now ' + after.length + '.'); });
+    T.tok([last + '>' + P + 'e'], res.err ? 'stop' : 'done', res.err ? CORAL : GREEN);
+    T.call(() => { if (!res.err) fk.highlight(last, 'done'); fk.highlight(P + 'e', 'done'); if (o.onOp) o.onOp(k, op, res, after); });
+    T.wait(.3);
+  });
+  return launch(T, o.speed, () => { if (o.onDone) o.onDone(items); });
+}
+const nextPk = () => Object.keys(PK).find(id => VAN.items.indexOf(id) < 0) || '0009';
+function practice(op) { if (!checked || chartKind !== 'stack' || playing) return; playStack([op], {start: VAN.items.filter(Boolean), cap: VAN.cap}); guide(3, 'Keep going: <b>Push</b> until the van is full to see an overflow, <b>Pop</b> until it is empty to see an underflow. Then press <b>Next round</b>.'); }
+$('#btnPush').addEventListener('click', () => practice({op: 'push', x: nextPk()}));
+$('#btnPop').addEventListener('click', () => practice({op: 'pop'}));
+$('#btnPeek').addEventListener('click', () => practice({op: 'peek'}));
+
+// -------------------------------------------------------------- drag and drop ----
+function killDrags() { drags.forEach(d => d.kill()); drags = []; }
+function bestZone(chip) {   // the drop zone of the same board that the chip covers most
+  const board = chip.closest('.board') || document, c = chip.getBoundingClientRect(); let best = null, area = 0;
+  board.querySelectorAll('.dz').forEach(z => { const q = z.getBoundingClientRect(), w = Math.min(c.right, q.right) - Math.max(c.left, q.left), h = Math.min(c.bottom, q.bottom) - Math.max(c.top, q.top); if (w > 0 && h > 0 && w * h > area) { area = w * h; best = z; } });
+  return area >= c.width * c.height * 0.25 ? best : null;
+}
+function makeDrags(onDrop) {
+  killDrags(); if (!(hasGSAP && window.Draggable)) return;
+  document.querySelectorAll('#body .chip:not(.locked)').forEach(chip => {
+    drags.push(Draggable.create(chip, {type: 'x,y', zIndexBoost: true, autoScroll: 1, onPress() { chip.classList.add('drag'); }, onRelease() { chip.classList.remove('drag'); },
+      onDragEnd() { const z = bestZone(chip); onDrop(chip, z ? z.dataset.z : undefined); }})[0]);
+  });
+}
+const hint = text => { $('#fb').innerHTML = '<div class="feedback info">' + text + '</div>'; };
+const clearHint = () => { if (!checked) $('#fb').innerHTML = ''; };
+
+// ------------------------------------------------------ rounds 1 to 3: load ----
+function setSlot(k, id) {   // put a package in slot k; a package that was there trades places or goes back to the dock
+  const place = st.place, from = id ? place.indexOf(id) : -1, prev = place[k];
+  if (from >= 0) place[from] = from === k ? id : prev;
+  place[k] = id || null;
+}
+function renderLoad(focusK) {
+  const R = cur, n = R.route.length, ids = R.route.slice().sort(), lock = checked ? 'locked' : '';
+  const free = ids.filter(id => st.place.indexOf(id) < 0);
+  $('#tray').innerHTML = free.map(id => chipHtml(id, lock)).join('') || 'Every package is in a slot.';
+  let html = '<div class="edge door">Rear door</div>';
+  for (let k = n - 1; k >= 0; k--) html += '<div class="slotrow"><div class="lab"><b>Slot ' + (k + 1) + '</b>' + (k === n - 1 ? 'loaded last, at the door' : k === 0 ? 'loaded first, deep inside' : 'loaded ' + ORD[k]) + '</div><div class="dz" data-z="' + k + '">' + (st.place[k] ? chipHtml(st.place[k], lock) : 'drop here') + '</div>' +
+    '<select class="pick" data-k="' + k + '" aria-label="Package for slot ' + (k + 1) + '"' + (checked ? ' disabled' : '') + '><option value="">(empty)</option>' + ids.map(id => '<option value="' + id + '"' + (st.place[k] === id ? ' selected' : '') + '>' + id + ' ' + PK[id] + '</option>').join('') + '</select></div>';
+  $('#slots').innerHTML = html + '<div class="edge cab">Cab</div>';
+  if (!checked) { vanShow(st.place, n); makeDrags((chip, z) => { clearHint(); if (z === 'tray') { const i = st.place.indexOf(chip.dataset.id); if (i >= 0) st.place[i] = null; } else if (z !== undefined) setSlot(+z, chip.dataset.id); renderLoad(); }); }
+  if (focusK != null) { const s = $('select.pick[data-k="' + focusK + '"]'); if (s) s.focus(); }
+  const left = st.place.filter(x => !x).length;
+  if (!checked) guide(left ? 1 : 2, left ? 'Round ' + (r + 1) + ': <b>drag a package into a slot</b>, or pick it in the list beside the slot. ' + plural(left, 'slot') + ' still empty.' : 'Every slot is taken. Press <b>Deliver</b> to send the van out.');
+}
+function markStop(k, x) { const li = $('#stops li[data-k="' + k + '"]'); if (!li) return; li.className = x.ok ? 'ok' : 'bad'; li.querySelector('.st').textContent = x.ok ? 'Right package at the door.' : 'The door had ' + x.got + ', not ' + x.want + '.'; }
+const SHOW = {}, CHECK = {}, PLAY = {};
+SHOW.load = R => {
+  const n = R.route.length; st = {place: R.route.map(() => null)};
+  setPy('van = []'); say('Round ' + (r + 1), 'This van has ' + n + ' slots. Slot 1 is deep inside and slot ' + n + ' is next to the rear door. The van here shows your loading order as you build it.');
+  $('#body').innerHTML = '<div class="rgrid board"><div><h3 class="mini">Delivery route: stop 1 comes first</h3><ol class="stops" id="stops">' + R.route.map((id, k) => '<li data-k="' + k + '"><span class="n">Stop ' + (k + 1) + '</span><span><b>PP-2026-' + id + '</b> · ' + PK[id] + '</span><span class="st"></span></li>').join('') + '</ol></div>' +
+    '<div><h3 class="mini">Packages on the dock</h3><div class="dz tray" data-z="tray" id="tray"></div><h3 class="mini">Loading order</h3><div class="slots" id="slots"></div></div></div>';
+  renderLoad();
+};
+CHECK.load = R => {
+  const n = R.route.length;
+  if (st.place.some(x => !x)) { hint('Put a package in every slot first: ' + plural(st.place.filter(x => !x).length, 'slot') + ' still empty.'); return null; }
+  const res = deliver(st.place, R.route), right = res.filter(x => x.ok).length, best = loadOrder(R.route), inRouteOrder = st.place.join() === R.route.join();
+  st.res = res; checked = true; killDrags(); renderLoad();
+  say('Delivering', 'The van pops one package per stop.');
+  playStack(R.route.map(() => ({op: 'pop'})), {start: st.place, cap: n, onOp: k => markStop(k, res[k]), onDone: () => say('Done', right === n ? 'Every stop found its package at the door.' : plural(right, 'stop') + ' of ' + n + ' found the right package. Press Play the explanation to watch the right loading order.')});
+  return {pts: Math.round(10 * right / n), answer: 'loaded ' + st.place.join(', ') + ': ' + right + ' of ' + n + ' stops right',
+    fb: '(' + right + ' of ' + n + ' stops right). ' + (right === n ? 'You loaded the route backward: ' : inRouteOrder ? 'You loaded in route order, so the package for stop 1 ended up deep inside. Load the route backward: ' : 'Load the route backward: ') + best.join(', ') + '. The package for the last stop goes in first, and the package for stop 1 goes in last, next to the rear door.'};
+};
+PLAY.load = R => {
+  res_all(); const n = R.route.length, order = loadOrder(R.route);
+  playStack(order.map(x => ({op: 'push', x: x})).concat(R.route.map(() => ({op: 'pop'}))), {start: [], cap: n, speed: 1.3, onDone: () => say('Explanation', 'Pushed ' + order.join(', ') + ' and popped ' + R.route.join(', ') + ': the pops come out in route order because the pushes went in backward.')});
+};
+function res_all() { if (cur.kind === 'load' && st.res) st.res.forEach((x, k) => markStop(k, x)); if (st && st.flip) st.flip(); }
+
+// ------------------------------------------------- rounds 4 and 5: push and pop ----
+const normPk = v => String(v).trim().replace(/["'\s]/g, '').toUpperCase().replace(/^PP-2026-/, '');
+const resHtml = (ok, expect, got) => '<span class="res ' + (ok ? 'ok' : 'bad') + '">' + esc(expect) + (ok ? '' : '<span class="was">you: ' + (String(got).trim() === '' ? '(empty)' : esc(got)) + '</span>') + '</span>';
+function flipCell(holder, html) { holder.innerHTML = html; if (hasGSAP) gsap.fromTo(holder.firstElementChild, {rotationX: 90, opacity: .2}, {rotationX: 0, opacity: 1, duration: .4}); }
+SHOW.ops = R => {
+  st = {}; vanShow([], 5); setPy('van = []'); say('Round ' + (r + 1), 'The van is empty and has 5 slots. Trace the lines in your head, or draw the boxes on paper.');
+  $('#body').innerHTML = '<div class="rgrid"><div>' + py(R.code, 'rcode') + '</div><div><p class="qnote">Type both answers, then press Run. A tracking number such as 0007 is enough.</p>' +
+    '<div class="ans"><label for="a1">The last pop returns</label><span id="h1"><input type="text" id="a1" class="cell wide" autocomplete="off" spellcheck="false" inputmode="numeric"></span></div>' +
+    '<div class="ans"><label for="a2">Packages left in the van</label><span id="h2"><input type="text" id="a2" class="cell" autocomplete="off" inputmode="numeric"></span></div></div></div>';
+  guide(1, 'Round ' + (r + 1) + ': <b>type both answers</b>, then press <b>Run</b>.');
+};
+CHECK.ops = R => {
+  const a1 = $('#a1').value, a2 = $('#a2').value;
+  if (a1.trim() === '' || a2.trim() === '') { hint('Type both answers first: the tracking number the last pop returns, and how many packages stay in the van.'); return null; }
+  const want = runStack(R.ops, 5), ok1 = normPk(a1) === want.lastPop, ok2 = a2.trim() === String(want.items.length);
+  $('#a1').disabled = true; $('#a2').disabled = true; checked = true;
+  st.flip = () => { if (st.flipped) return; st.flipped = true; flipCell($('#h1'), resHtml(ok1, want.lastPop, a1)); flipCell($('#h2'), resHtml(ok2, String(want.items.length), a2)); };
+  playStack(R.ops, {start: [], cap: 5, onStart: (k, op) => lightLine(op.line), onDone: () => { lightLine(0); st.flip(); say('Done', 'The last pop returned ' + want.lastPop + ' and ' + plural(want.items.length, 'package') + ' stayed in the van.'); }});
+  return {pts: 5 * ok1 + 5 * ok2, answer: 'last pop ' + (normPk(a1) || '(empty)') + ', ' + a2.trim() + ' left',
+    fb: '(5 for each answer). Pop always takes the newest package. The trace: ' + want.trace.join(', ') + '. The last pop returns ' + want.lastPop + ', and ' + plural(want.items.length, 'package') + ' ' + (want.items.length === 1 ? 'stays' : 'stay') + ' in the van: ' + want.items.join(', ') + '.'};
+};
+PLAY.ops = R => { res_all(); playStack(R.ops, {start: [], cap: 5, onStart: (k, op) => lightLine(op.line), onDone: () => lightLine(0)}); };
+
+// ------------------------------------------- rounds 6 and 7: change a list by index ----
+function rowPos() { const m = {}; document.querySelectorAll('#lrow .b').forEach(b => { const q = b.getBoundingClientRect(); m[b.dataset.i] = [q.left, q.top]; }); return m; }
+function drawRow(a, op) {   // draw the list; with op, the boxes slide from where they were and the new or changed box pops
+  const old = op && hasGSAP ? rowPos() : null;
+  $('#lrow').innerHTML = a.map((v, i) => '<div class="b" data-i="' + i + '"><div class="v">' + v + '</div><div class="i">[' + i + ']</div></div>').join('');
+  if (!old) return;
+  const fresh = op.op === 'append' ? a.length - 1 : op.op === 'insert' ? op.i : -1, from = i => op.op === 'insert' && i > op.i ? i - 1 : op.op === 'pop' && i >= op.i ? i + 1 : i;
+  document.querySelectorAll('#lrow .b').forEach(b => { const i = +b.dataset.i;
+    if (i === fresh) { gsap.fromTo(b, {scale: 0, opacity: 0}, {scale: 1, opacity: 1, duration: .45, ease: 'back.out(1.6)'}); return; }
+    if (op.op === 'set' && i === op.i) { gsap.fromTo(b, {scale: 1.3}, {scale: 1, duration: .5}); return; }
+    const o = old[from(i)]; if (!o) return; const q = b.getBoundingClientRect(), dx = o[0] - q.left, dy = o[1] - q.top;
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) gsap.fromTo(b, {x: dx, y: dy}, {x: 0, y: 0, duration: .5, ease: 'power2.out'}); });
+}
+function describe(op, before, after) {
+  if (op.op === 'append') return 'weights.append(' + op.v + ') adds ' + op.v + ' at the end, at index ' + (after.length - 1) + '. Nothing else moves. The list is now ' + pyList(after) + '.';
+  if (op.op === 'insert') return 'weights.insert(' + op.i + ', ' + op.v + ') puts ' + op.v + ' at index ' + op.i + '. The ' + plural(before.length - op.i, 'item') + ' from index ' + op.i + ' on ' + (before.length - op.i === 1 ? 'moves' : 'move') + ' one place to the right. The list is now ' + pyList(after) + '.';
+  if (op.op === 'pop') return 'weights.pop(' + op.i + ') removes the item at index ' + op.i + ', the ' + before[op.i] + '. Every later item moves one place to the left. The list is now ' + pyList(after) + '.';
+  return 'weights[' + op.i + '] = ' + op.v + ' replaces the value at index ' + op.i + ': ' + before[op.i] + ' becomes ' + op.v + '. The length stays ' + after.length + '. The list is now ' + pyList(after) + '.';
+}
+SHOW.cells = R => {
+  const fin = listOps(R.start, R.ops).pop(); st = {};
+  setPy(R.code[0]); say('Round ' + (r + 1), 'The chart above is this program, one symbol per line. After you press Run, the token carries the list from line to line.');
+  $('#body').innerHTML = '<div class="rgrid"><div>' + py(R.code, 'rcode') + '</div><div><h3 class="mini">weights after line 1</h3><div class="boxes" id="lrow"></div>' +
+    '<h3 class="mini gap">Your prediction: the list that line 5 prints</h3><div class="cells" id="cells">' + fin.map((_, i) => '<label class="cellbox"><span class="h" data-i="' + i + '"><input type="text" class="cell" data-i="' + i + '" autocomplete="off" inputmode="numeric" aria-label="final value at index ' + i + '"></span><span class="i">[' + i + ']</span></label>').join('') + '</div>' +
+    '<p class="qnote" style="margin-top:8px">The final list has ' + fin.length + ' items. Type one value in each box, then press Run.</p></div></div>';
+  drawRow(R.start); guide(1, 'Round ' + (r + 1) + ': <b>type the final list</b>, one value per box, then press <b>Run</b>.');
+};
+function playList(R, onOut) {
+  const T = begin(), states = listOps(R.start, R.ops), fin = states[states.length - 1]; softClear();
+  T.call(() => { softClear(); drawRow(R.start); lightLine(1); setPy(R.code[0]); fk.highlight('start', 'done'); });
+  T.tok(['start>n1'], 'go', GOLD); T.call(() => { fk.highlight('n1', 'active'); follow('n1'); say('Line 1', 'weights starts as ' + pyList(R.start) + ': ' + R.start.length + ' items, index 0 to ' + (R.start.length - 1) + '.'); }); T.wait(.5);
+  R.ops.forEach((op, k) => { const node = 'n' + (k + 2), prev = 'n' + (k + 1), before = k ? states[k - 1] : R.start;
+    T.tok([prev + '>' + node], pyList(before), SKY);
+    T.call(() => { fk.highlight(prev, 'done'); fk.highlight(node, 'active'); follow(node); lightLine(op.line); setPy(R.code[op.line - 1]); drawRow(states[k], op); say('Line ' + op.line, describe(op, before, states[k])); });
+    T.wait(.9); });
+  T.tok(['n4>out'], pyList(fin), SKY); T.call(() => { fk.highlight('n4', 'done'); fk.highlight('out', 'active'); follow('out'); lightLine(5); setPy(R.code[4]); say('Line 5', 'print(weights) shows ' + pyList(fin) + '.'); if (onOut) onOut(); });
+  T.tok(['out>end'], 'done', GREEN); T.call(() => { fk.highlight('out', 'done'); fk.highlight('end', 'done'); });
+  return launch(T, 1, () => { if (onOut) onOut(); });
+}
+CHECK.cells = R => {
+  const fin = listOps(R.start, R.ops).pop(), inputs = Array.from(document.querySelectorAll('#cells input')), got = inputs.map(i => i.value);
+  if (got.some(v => v.trim() === '')) { hint('Type a number in every box first: the final list has ' + fin.length + ' items.'); return null; }
+  const oks = got.map((v, i) => v.trim() === String(fin[i])), right = oks.filter(Boolean).length, states = listOps(R.start, R.ops);
+  inputs.forEach(i => { i.disabled = true; }); checked = true;
+  st.flip = () => { if (st.flipped) return; st.flipped = true; document.querySelectorAll('#cells .h').forEach((h, i) => flipCell(h, resHtml(oks[i], String(fin[i]), got[i]))); };
+  playList(R, st.flip);
+  return {pts: Math.round(10 * right / fin.length), answer: pyList(got.map(v => v.trim())) + ': ' + right + ' of ' + fin.length + ' cells right',
+    fb: '(' + right + ' of ' + fin.length + ' cells right). ' + R.ops.map((op, k) => 'After line ' + op.line + ': ' + pyList(states[k]) + '.').join(' ') + ' An insert or a pop in the middle moves every later item and changes its index.'};
+};
+PLAY.cells = R => { res_all(); playList(R); };
+
+// --------------------------------------------------- round 8: sort the structures ----
+const BOARDS = [{key: 'A', title: 'Sort 1: shape', bins: [['linear', 'Linear'], ['non', 'Non-linear']], want: s => s.linear ? 'linear' : 'non'}, {key: 'B', title: 'Sort 2: size', bins: [['static', 'Static'], ['dynamic', 'Dynamic']], want: s => s.fixed ? 'static' : 'dynamic'}];
+function scard(Bd, s) {
+  const at = st[Bd.key][s.id], mark = checked ? (at === Bd.want(s) ? ' ok locked' : ' bad locked') : '';
+  return '<div class="chip scard' + mark + '" data-id="' + s.id + '">' + s.name + '<small>' + s.sub + '</small><select class="pick" data-b="' + Bd.key + '" data-id="' + s.id + '" aria-label="Bin for ' + s.name + ', ' + Bd.title + '"' + (checked ? ' disabled' : '') + '><option value="">on the table</option>' + Bd.bins.map(b => '<option value="' + b[0] + '"' + (at === b[0] ? ' selected' : '') + '>' + b[1] + '</option>').join('') + '</select></div>';
+}
+function renderBins(focus) {
+  $('#body').innerHTML = '<div class="rgrid">' + BOARDS.map(Bd => '<div class="board" data-b="' + Bd.key + '"><h3 class="mini">' + Bd.title + '</h3><div class="dz tray" data-z="tray">' + (STRUCTS.filter(s => !st[Bd.key][s.id]).map(s => scard(Bd, s)).join('') || 'All four cards are sorted.') + '</div><div class="bins">' +
+    Bd.bins.map(b => '<div class="dz bin" data-z="' + b[0] + '"><span class="bt">' + b[1] + '</span>' + STRUCTS.filter(s => st[Bd.key][s.id] === b[0]).map(s => scard(Bd, s)).join('') + '</div>').join('') + '</div></div>').join('') + '</div>';
+  if (!checked) makeDrags((chip, z) => { clearHint(); const key = chip.closest('.board').dataset.b; if (z !== undefined) st[key][chip.dataset.id] = z === 'tray' ? null : z; renderBins(); });
+  if (focus) { const s = $('select.pick[data-b="' + focus[0] + '"][data-id="' + focus[1] + '"]'); if (s) s.focus(); }
+  const left = BOARDS.reduce((n, Bd) => n + STRUCTS.filter(s => !st[Bd.key][s.id]).length, 0);
+  if (!checked) guide(left ? 1 : 2, left ? 'Round ' + (r + 1) + ': <b>sort every card in both sorts</b>. ' + plural(left, 'card') + ' still on the table.' : 'All eight cards are sorted. Press <b>Check</b>.');
+}
+SHOW.bins = () => { st = {A: {}, B: {}}; setPy('weights = []    # a list is linear and dynamic'); say('Round ' + (r + 1), 'Two questions decide where a structure goes: are the items in one line, and is the size fixed when the structure is declared?'); renderBins(); };
+CHECK.bins = () => {
+  const left = BOARDS.reduce((n, Bd) => n + STRUCTS.filter(s => !st[Bd.key][s.id]).length, 0);
+  if (left) { hint('Sort every card in both sorts first: ' + plural(left, 'card') + ' still on the table.'); return null; }
+  let right = 0; BOARDS.forEach(Bd => STRUCTS.forEach(s => { right += st[Bd.key][s.id] === Bd.want(s); }));
+  checked = true; killDrags(); renderBins();
+  return {pts: Math.round(10 * right / 8), answer: right + ' of 8 cards in the right bin',
+    fb: '(' + right + ' of 8 cards right). Shape: the manifest list, the van stack, and the shelf array keep their items in one line, so they are linear. The route map is non-linear: a city can connect to several others. Size: only the shelf array is static, because its five slots are fixed when it is declared. The two Python lists grow and shrink, and the route map gains a city when service expands, so they are dynamic.'};
+};
+PLAY.bins = () => {
+  const T = begin(); softClear();
+  STRUCTS.forEach(s => { const a = s.linear ? 'cl' : 'cn', b = s.fixed ? 'cst' : 'cdy', lab = s.name.split(' ')[1];
+    T.call(() => { softClear(); fk.highlight('cs', 'done'); follow('c1'); say(s.name, s.name + ' (' + s.sub + '): are the items in one line?'); });
+    T.tok(['cs>c1'], lab, SKY); T.call(() => fk.highlight('c1', 'active'));
+    T.tok(['c1>' + a], lab, SKY); T.call(() => { fk.highlight('c1', 'done'); fk.highlight(a, 'done'); say(s.name, s.linear ? 'Yes: one item after another, so it is linear. Next question: is the size fixed when it is declared?' : 'No: a city can connect to several others, so it is non-linear. Next question: is the size fixed when it is declared?'); });
+    T.tok([a + '>c2'], lab, SKY); T.call(() => { fk.highlight('c2', 'active'); follow('c2'); });
+    T.tok(['c2>' + b], lab, SKY); T.call(() => { fk.highlight('c2', 'done'); fk.highlight(b, 'done'); say(s.name, s.fixed ? 'Yes: Integer Array shelf[5] always has five slots. It is static.' : 'No: it can grow while the program runs. It is dynamic.'); });
+    T.tok([b + '>ce'], 'done', GREEN); T.call(() => fk.highlight('ce', 'done')); T.wait(.5); });
+  launch(T, 1.2, () => say('Explanation', 'Three linear structures and one non-linear; one static and three dynamic.'));
+};
+
+// ----------------------------------------------------- round 9: pick the structure ----
+SHOW.jobs = () => {
+  st = {}; setPy('van = []    # which structure fits the job?'); say('Round ' + (r + 1), 'The chart asks three questions about a job. The first Yes names the structure.');
+  $('#body').innerHTML = '<div class="jobs">' + JOBS.map((j, i) => '<div class="job" data-i="' + i + '"><label for="job' + i + '">' + (i + 1) + '. ' + esc(j.t) + '</label><select class="pick" id="job' + i + '"><option value="">Pick a structure</option>' + KINDS.map(k => '<option value="' + k[0] + '">' + k[1] + '</option>').join('') + '</select><div class="why"></div></div>').join('') + '</div>';
+  guide(1, 'Round ' + (r + 1) + ': <b>pick a structure for each of the four jobs</b>, then press <b>Check</b>.');
+};
+CHECK.jobs = () => {
+  const got = JOBS.map((_, i) => $('#job' + i).value);
+  if (got.some(v => !v)) { hint('Pick a structure for every job first.'); return null; }
+  let right = 0; checked = true;
+  JOBS.forEach((j, i) => { const ok = got[i] === j.a, row = $('.job[data-i="' + i + '"]'); right += ok; row.classList.add(ok ? 'ok' : 'bad'); $('#job' + i).disabled = true; row.querySelector('.why').textContent = (ok ? 'Right. ' : 'Best fit: ' + KINDS.find(k => k[0] === j.a)[1] + '. ') + j.why; });
+  return {pts: JOB_POINTS[right], answer: right + ' of 4 jobs right', fb: '(' + right + ' of 4 jobs right). Match the job to what the structure does: last in, first out is a stack; a size that never changes is a fixed array; links to several others make a graph; items in order with no fixed count are a list.'};
+};
+PLAY.jobs = () => {
+  const T = begin(); softClear();
+  JOBS.forEach((j, i) => { const lab = 'job ' + (i + 1);
+    T.call(() => { softClear(); fk.highlight('ks', 'done'); follow('k1'); say('Job ' + (i + 1), j.t); });
+    j.path.forEach((e, n) => { const b = e.split('>')[1], a = e.split('>')[0]; T.tok([e], lab, n === j.path.length - 1 ? GREEN : SKY); T.call(() => { fk.highlight(a, 'done'); fk.highlight(b, n >= j.path.length - 2 ? 'done' : 'active'); follow(b); if (n === j.path.length - 2) say('Job ' + (i + 1), j.why); }); });
+    T.wait(.6); });
+  launch(T, 1.2, () => say('Explanation', 'Each job followed the questions to its structure: list, stack, fixed array, graph.'));
+};
+
+// -------------------------------------------------- round 10: check Copilot's claim ----
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+SHOW.choice = R => {
+  st = {}; vanShow([], 5); setPy('van.pop()'); say('Round ' + (r + 1), 'A claim about code is tested by running code. Pick the test whose output contradicts the sentence.');
+  $('#body').innerHTML = '<div class="copi"><span class="k">Copilot said</span>"pop() removes the first package that was loaded."</div><div class="opts" id="opts">' + shuffle(R.opts.map((o, i) => i)).map((i, n) => '<button type="button" data-i="' + i + '"><span class="ol">Test ' + 'ABCD'[n] + '</span><code>' + hl(R.opts[i][0]) + '</code><span class="ol" style="margin:4px 0 0">' + R.opts[i][1] + '</span></button>').join('') + '</div>';
+  guide(1, 'Round ' + (r + 1) + ': <b>pick the test</b> that proves the sentence wrong, then press <b>Check</b>.');
+};
+CHECK.choice = R => {
+  if (picked === null) { hint('Pick one of the four tests first.'); return null; }
+  const o = R.opts[picked], best = R.opts[0]; checked = true;
+  document.querySelectorAll('#opts button').forEach(b => { b.disabled = true; b.style.borderColor = ''; if (+b.dataset.i === 0) b.classList.add('right'); else if (+b.dataset.i === picked) b.classList.add('wrong'); });
+  return {pts: o[2], answer: o[1].toLowerCase() + ' (' + o[0].split('\n').pop() + ')', fb: o[3] + (o === best ? '' : ' The test that works: push 0007, 0004, 0006, then print(van.pop()). It prints 0006, the last package loaded, while 0007, the first one, is still in the van.')};
+};
+PLAY.choice = () => { playStack([push('0007'), push('0004'), push('0006'), pop()], {start: [], cap: 5, onDone: () => say('Explanation', 'pop() returned 0006, the last package loaded. 0007, the first one loaded, is still at the bottom of the van. Copilot\'s sentence is false: a stack is last in, first out.')}); };
+
+// ----------------------------------------------------------------- rounds UI ----
+function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+const KIND_CHART = {load: 'stack', ops: 'stack', choice: 'stack', cells: 'ops', bins: 'classify', jobs: 'pick'};
+function showRound() {
+  cur = ROUNDS[r]; killPlay(); killDrags(); checked = false; picked = null; st = null;
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + cur.name; $('#qText').textContent = cur.q; $('#fb').innerHTML = '';
+  $('#btnCheck').disabled = false; $('#btnCheck').textContent = cur.kind === 'load' ? 'Deliver' : cur.kind === 'ops' || cur.kind === 'cells' ? 'Run' : 'Check';
+  $('#btnNext').disabled = true; $('#btnPlay').disabled = true; drawProgress();
+  loadChart(KIND_CHART[cur.kind], cur); setPractice();
+  SHOW[cur.kind](cur);
+}
+$('#body').addEventListener('change', e => {
+  const s = e.target.closest('select.pick'); if (!s || checked) return;
+  clearHint();
+  if (cur.kind === 'load') { const k = +s.dataset.k; setSlot(k, s.value); renderLoad(k); }
+  else if (cur.kind === 'bins') { st[s.dataset.b][s.dataset.id] = s.value || null; renderBins([s.dataset.b, s.dataset.id]); }
+  else if (cur.kind === 'jobs') guide(JOBS.every((_, i) => $('#job' + i).value) ? 2 : 1, JOBS.every((_, i) => $('#job' + i).value) ? 'All four jobs have a structure. Press <b>Check</b>.' : 'Pick a structure for every job, then press <b>Check</b>.');
+});
+$('#body').addEventListener('click', e => {
+  const b = e.target.closest('#opts button'); if (!b || b.disabled) return;
+  clearHint(); picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); guide(2, 'Press <b>Check</b> to see your points.');
+});
+$('#body').addEventListener('keydown', e => { if (e.key !== 'Enter' || !e.target.classList.contains('cell')) return; e.preventDefault(); const all = Array.from(document.querySelectorAll('#body input.cell')), i = all.indexOf(e.target); if (i < all.length - 1) all[i + 1].focus(); else $('#btnCheck').click(); });
+$('#body').addEventListener('input', e => { if (!e.target.classList.contains('cell') || checked) return; clearHint(); const all = Array.from(document.querySelectorAll('#body input.cell')); if (all.every(i => i.value.trim() !== '')) guide(2, 'Every box is filled. Press <b>Run</b>.'); });
+$('#btnCheck').addEventListener('click', () => {
+  if (checked) return;
+  const out = CHECK[cur.kind](cur); if (!out) { guide(1); return; }
+  total += out.pts; log[r] = {q: cur.name, a: out.answer, pts: out.pts, max: 10};
+  $('#fb').innerHTML = '<div class="feedback ' + (out.pts === 10 ? 'ok' : out.pts > 0 ? 'info' : 'bad') + '"><b>' + out.pts + ' of 10 points' + (out.fb[0] === '(' ? '' : '.') + '</b> ' + esc(out.fb) + '</div>';
+  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress(); setPractice();
+  guide(3, 'Read your points and the explanation. Press <b>Play the explanation</b> to watch the right answer' + (KIND_CHART[cur.kind] === 'stack' ? ', try <b>Push</b>, <b>Pop</b>, and <b>Peek</b> on the van,' : ',') + ' then press <b>' + (r === ROUNDS.length - 1 ? 'See results' : 'Next round') + '</b>.');
+});
+$('#btnPlay').addEventListener('click', () => { if (!checked) return; say('Explanation', ''); PLAY[cur.kind](cur); });
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); } else finishAll(); });
+function finishAll() {
+  killPlay(); killDrags(); guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent: you can plan a stack and read list operations by index.' : total >= 70 ? ' Good. Replay the rounds where you lost points.' : ' Try again: draw the van as a column of boxes on paper and move one box per line.');
+  $('#body').innerHTML = ''; $('#fb').innerHTML = ''; $('#btnCheck').disabled = true; $('#btnNext').disabled = true; $('#btnPlay').disabled = true; checked = false; setPractice();
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + ': ' + esc(l.q) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  if (total >= 90 && window.confetti) confetti({particleCount: 140, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
+  drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function start() { r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+$('#btnAgain').addEventListener('click', start);
+window.__loadVan = {rounds: ROUNDS, round: () => r, current: () => cur, total: () => total, playing: () => !!playing, van: () => ({items: VAN.items.slice(), cap: VAN.cap}), state: () => st,
+  logic: {stackOp: stackOp, runStack: runStack, loadOrder: loadOrder, deliver: deliver, listOps: listOps}, structs: STRUCTS, jobs: JOBS};
+start();
+})();
+</script>
+</body>
+</html>

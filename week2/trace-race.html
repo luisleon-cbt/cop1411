@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cover every branch</title>
-<meta name="description" content="COP1411 Week 2 interactive: Light every arrow of the sorter with the fewest packages, predict lanes and prices, and find the one package that exposes the bug in Copilot&#x27;s order.">
+<title>Trace race</title>
+<meta name="description" content="COP1411 Week 2 practice: Fill the trace table before the loop runs, then watch every cell flip green or red. Catch an infinite loop, an off-by-one, and a wrong Copilot sentence.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
@@ -371,74 +371,82 @@
   .flowcard{position:relative;width:100%;aspect-ratio:16/9;min-height:240px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
   @media(max-width:640px){.flowcard{aspect-ratio:4/3}}
   .flowcard .flow{position:absolute;inset:0;width:100%;height:100%}
-  .code{margin:0;padding:12px 14px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:var(--silk);overflow:auto;white-space:pre}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
   .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
   .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
-  .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-top:10px}
-  .pcard{text-align:left;padding:9px 11px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);cursor:pointer;display:grid;gap:2px;font-family:var(--font-body)}
-  .pcard b{font:700 12.5px var(--font-mono);color:var(--addr)}
-  .pcard span{font-size:12.5px;color:var(--silk-dim)}
-  .pcard:hover:not(:disabled){border-color:var(--cbt-gold)}
-  .pcard.used{border-color:var(--ok);background:var(--ok-soft,rgba(111,212,155,.10))}
-  .pcard.used b::after{content:" \2713";color:var(--ok)}
-  .pcard.dud{border-color:var(--warn);background:var(--warn-soft,rgba(224,184,64,.08))}
-  .pcard.hit{border-color:var(--bad);background:var(--bad-soft,rgba(240,120,106,.12))}
-  .pcard:disabled{cursor:default;opacity:.85}
-  .covbar{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font:500 12px var(--font-mono);color:var(--silk-dim)}
-  .covbar b{color:var(--silk);font-weight:700}
-  .covbar .lit{color:var(--ok)}
-  .plog{margin:8px 0 0;padding:0;list-style:none;font-size:13px;color:var(--silk-dim);display:grid;gap:3px;max-height:140px;overflow:auto}
-  .plog li b{color:var(--silk);font-weight:600}
-  .plog li.none{color:var(--warn)}
-  .code.small{font-size:12.5px;margin:8px 0}
+  .rgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px;align-items:start;margin-top:10px}
+  @media(max-width:760px){.rgrid{grid-template-columns:1fr}}
+  .tt{font:500 13px var(--font-mono)}
+  .tt th,.tt td{text-align:center;padding:4px 6px}
+  .tt td.p{color:var(--silk-dim)}
+  .tt input{width:58px;box-sizing:border-box;padding:5px 4px;border-radius:5px;border:1px solid var(--line-2);background:var(--code-bg);color:var(--silk);font:600 13px var(--font-mono);text-align:center}
+  .tt input.wide{width:120px}
+  .tt input:focus{outline:2px solid var(--cbt-gold);outline-offset:1px}
+  .tt input:disabled{opacity:.75}
+  .tt td .res,.prints .res{display:inline-block;min-width:58px;padding:5px 6px;border-radius:5px;font-weight:700}
+  .tt td .res.ok,.prints .res.ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
+  html[data-theme=light] .tt td .res.ok,html[data-theme=light] .prints .res.ok{background:#E3F7EC}
+  .tt td .res.bad,.prints .res.bad{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+  html[data-theme=light] .tt td .res.bad,html[data-theme=light] .prints .res.bad{background:#FBE4E1}
+  .tt td .res .was,.prints .res .was{display:block;font-size:10.5px;font-weight:500;text-decoration:line-through;color:var(--silk-dim)}
+  .tt td .res.ok.blank,.tt td .res.bad.blank{font-style:italic;font-weight:500;font-size:11.5px}
+  .prints{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px}
+  .prints label{color:var(--silk-dim)}
+  .sym{display:grid;gap:6px;margin-top:8px}
+  .sym button,.opts button{text-align:left}
+  .sym button.on{border-color:var(--cbt-sky)}
+  .sym button.right{border-color:var(--ok);background:var(--ok-soft)}.sym button.wrong{border-color:var(--bad);background:var(--bad-soft)}
+  .sym button{padding:9px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14px var(--font-mono);cursor:pointer}
+  .copi{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:10px 14px;font-size:14px;margin-top:8px}
+  .copi .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .copi ol{margin:4px 0 0 18px;padding:0}
+  .static{font:500 12.5px var(--font-mono);margin-top:8px}
+  .static th,.static td{text-align:center}
+  .qnote{font-size:13.5px;color:var(--silk-dim);margin:0 0 6px}
+  #btnStop{border-color:var(--bad);color:var(--bad)}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
-    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 2 · Interactive B</div>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 2 · Practice</div>
   </div>
 </header>
 
 <main class="wrap">
   <section class="hero split reveal" style="--i:0">
-    <div><span class="eyebrow">COP1411 · Week 2 · Challenge</span><h1>Cover every branch</h1><p class="lede">Light every arrow of the sorter with the fewest packages, predict lanes and prices, and find the one package that exposes the bug in Copilot's order.</p></div>
-    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit where fair</span></div><div><b>9</b><span>packages on the shelf</span></div></div>
+    <div><span class="eyebrow">COP1411 · Week 2 · Practice</span><h1>Trace race</h1><p class="lede">Fill the trace table before the loop runs, then watch every cell flip green or red. Catch an infinite loop, an off-by-one, and a wrong Copilot sentence.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit per cell</span></div><div><b>Shuffled</b><span>every attempt</span></div></div>
   </section>
   <aside class="card reveal" style="--i:1" data-ref="FLOWCHART">
     <h2>Watch it on the flowchart</h2>
     <div class="flowcard" id="stage"></div>
-    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">In a coverage round, every arrow the token travels turns green. In a question round, press Play the explanation after you check your answer.</p></div>
-    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">Fill the table in the round below, then press Run: the token walks the loop and the cells flip.</p></div>
+    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><button class="btn" id="btnStop" type="button" hidden>Stop</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
   </aside>
   <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
     <h2 id="guideTitle">How this challenge works</h2>
     <ol class="steps" id="howSteps">
-      <li data-h="1">Read the round below. In a coverage round, <b>click package cards</b> on the shelf one at a time and watch the token light arrows green on the chart above. In a question round, <b>pick one answer</b>.</li>
-      <li data-h="2">Press <b>Check coverage</b> (or <b>Check</b>). You see your points and why: a dark arrow scores zero, and every extra package costs 2 points.</li>
-      <li data-h="3">Press <b>Play the explanation</b> to watch the best set of packages, or the right path, on the flowchart above.</li>
+      <li data-h="1">Read the round below. In a trace round, <b>type a value in every cell</b> of the table and in the "prints" box. In the other rounds, <b>pick one answer</b>.</li>
+      <li data-h="2">Press <b>Run</b> (trace rounds) or <b>Check</b>. The token walks the loop on the flowchart above and every cell flips green or red with the real value.</li>
+      <li data-h="3">Read the points and the explanation. Press <b>Play the explanation</b> to watch the token again.</li>
       <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> if you want a better score.</li>
     </ol>
     <div>
-      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and click a package card.</span></div>
-      <ul class="tips"><li>The nine packages are the eight from the reference table plus PP-2026-0009. Rounds come in a fixed order; answer choices are shuffled. Over the flowchart: + and - zoom, drag to move, FIT shows everything.</li></ul>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and fill the table.</span></div>
+      <ul class="tips"><li>Each round is worth 10 points. In a trace round, the points follow the share of right cells. Leave a cell empty only when the loop never reaches that pass.</li><li>Over the flowchart: + and - zoom, drag to move, FIT shows the whole chart.</li></ul>
     </div>
   </section>
   <section class="card reveal" style="--i:3" data-ref="ROUND">
     <div class="progress" id="prog"></div>
     <h2 id="qTitle">Round 1</h2>
     <p id="qText" style="margin:0 0 6px"></p>
-    <div id="shelfWrap" hidden>
-      <div class="covbar" id="covbar"></div>
-      <div class="shelf" id="shelf" aria-label="Package shelf"></div>
-      <ul class="plog" id="plog" aria-live="polite"></ul>
-    </div>
-    <div class="opts" id="opts"></div>
+    <div id="body"></div>
     <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
     <div id="fb"></div>
   </section>
-  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="U3 · RESULTS">
     <h2>Your results</h2>
     <div class="scroll-x"><table class="data" id="resTable"></table></div>
     <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
@@ -452,6 +460,7 @@
 const hasGSAP = typeof window.gsap !== 'undefined';
 if (hasGSAP && window.Draggable) gsap.registerPlugin(Draggable);
 if (hasGSAP && window.Flip) gsap.registerPlugin(Flip);
+const hasFlip = hasGSAP && !!window.Flip;
 function guide(stepNo, nowHtml) {
   document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
   if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
@@ -843,236 +852,294 @@ function PySandbox(host, opts) {
 }
 // PYSANDBOX END
 
-
-/// ---- Palmetto Parcel: the nine packages on the shelf and the sorter's diamonds ----
-const PK = [
-  {t: 'PP-2026-0001', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 12, m: 8, f: false},
-  {t: 'PP-2026-0002', who: 'Doral Dental Group', city: 'Doral', w: 3, m: 2, f: true},
-  {t: 'PP-2026-0003', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 55, m: 14, f: false},
-  {t: 'PP-2026-0004', who: 'Kendall Office Supply', city: 'Kendall', w: 20, m: 19, f: false},
-  {t: 'PP-2026-0005', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 60, m: 14, f: true},
-  {t: 'PP-2026-0006', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 50, m: 8, f: false},
-  {t: 'PP-2026-0007', who: 'Casa Lopez Furniture', city: 'Homestead', w: 45, m: 30, f: true},
-  {t: 'PP-2026-0008', who: 'Blue Heron Clinic', city: 'Fort Lauderdale', w: 5, m: 25, f: false},
-  {t: 'PP-2026-0009', who: 'Doral Dental Group', city: 'Doral', w: 10, m: 2, f: false}
-];
-const price = p => 4.5 + 0.8 * p.w + 0.25 * p.m + (p.f ? 3 : 0);
-const short = p => p.t.slice(-4);
-const TF = b => b ? 'True' : 'False';
+const SKY = '#38B0E0', CORAL = '#F0786A', ICE = '#9FE7FF', GREEN = '#6FD49B';
+const EDGE = document.documentElement.getAttribute('data-theme') === 'light' ? '#4a5490' : '#5f6aa8';  // the FlowKit arrow color at rest
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
-const D = {
-  d_weight: {text: 'weight > 50?', lane: 'FREIGHT', pid: 'p_freight', cond: p => p.w > 50, say: p => p.w + ' > 50 is ' + TF(p.w > 50)},
-  d_fragile: {text: 'fragile == "yes"?', lane: 'FRAGILE', pid: 'p_fragile', cond: p => p.f, say: p => '"' + (p.f ? 'yes' : 'no') + '" == "yes" is ' + TF(p.f)},
-  d_doral: {text: 'city == "Doral"?', lane: 'A', pid: 'p_a', cond: p => p.city === 'Doral', say: p => '"' + p.city + '" == "Doral" is ' + TF(p.city === 'Doral')},
-  d_b: {text: 'Hialeah or\nMiami Gardens?', lane: 'B', pid: 'p_b', cond: p => p.city === 'Hialeah' || p.city === 'Miami Gardens', say: p => '"' + p.city + '" is Hialeah or Miami Gardens: ' + TF(p.city === 'Hialeah' || p.city === 'Miami Gardens')},
-  d_c: {text: 'Kendall or\nHomestead?', lane: 'C', pid: 'p_c', cond: p => p.city === 'Kendall' || p.city === 'Homestead', say: p => '"' + p.city + '" is Kendall or Homestead: ' + TF(p.city === 'Kendall' || p.city === 'Homestead')}
-};
-const DISPATCH = ['d_weight', 'd_fragile', 'd_doral', 'd_b', 'd_c'], COPILOT = ['d_fragile', 'd_weight', 'd_doral', 'd_b', 'd_c'], ZONE = ['d_doral', 'd_b', 'd_c'];
-const laneOf = (p, ids) => { const k = ids.find(id => D[id].cond(p)); return k ? D[k].lane : 'ASK DISPATCH'; };
+const py = lines => '<pre class="code">' + lines.map((l, i) => '<span class="ln"><span style="color:var(--silk-dim);display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' + (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('') + '</pre>';
 
-// ---- the charts: each returns {fk, run(p) -> {path, lane, desc}, names} ----
-const COLW = 230, NW = 170, DW = 180, HALF = {decision: DW / 2, io: NW / 2 - 8, process: NW / 2, terminal: NW / 2};
-const LIGHT = document.documentElement.getAttribute('data-theme') === 'light';
-const GREEN = LIGHT ? '#2E9E63' : '#6FD49B', GOLD = '#E0B840', SKY = '#38B0E0', CORAL = LIGHT ? '#D6473C' : '#F0786A';
-function make(stage, spec) {
-  stage.querySelectorAll('.flow, .fk-zoom').forEach(e => e.remove());
-  const P = {}; spec.nodes.forEach(n => { P[n.id] = n; });
-  const hz = (a, b, extra) => Object.assign({from: a, to: b, side: 'right', points: [[P[a].col + HALF[P[a].type] / COLW, P[a].row], [P[b].col - HALF[P[b].type] / COLW, P[b].row]]}, extra || {});
-  const edges = spec.edges.map(e => e.hz ? hz(e.hz[0], e.hz[1], e) : e);
-  const fk = FlowKit(stage, {cols: spec.cols, rows: spec.rows, colW: COLW, nodeW: NW, nodes: spec.nodes, edges: edges});
-  const mk = fk.el('marker', {id: 'fk-arrow-ok', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, fk.svg.querySelector('defs'));
-  fk.el('path', {d: 'M0,0 L10,5 L0,10 z', fill: GREEN}, mk);
-  const names = {}; edges.forEach(e => { names[e.from + '>' + e.to] = e.nm || ('the arrow from ' + P[e.from].text.replace('\n', ' ') + ' to ' + P[e.to].text.replace('\n', ' ')); });
-  return {fk: fk, names: names, all: Object.keys(fk.edges), run: p => spec.run(p),
-    paint(keys, color) { keys.forEach(k => { const e = fk.edges[k]; if (!e) return; e.path.setAttribute('stroke', color); e.path.setAttribute('marker-end', color === GREEN ? 'url(#fk-arrow-ok)' : color === GOLD ? 'url(#fk-arrow-hot)' : 'url(#fk-arrow)'); }); }};
+// ------------------------------------------------ chart helpers (grid: main column 1, Yes branches at column 0, the exit at column 2, loop lane at -0.5) ----
+const RH = 80, NH = 50, DH = NH + 26;
+const N = (id, type, text, col, row, w) => Object.assign({id: id, type: type, text: text, col: col, row: row}, w ? {w: w} : {});
+const E = (from, to, x) => Object.assign({from: from, to: to}, x || {});
+const chart = (nodes, edges, rows) => ({cols: 3, rows: rows, colW: 230, rowH: RH, nodeH: NH, nodeW: 180, pad: 40, nodes: nodes, edges: edges});
+// loop back from the bottom of a node to the main line just above the test diamond
+const LB = (from, col, row, h, testRow, bottom) => ({from: from, to: 'test', points: [[col, row + h / 2 / RH], [col, bottom], [-0.5, bottom], [-0.5, testRow - 0.58], [1, testRow - 0.58]]});
+const exitNodes = (outText, testRow) => [N('out', 'io', outText, 2, testRow + 1), N('end', 'terminal', 'END', 2, testRow + 2)];
+const exitEdges = () => [E('test', 'out', {label: 'No', side: 'right'}), E('out', 'end')];
+function simpleLoop(initTexts, testText, bodyTexts, outText) {   // one column of body symbols, the loop back from the last one
+  const nodes = [N('start', 'terminal', 'START', 1, 0)], edges = [];
+  initTexts.forEach((t, i) => { const id = 'init' + (i || ''); nodes.push(N(id, t[0] === '!' ? 'io' : 'process', t.replace(/^!/, ''), 1, 1 + i, t.length > 26 ? 220 : 0)); edges.push(E(i ? 'init' + (i - 1 || '') : 'start', id)); });
+  const t = 1 + initTexts.length; nodes.push(N('test', 'decision', testText, 1, t)); edges.push(E(initTexts.length > 1 ? 'init' + (initTexts.length - 1) : 'init', 'test'));
+  bodyTexts.forEach((b, i) => { const id = 'b' + (i + 1); nodes.push(N(id, b[0] === '!' ? 'io' : 'process', b.replace(/^!/, ''), 1, t + 1 + i, b.length > 24 ? 212 : 0)); edges.push(E(i ? 'b' + i : 'test', id, i ? {} : {label: 'Yes'})); });
+  const last = 'b' + bodyTexts.length, lastRow = t + bodyTexts.length;
+  edges.push(LB(last, 1, lastRow, NH, t, lastRow + 0.62));
+  if (outText) { nodes.push(...exitNodes(outText, t)); edges.push(...exitEdges()); }
+  else { nodes.push(N('end', 'terminal', 'END', 2, t + 1)); edges.push(E('test', 'end', {label: 'No', side: 'right'})); }
+  return chart(nodes, edges, Math.max(lastRow + 1.1, t + 2.6));
 }
-function chainSpec(ids) {
-  const n = ids.length, nodes = [{id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}], edges = [{from: 'start', to: ids[0], nm: 'the arrow from START'}];
-  ids.forEach((id, i) => { const d = D[id]; nodes.push({id: id, type: 'decision', text: d.text, col: i, row: 1, w: DW}, {id: d.pid, type: 'process', text: 'lane = "' + d.lane + '"', col: i, row: 2});
-    edges.push({from: id, to: d.pid, label: 'Yes', nm: 'the Yes arrow of ' + d.text.replace('\n', ' ')}, {hz: [id, i < n - 1 ? ids[i + 1] : 'p_ask'], label: 'No', nm: 'the No arrow of ' + d.text.replace('\n', ' ')},
-      {from: d.pid, to: 'out', points: [[i, 2.28], [i, 2.6], [Math.floor((n - 1) / 2), 2.6], [Math.floor((n - 1) / 2), 2.72]], nm: 'the arrow from lane = "' + d.lane + '" to OUTPUT'}); });
-  const oc = Math.floor((n - 1) / 2);
-  nodes.push({id: 'p_ask', type: 'process', text: 'lane =\n"ASK DISPATCH"', col: n, row: 1}, {id: 'out', type: 'io', text: 'OUTPUT lane', col: oc, row: 3}, {id: 'end', type: 'terminal', text: 'END', col: oc + 1, row: 3});
-  edges.push({from: 'p_ask', to: 'out', points: [[n, 1.28], [n, 2.6], [oc, 2.6], [oc, 2.72]], nm: 'the arrow from lane = "ASK DISPATCH" to OUTPUT'}, {hz: ['out', 'end'], nm: 'the arrow into END'});
-  return {cols: n + 1, rows: 4, nodes: nodes, edges: edges, run(p) {
-    const path = ['start>' + ids[0]], desc = []; let lane = null, from = ids[0];
-    for (let i = 0; i < n; i++) { const id = ids[i], d = D[id], r = d.cond(p); desc.push(d.say(p)); if (r) { lane = d.lane; path.push(id + '>' + d.pid, d.pid + '>out'); break; } const nx = i < n - 1 ? ids[i + 1] : 'p_ask'; path.push(id + '>' + nx); from = nx; }
-    if (!lane) { lane = 'ASK DISPATCH'; path.push('p_ask>out'); desc.push('every diamond False, so the else branch'); }
-    path.push('out>end'); return {path: path, lane: lane, desc: desc.join('; ') + ' → lane ' + lane, node: lane === 'ASK DISPATCH' ? 'p_ask' : D[ids.find(id => D[id].lane === lane)].pid}; }};
-}
-const SURCHARGE = {cols: 2, rows: 6, nodes: [
-    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}, {id: 'p_price', type: 'process', text: 'price = 4.50\n+ 0.80 * weight\n+ 0.25 * miles', col: 0, row: 1},
-    {id: 'd_sur', type: 'decision', text: 'fragile == "yes"?', col: 0, row: 2, w: DW}, {id: 'p_sur', type: 'process', text: 'price = price + 3.00', col: 1, row: 3},
-    {id: 'out', type: 'io', text: 'OUTPUT price', col: 0, row: 4}, {id: 'end', type: 'terminal', text: 'END', col: 0, row: 5}],
-  edges: [{from: 'start', to: 'p_price', nm: 'the arrow from START'}, {from: 'p_price', to: 'd_sur', nm: 'the arrow into the diamond'}, {from: 'd_sur', to: 'p_sur', side: 'right', label: 'Yes', nm: 'the Yes arrow (add the surcharge)'},
-    {from: 'd_sur', to: 'out', label: 'No', nm: 'the No arrow (no surcharge)'}, {from: 'p_sur', to: 'out', nm: 'the arrow from price = price + 3.00 to OUTPUT'}, {from: 'out', to: 'end', nm: 'the arrow into END'}],
-  run(p) { const path = ['start>p_price', 'p_price>d_sur']; if (p.f) path.push('d_sur>p_sur', 'p_sur>out'); else path.push('d_sur>out'); path.push('out>end');
-    return {path: path, lane: p.f ? 'surcharge' : 'no surcharge', desc: '"' + (p.f ? 'yes' : 'no') + '" == "yes" is ' + TF(p.f) + ' → price $' + price(p).toFixed(2), node: p.f ? 'p_sur' : 'out'}; }};
-const NESTED = {cols: 2, rows: 7, nodes: [
-    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}, {id: 'd_weight', type: 'decision', text: 'weight > 50?', col: 0, row: 1, w: DW}, {id: 'p_freight', type: 'process', text: 'lane = "FREIGHT"', col: 1, row: 2},
-    {id: 'd_fragile', type: 'decision', text: 'fragile == "yes"?', col: 0, row: 3, w: DW}, {id: 'p_fragile', type: 'process', text: 'lane = "FRAGILE"', col: 1, row: 4}, {id: 'p_van', type: 'process', text: 'lane = "VAN"', col: 0, row: 4},
-    {id: 'out', type: 'io', text: 'OUTPUT lane', col: 0, row: 5}, {id: 'end', type: 'terminal', text: 'END', col: 0, row: 6}],
-  edges: [{from: 'start', to: 'd_weight', nm: 'the arrow from START'}, {from: 'd_weight', to: 'p_freight', side: 'right', label: 'Yes', nm: 'the Yes arrow of weight > 50?'}, {from: 'd_weight', to: 'd_fragile', label: 'No', nm: 'the No arrow of weight > 50?'},
-    {from: 'd_fragile', to: 'p_fragile', side: 'right', label: 'Yes', nm: 'the Yes arrow of fragile == "yes"?'}, {from: 'd_fragile', to: 'p_van', label: 'No', nm: 'the No arrow of fragile == "yes"?'},
-    {from: 'p_van', to: 'out', nm: 'the arrow from lane = "VAN" to OUTPUT'}, {from: 'p_fragile', to: 'out', points: [[1, 4.28], [1, 4.55], [0, 4.55], [0, 4.72]], nm: 'the arrow from lane = "FRAGILE" to OUTPUT'},
-    {from: 'p_freight', to: 'out', points: [[1, 2.28], [1, 2.55], [1.45, 2.55], [1.45, 4.55], [0, 4.55], [0, 4.72]], nm: 'the arrow from lane = "FREIGHT" to OUTPUT'}, {from: 'out', to: 'end', nm: 'the arrow into END'}],
-  run(p) { const path = ['start>d_weight'], desc = [D.d_weight.say(p)]; let lane, node;
-    if (p.w > 50) { lane = 'FREIGHT'; node = 'p_freight'; path.push('d_weight>p_freight', 'p_freight>out'); }
-    else { path.push('d_weight>d_fragile'); desc.push(D.d_fragile.say(p)); if (p.f) { lane = 'FRAGILE'; node = 'p_fragile'; path.push('d_fragile>p_fragile', 'p_fragile>out'); } else { lane = 'VAN'; node = 'p_van'; path.push('d_fragile>p_van', 'p_van>out'); } }
-    path.push('out>end'); return {path: path, lane: lane, desc: desc.join('; ') + ' → lane ' + lane, node: node}; }};
-const CHARTS = {sorter: () => chainSpec(DISPATCH), copilot: () => chainSpec(COPILOT), zone: () => chainSpec(ZONE), surcharge: () => SURCHARGE, nested: () => NESTED};
 
-// ---- the ten rounds in a fixed order (answer choices shuffled); 10 points each ----
+// --------------------------------------------------------------- rounds ----
+// trace rounds: cols are the headers; rows hold cells: {f: text} fixed, {a: answer} to fill ('' means the loop never reaches it); passes drive the token
+const T = s => ({f: s}), A = v => ({a: String(v)});
 const ROUNDS = [
-  {kind: 'cover', chart: 'sorter', min: 6, name: 'Cover the sorter (6 lanes)', q: 'Dante\'s sorter: five diamonds and six lanes. Click packages on the shelf until every arrow on the chart above is green, using as few packages as you can (the minimum is 6). Then press Check coverage.'},
-  {kind: 'cover', chart: 'surcharge', min: 2, name: 'Cover the surcharge decision', q: 'The surcharge decision on its own: fragile == "yes"? adds 3.00 on the Yes arrow and skips it on the No arrow. Light both branches with the fewest packages (the minimum is 2), then press Check coverage.'},
-  {kind: 'cover', chart: 'zone', min: 4, name: 'Cover the zone chart (4 lanes)', q: 'The zone chart on its own: no weight check and no fragile check, only the three city diamonds and the else. Light every arrow with the fewest packages (the minimum is 4), then press Check coverage.'},
-  {kind: 'cover', chart: 'nested', min: 3, name: 'Cover a nested decision (3 lanes)', q: 'A nested decision: the fragile diamond sits inside the No branch of the weight diamond, and a package that answers No twice goes to a VAN. Light every arrow with the fewest packages (the minimum is 3), then press Check coverage.'},
-  {kind: 'mc', chart: 'sorter', play: 3, name: 'Predict 0004', q: 'PP-2026-0004, Kendall Office Supply: 20 lb, 19 miles, not fragile. Dante\'s sorter (weight, fragile, then city) runs it. What does the screen show?', opts: [
-    ['Lane: C and Price: $25.25', 10, '20 > 50 is False, "no" == "yes" is False, Kendall is not Doral and not Hialeah or Miami Gardens, but it is Kendall or Homestead: lane C. Price 4.50 + 16.00 + 4.75 = 25.25 with no surcharge.'],
-    ['Lane: C and Price: $28.25', 4, 'The lane is right, but 28.25 adds a surcharge that 0004 does not have. It is not fragile, so the price is 4.50 + 16.00 + 4.75 = 25.25.'],
-    ['Lane: B and Price: $25.25', 0, 'The price is right, but Kendall is zone C: the Hialeah or Miami Gardens diamond answers False for Kendall and the token moves on to the next diamond.'],
-    ['Lane: ASK DISPATCH and Price: $25.25', 0, 'ASK DISPATCH is the else branch, reached only when every diamond answers False. The Kendall or Homestead diamond answers True first.']]},
-  {kind: 'mc', chart: 'sorter', play: 5, name: 'Predict 0006 (exactly 50 lb)', q: 'PP-2026-0006, Sabor Cubano Bakery in Hialeah: exactly 50 lb, 8 miles, not fragile. The first diamond asks weight > 50. What does the screen show?', opts: [
-    ['Lane: B and Price: $46.50', 10, '50 > 50 is False: exactly 50 is not above 50, so the package stays in a van. It is not fragile, and Hialeah is zone B. Price 4.50 + 40.00 + 2.00 = 46.50.'],
-    ['Lane: B and Price: $49.50', 4, 'Lane B is right. 49.50 adds the 3.00 surcharge, but 0006 is not fragile: the price is 46.50.'],
-    ['Lane: FREIGHT and Price: $46.50', 0, 'That is what a sorter written with >= 50 would do. The rule says above 50, and 50 > 50 is False, so the token takes the No arrow.'],
-    ['Lane: FRAGILE and Price: $46.50', 0, 'The fragile answer is "no", so the fragile diamond answers False. Hialeah sends the package to lane B.']]},
-  {kind: 'mc', chart: 'sorter', play: 6, name: 'Predict 0007', q: 'PP-2026-0007, Casa Lopez Furniture in Homestead: 45 lb, 30 miles, fragile. What does the screen show?', opts: [
-    ['Lane: FRAGILE and Price: $51.00', 10, '45 > 50 is False, then "yes" == "yes" is True: lane FRAGILE, and the city is never checked. Price 4.50 + 36.00 + 7.50 + 3.00 = 51.00, surcharge included.'],
-    ['Lane: FRAGILE and Price: $48.00', 4, 'The lane is right, but 48.00 forgets the surcharge: fragile adds 3.00, so the price is 51.00.'],
-    ['Lane: C and Price: $51.00', 0, 'Homestead is zone C, but the fragile diamond comes before the city diamonds and answers True first. The city is never checked for this package.'],
-    ['Lane: FREIGHT and Price: $51.00', 0, '45 > 50 is False: 45 lb is not above 50, so the FREIGHT branch is not taken.']]},
-  {kind: 'mc', chart: 'copilot', play: 4, name: 'Read Copilot\'s sorter with 0005', q: 'Copilot wrote its sorter with the fragile check first (the chart above: fragile, then weight, then city). PP-2026-0005: 60 lb, 14 miles, fragile, from Miami Gardens. What does Copilot\'s code print? Not what the rule wants: what the code does.', opts: [
-    ['Lane: FRAGILE and Price: $59.00', 10, 'The first diamond asks fragile == "yes": True, so lane = "FRAGILE" and the weight diamond is never reached. The price is right (4.50 + 48.00 + 3.50 + 3.00 = 59.00) because the surcharge if is separate from the chain.'],
-    ['Lane: FREIGHT and Price: $59.00', 4, 'That is the lane the rule wants, and the price is right. But the question asks what the code prints: with fragile checked first, Python stops at the first True condition and prints FRAGILE.'],
-    ['Lane: B and Price: $59.00', 0, 'Miami Gardens is zone B, but the chain never gets to the city diamonds: the fragile diamond answers True first.'],
-    ['An error, because two conditions are True', 0, 'An if, elif, else chain never complains when several conditions are True. It runs the first True branch and skips the rest, quietly. That silence is why a test plan matters.']]},
-  {kind: 'find', chart: 'copilot', name: 'Find the package that exposes the bug', q: 'Copilot\'s sorter checks fragile first. Exactly one package on the shelf lands on a different lane in Copilot\'s order than in Dante\'s order. Click the package that exposes the bug: 10 points on the first pick, 5 on the second, 0 after that.'},
-  {kind: 'mc', chart: 'sorter', play: 4, name: 'Pick the fix', q: 'Pick the fix for Copilot\'s sorter so that PP-2026-0005 goes to FREIGHT and every other package, including 0006 at exactly 50 lb, keeps its lane.', opts: [
-    ['Move the weight > 50 check above the fragile check, so the chain starts with if weight > 50', 10, 'Weight first makes the freight rule win for every package above 50 lb, fragile or not, and every other package keeps its lane. The chart above shows 0005 taking the Yes arrow at the first diamond.'],
-    ['Change the first line to if fragile == "yes" and weight <= 50', 6, 'This works: a heavy fragile box fails the first condition and reaches weight > 50. But it repeats the 50 lb limit in two places, so a future change to the limit must be made twice. Moving the weight check first is simpler.'],
-    ['Change weight > 50 to weight >= 50', 0, 'This changes the limit, not the order. 0005 still hits the fragile diamond first, and 0006 (exactly 50) now goes to FREIGHT: two packages wrong instead of one.'],
-    ['Delete the fragile check from the chain', 0, 'Then 0002 and 0007 lose their FRAGILE shelf and go to zone lanes. The fix must keep every rule and only change which one is asked first.']]}
+  {kind: 'trace', name: 'Counter', q: 'A counter loop. Fill the count column after each pass, and what the program prints.',
+    code: ['count = 0', 'while count < 4:', '    count = count + 1', 'print(count)'],
+    chart: () => simpleLoop(['count = 0'], 'count < 4?', ['count = count + 1'], 'OUTPUT count'),
+    cols: ['pass', 'count < 4?', 'count after the pass'],
+    rows: [{p: '1', c: [T('True'), A(1)]}, {p: '2', c: [T('True'), A(2)]}, {p: '3', c: [T('True'), A(3)]}, {p: '4', c: [T('True'), A(4)]}, {p: 'exit', c: [T('False'), T('4')]}],
+    prints: '4',
+    passes: () => [1, 2, 3, 4].map((v, k) => ({enter: k ? ['b1>test'] : ['init>test'], label: 'count = ' + (v - 1), body: [{edges: ['test>b1'], node: 'b1', label: 'count = ' + v}], row: k, cap: 'Pass ' + v + ': ' + (v - 1) + ' < 4 is True, count becomes ' + v + '.'})),
+    exit: {enter: ['b1>test'], label: 'count = 4', row: 4, cap: '4 < 4 is False: the loop ends after 4 passes and the program prints 4.'},
+    why: 'count < 4 is True for 0, 1, 2, and 3, so the body runs 4 times. After the fourth pass count is 4, 4 < 4 is False, and print(count) shows 4.'},
+  {kind: 'trace', name: 'Accumulator', q: 'An accumulator over a list. Fill w and total for each pass, and what the program prints.',
+    code: ['total = 0', 'for w in [12, 3, 20]:', '    total = total + w', 'print(total)'],
+    chart: () => simpleLoop(['total = 0'], 'next w in\n[12, 3, 20]?', ['total = total + w'], 'OUTPUT total'),
+    cols: ['pass', 'w', 'total after the pass'],
+    rows: [{p: '1', c: [A(12), A(12)]}, {p: '2', c: [A(3), A(15)]}, {p: '3', c: [A(20), A(35)]}, {p: 'exit', c: [T('none left'), T('35')]}],
+    prints: '35',
+    passes: () => { let t = 0; return [12, 3, 20].map((w, k) => { t += w; return {enter: k ? ['b1>test'] : ['init>test'], label: 'w = ' + w, body: [{edges: ['test>b1'], node: 'b1', label: 'total = ' + t}], row: k, cap: 'Pass ' + (k + 1) + ': w = ' + w + ', total = ' + (t - w) + ' + ' + w + ' = ' + t + '.'}; }); },
+    exit: {enter: ['b1>test'], label: 'none left', row: 3, cap: 'No item left: the for loop ends after 3 passes and the program prints 35.'},
+    why: 'The for loop takes 12, then 3, then 20. total grows 12, 15, 35. It prints 35.'},
+  {kind: 'trace', name: 'Maximum so far', q: 'The maximum-so-far pattern. For each pass, fill the result of the test w > heaviest (True or False) and the value of heaviest after the pass, then what the program prints.',
+    code: ['heaviest = 0', 'for w in [12, 3, 20, 50, 45]:', '    if w > heaviest:', '        heaviest = w', 'print(heaviest)'],
+    chart: () => chart([N('start', 'terminal', 'START', 1, 0), N('init', 'process', 'heaviest = 0', 1, 1), N('test', 'decision', 'next w in\n[12, 3, 20, 50, 45]?', 1, 2), N('hq', 'decision', 'w > heaviest?', 1, 3), N('hset', 'process', 'heaviest = w', 0, 4)].concat(exitNodes('OUTPUT heaviest', 2)),
+      [E('start', 'init'), E('init', 'test'), E('test', 'hq', {label: 'Yes'}), E('hq', 'hset', {label: 'Yes', side: 'left'}), Object.assign(LB('hq', 1, 3, DH, 2, 4.72), {label: 'No'}), LB('hset', 0, 4, NH, 2, 4.72)].concat(exitEdges()), 5.6),
+    cols: ['pass', 'w', 'w > heaviest?', 'heaviest after the pass'],
+    rows: [{p: '1', c: [T('12'), A('True'), A(12)]}, {p: '2', c: [T('3'), A('False'), A(12)]}, {p: '3', c: [T('20'), A('True'), A(20)]}, {p: '4', c: [T('50'), A('True'), A(50)]}, {p: '5', c: [T('45'), A('False'), A(50)]}, {p: 'exit', c: [T('none left'), T(''), T('50')]}],
+    prints: '50',
+    passes: () => { let h = 0, prevBig = false; return [12, 3, 20, 50, 45].map((w, k) => { const big = w > h, enter = k ? [prevBig ? 'hset>test' : 'hq>test'] : ['init>test'], h0 = h; if (big) h = w; prevBig = big;
+      return {enter: enter, label: 'w = ' + w, body: big ? [{edges: ['test>hq'], node: 'hq', label: w + ' > ' + h0}, {edges: ['hq>hset'], node: 'hset', label: 'heaviest = ' + w}] : [{edges: ['test>hq'], node: 'hq', label: w + ' > ' + h0}], row: k, cap: 'Pass ' + (k + 1) + ': w = ' + w + ', ' + w + ' > ' + h0 + ' is ' + (big ? 'True, heaviest becomes ' + w : 'False, heaviest stays ' + h0) + '.'}; }); },
+    exit: {enter: ['hq>test'], label: 'none left', row: 5, cap: 'No item left: the loop ends and the program prints 50.'},
+    why: 'heaviest changes only when the test is True: 12 > 0, 20 > 12, 50 > 20. For 3 and 45 the test is False. It prints 50.'},
+  {kind: 'trace', name: 'Sentinel', q: 'A sentinel loop. The dispatcher types 30, 8, 125, and then -1. Fill the test result, count, and total for each pass and for the exit row, then what the program prints (two numbers separated by a space).',
+    code: ['count = 0', 'total = 0', 'w = int(input())', 'while w != -1:', '    count = count + 1', '    total = total + w', '    w = int(input())', 'print(count, total)'],
+    chart: () => simpleLoop(['count = 0  total = 0', '!INPUT w'], 'w != -1?', ['count = count + 1', 'total = total + w', '!INPUT w'], 'OUTPUT count, total'),
+    cols: ['pass', 'w', 'w != -1?', 'count', 'total'],
+    rows: [{p: '1', c: [T('30'), A('True'), A(1), A(30)]}, {p: '2', c: [T('8'), A('True'), A(2), A(38)]}, {p: '3', c: [T('125'), A('True'), A(3), A(163)]}, {p: 'exit', c: [T('-1'), A('False'), A(3), A(163)]}],
+    prints: '3 163',
+    passes: () => { let c = 0, t = 0; const seq = [30, 8, 125, -1]; return [30, 8, 125].map((w, k) => { c++; t += w; return {enter: k ? ['b3>test'] : ['init1>test'], label: 'w = ' + w, body: [{edges: ['test>b1'], node: 'b1', label: 'count = ' + c}, {edges: ['b1>b2'], node: 'b2', label: 'total = ' + t}, {edges: ['b2>b3'], node: 'b3', label: 'w = ' + seq[k + 1]}], row: k, cap: 'Pass ' + (k + 1) + ': ' + w + ' != -1 is True, count = ' + c + ', total = ' + t + ', then the next read gives ' + seq[k + 1] + '.'}; }); },
+    exit: {enter: ['b3>test'], label: 'w = -1', row: 3, cap: '-1 != -1 is False: the exit row keeps count 3 and total 163. The sentinel is never counted or added. The program prints 3 163.'},
+    pre: ['start>init', 'init>init1'],
+    why: 'Three weights pass the test; the -1 fails it. On the exit row count stays 3 and total stays 163 because the body never runs for the sentinel. It prints 3 163.'},
+  {kind: 'trace', name: 'For with range', q: 'A for loop with range(1, 5). Fill i and total for each pass. If the loop never reaches a pass, leave both cells of that row empty. Then fill what the program prints.',
+    code: ['total = 0', 'for i in range(1, 5):', '    total = total + i', 'print(total)'],
+    chart: () => simpleLoop(['total = 0'], 'next i in\nrange(1, 5)?', ['total = total + i'], 'OUTPUT total'),
+    cols: ['pass', 'i', 'total after the pass'],
+    rows: [{p: '1', c: [A(1), A(1)]}, {p: '2', c: [A(2), A(3)]}, {p: '3', c: [A(3), A(6)]}, {p: '4', c: [A(4), A(10)]}, {p: '5', c: [A(''), A('')]}],
+    prints: '10',
+    passes: () => { let t = 0; return [1, 2, 3, 4].map((i, k) => { t += i; return {enter: k ? ['b1>test'] : ['init>test'], label: 'i = ' + i, body: [{edges: ['test>b1'], node: 'b1', label: 'total = ' + t}], row: k, cap: 'Pass ' + (k + 1) + ': i = ' + i + ', total = ' + (t - i) + ' + ' + i + ' = ' + t + '.'}; }); },
+    exit: {enter: ['b1>test'], label: 'none left', row: 4, cap: 'range(1, 5) gives 1, 2, 3, 4: the 5 is not included. There is no pass 5. The program prints 10.'},
+    why: 'range(1, 5) stops before 5, so i takes 1, 2, 3, 4: four passes, total 10. Row 5 stays empty.'},
+  {kind: 'trace', name: 'List and index', q: 'A list, an append, len, and an index loop. Fill i, weights[i], and total for each pass, then what the program prints (two numbers separated by a space).',
+    code: ['weights = [12, 3, 20]', 'weights.append(50)', 'n = len(weights)', 'total = 0', 'for i in range(n):', '    total = total + weights[i]', 'print(n, total)'],
+    chart: () => simpleLoop(['weights = [12, 3, 20]\nweights.append(50)', 'n = len(weights)  total = 0'], 'next i in\nrange(n)?', ['total = total + weights[i]'], 'OUTPUT n, total'),
+    cols: ['pass', 'i', 'weights[i]', 'total after the pass'],
+    rows: [{p: '1', c: [A(0), A(12), A(12)]}, {p: '2', c: [A(1), A(3), A(15)]}, {p: '3', c: [A(2), A(20), A(35)]}, {p: '4', c: [A(3), A(50), A(85)]}, {p: 'exit', c: [T('none left'), T(''), T('85')]}],
+    prints: '4 85',
+    passes: () => { let t = 0; const W = [12, 3, 20, 50]; return W.map((w, i) => { t += w; return {enter: i ? ['b1>test'] : ['init1>test'], label: 'i = ' + i, body: [{edges: ['test>b1'], node: 'b1', label: 'total = ' + t}], row: i, cap: 'Pass ' + (i + 1) + ': i = ' + i + ', weights[' + i + '] = ' + w + ', total = ' + (t - w) + ' + ' + w + ' = ' + t + '.'}; }); },
+    exit: {enter: ['b1>test'], label: 'none left', row: 4, cap: 'range(4) gives 0, 1, 2, 3. The loop ends and the program prints 4 85.'},
+    pre: ['start>init', 'init>init1'],
+    why: 'After the append the list is [12, 3, 20, 50], so n is 4 and range(4) gives i = 0, 1, 2, 3. Indexes start at 0. total ends at 85 and it prints 4 85.'},
+  {kind: 'infinite', name: 'Infinite loop', q: 'This program never ends: watch the token circle the loop. Press Stop, then click the symbol that never changes the loop variable (on the flowchart above, or in the list below). Then pick the fix.',
+    code: ['packages = 5', 'loaded = 0', 'while packages > 0:', '    loaded = loaded + 1', 'print(loaded)'],
+    chart: () => simpleLoop(['packages = 5  loaded = 0'], 'packages > 0?', ['loaded = loaded + 1'], 'OUTPUT loaded'),
+    symbols: [['init', 'packages = 5  loaded = 0', 0, 'This symbol runs once, before the loop. It sets packages to 5, which is fine.'], ['test', 'packages > 0?', 2, 'Close: this is where the symptom shows (5 > 0 stays True forever), but the test is not wrong. The body never gives it a new value to test.'],
+      ['b1', 'loaded = loaded + 1', 5, 'Right. The body changes loaded, never packages. The condition tests packages, so it stays True forever.'], ['out', 'OUTPUT loaded', 0, 'This symbol is never reached: the loop never ends.']],
+    fixes: [['Add packages = packages - 1 inside the loop body', 5, 'Right. Each pass now brings packages closer to 0; after 5 passes 0 > 0 is False and the program prints 5.'], ['Change the condition to packages >= 0', 0, 'The condition still tests a variable that never changes; the loop is still infinite.'],
+      ['Set packages = 0 before the loop', 0, 'Then 0 > 0 is False right away: the body never runs and the program prints 0. The packages were never loaded.'], ['Change the body to loaded = loaded + 5', 0, 'loaded is not the variable in the condition. The loop is still infinite.']],
+    why: 'The body changes loaded, never packages. The fix: add packages = packages - 1 inside the loop; after 5 passes 0 > 0 is False and the program prints 5.'},
+  {kind: 'choice', name: 'Off by one', q: 'How many times does the body of this loop run?',
+    code: ['i = 1', 'while i <= 5:', '    print(i)', '    i = i + 1'],
+    chart: () => simpleLoop(['i = 1'], 'i <= 5?', ['!OUTPUT i', 'i = i + 1'], null),
+    opts: [['5 times (it prints 1, 2, 3, 4, 5)', 10, 'Right. i starts at 1 and the test is i <= 5, so 5 itself passes. The body runs for i = 1, 2, 3, 4, 5; then i is 6 and 6 <= 5 is False.'], ['4 times (it prints 1, 2, 3, 4)', 3, 'That would be the count for i < 5. The test is i <= 5, so i = 5 also passes.'], ['6 times (it prints 1 to 6)', 0, 'When i is 6 the test 6 <= 5 is False and the body does not run.'], ['0 times (i is already 1)', 0, '1 <= 5 is True, so the body runs on the first pass.']],
+    explain: () => ({pre: ['start>init'], passes: [1, 2, 3, 4, 5].map((i, k) => ({enter: k ? ['b2>test'] : ['init>test'], label: 'i = ' + i, body: [{edges: ['test>b1'], node: 'b1', label: 'prints ' + i}, {edges: ['b1>b2'], node: 'b2', label: 'i = ' + (i + 1)}], cap: 'Pass ' + i + ': ' + i + ' <= 5 is True, it prints ' + i + ', then i becomes ' + (i + 1) + '.'})), exit: {enter: ['b2>test'], label: 'i = 6', cap: '6 <= 5 is False: the body ran 5 times.', end: ['test>end']}})},
+  {kind: 'choice', name: 'Copilot sentence', q: 'You asked Microsoft Copilot to explain this loop. One of its four sentences is wrong. Which one?',
+    code: ['count = 0', 'total = 0', 'for w in [12, 3, 20, 50, 45]:', '    if w > 40:', '        count = count + 1', '    total = total + w', 'print(count, total)'],
+    chart: () => chart([N('start', 'terminal', 'START', 1, 0), N('init', 'process', 'count = 0  total = 0', 1, 1), N('test', 'decision', 'next w in\n[12, 3, 20, 50, 45]?', 1, 2), N('cq', 'decision', 'w > 40?', 1, 3), N('cinc', 'process', 'count = count + 1', 0, 4), N('tot', 'process', 'total = total + w', 1, 5)].concat(exitNodes('OUTPUT count, total', 2)),
+      [E('start', 'init'), E('init', 'test'), E('test', 'cq', {label: 'Yes'}), E('cq', 'cinc', {label: 'Yes', side: 'left'}), E('cq', 'tot', {label: 'No'}), E('cinc', 'tot'), LB('tot', 1, 5, NH, 2, 5.62)].concat(exitEdges()), 6.4),
+    copilot: ['count and total both start at 0.', 'The if adds 1 to count only when w is above 40.', 'count ends at 1, because 50 is the only weight above 40.', 'total ends at 130, the sum of all five weights.'],
+    opts: [['Sentence 3', 10, 'Right. 45 is also above 40, so count goes to 2 on pass 5. Copilot forgot one package.'], ['Sentence 1', 0, 'Sentence 1 is true: lines 1 and 2 set both to 0.'], ['Sentence 2', 0, 'Sentence 2 is true: line 4 tests w > 40 and line 5 runs only then.'], ['Sentence 4', 0, 'Sentence 4 is true: 12 + 3 + 20 + 50 + 45 = 130.']],
+    explain: () => copilotExplain(),
+    why: 'The trace table shows count going from 1 to 2 on pass 5 (w = 45). Sentence 3 is wrong.'},
+  {kind: 'choice', name: 'Copilot row', q: 'Sentence 3 ("count ends at 1, because 50 is the only weight above 40") is wrong. Which row of the trace table proves it wrong?',
+    code: ['count = 0', 'total = 0', 'for w in [12, 3, 20, 50, 45]:', '    if w > 40:', '        count = count + 1', '    total = total + w', 'print(count, total)'],
+    chart: () => ROUNDS[8].chart(),
+    table: {cols: ['pass', 'w', 'w > 40?', 'count', 'total'], rows: [['1', '12', 'False', '0', '12'], ['2', '3', 'False', '0', '15'], ['3', '20', 'False', '0', '35'], ['4', '50', 'True', '1', '85'], ['5', '45', 'True', '2', '130']]},
+    opts: [['Row 5: w = 45, count goes from 1 to 2', 10, 'Right. Row 5 shows a second weight above 40 and count reaching 2. One row that contradicts the sentence is enough.'], ['Row 4: w = 50, count goes from 0 to 1', 3, 'Row 4 agrees with the sentence (50 is above 40). It does not disprove it; row 5 does.'], ['Row 1: w = 12, count stays 0', 0, 'Row 1 says nothing about weights above 40.'], ['Row 3: w = 20, total reaches 35', 0, 'Row 3 is about total, and the sentence is about count.']],
+    explain: () => copilotExplain(),
+    why: 'Row 5 (w = 45) shows count going from 1 to 2: the sentence said it ends at 1.'}
 ];
+function copilotExplain() { let c = 0, t = 0; return {pre: ['start>init'], passes: [12, 3, 20, 50, 45].map((w, k) => { const big = w > 40; if (big) c++; t += w;
+  return {enter: k ? ['tot>test'] : ['init>test'], label: 'w = ' + w, body: big ? [{edges: ['test>cq'], node: 'cq', label: w + ' > 40'}, {edges: ['cq>cinc'], node: 'cinc', label: 'count = ' + c}, {edges: ['cinc>tot'], node: 'tot', label: 'total = ' + t}] : [{edges: ['test>cq'], node: 'cq', label: w + ' > 40'}, {edges: ['cq>tot'], node: 'tot', label: 'total = ' + t}],
+    cap: 'Pass ' + (k + 1) + ': w = ' + w + ', ' + w + ' > 40 is ' + (big ? 'True, count becomes ' + c : 'False, count stays ' + c) + ', total = ' + t + '.'}; }), exit: {enter: ['tot>test'], label: 'none left', cap: 'The loop ends: count is 2, total is 130. It prints 2 130.'}}; }
+
 const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
-let r = 0, picked = null, total = 0, log = [], G = null, lit = new Set(), used = [], picks = 0, busy = false, queue = [], done = false, anim = null;
-function killAnim() { if (anim && anim.kill) anim.kill(); anim = null; }
-function mkTL(onDone) { killAnim(); anim = hasGSAP ? gsap.timeline({onComplete: () => { anim = null; onDone(); }}) : {call: f => f(), add: () => {}, to: () => {}, _fake: true, finish: onDone}; return anim; }
-function runTL(t) { if (t._fake) t.finish(); }
+let order = [], r = 0, picked = null, total = 0, log = [], fk = null, playing = null, spin = null, cur = null, stage2 = null;
 
-// ---- the shelf and the token ----
-function renderShelf() {
-  $('#shelf').innerHTML = PK.map((p, i) => '<button type="button" class="pcard" data-i="' + i + '"><b>' + p.t + '</b><span>' + p.city + ' · ' + p.w + ' lb · ' + p.m + ' mi · ' + (p.f ? 'fragile' : 'not fragile') + '</span></button>').join('');
-  $('#plog').innerHTML = '';
-}
-function covbar() { const R = ROUNDS[r]; if (R.kind !== 'cover') { $('#covbar').innerHTML = 'Packages tried: <b>' + picks + '</b>'; return; }
-  $('#covbar').innerHTML = 'Arrows green: <b class="lit">' + lit.size + '</b> of <b>' + G.all.length + '</b> · Packages used: <b>' + used.length + '</b> · Minimum: <b>' + R.min + '</b>'; }
-function sendToken(p, after) {   // the token runs the package through the chart; the arrows it travels turn green when it arrives
-  const res = G.run(p); busy = true;
-  G.fk.clear(); G.paint(Array.from(lit), GREEN);
-  const t = mkTL(() => { G.paint(res.path, GREEN); res.path.forEach(k => lit.add(k)); G.fk.highlight(res.node, 'done'); busy = false; if (after) after(res); const nx = queue.shift(); if (nx) nx(); });
-  const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2.4)); t.add(f); } t.to({}, {duration: .1}); runTL(t);
-  return res;
-}
-$('#shelf').addEventListener('click', e => {
-  const b = e.target.closest('.pcard'); if (!b || b.disabled || done) return; const i = +b.dataset.i, p = PK[i], R = ROUNDS[r];
-  const go = () => {
-    if (R.kind === 'cover') {
-      b.disabled = true; b.classList.add('used');
-      const before = lit.size;
-      $('#capT').textContent = p.t; $('#capB').textContent = 'Running ' + p.t + ' through the chart...';
-      sendToken(p, res => { const added = lit.size - before; used.push({p: p, added: added}); covbar();
-        $('#capB').textContent = res.desc + '. ' + (added ? added + ' new arrow' + (added > 1 ? 's' : '') + ' turned green.' : 'No new arrow: this path was already green.');
-        const li = document.createElement('li'); li.className = added ? '' : 'none'; li.innerHTML = '<b>' + p.t + '</b>: ' + esc(res.desc) + (added ? ' (' + added + ' new)' : ' (nothing new)'); $('#plog').prepend(li);
-        guide(lit.size === G.all.length ? 2 : 1, lit.size === G.all.length ? 'Every arrow is green. Press <b>Check coverage</b>.' : 'Keep clicking packages until every arrow is green, then press <b>Check coverage</b>.'); });
-    } else if (R.kind === 'find') {
-      picks++; const wrong = laneOf(p, COPILOT) !== laneOf(p, DISPATCH); b.disabled = true; b.classList.add(wrong ? 'hit' : 'dud');
-      $('#capT').textContent = p.t; $('#capB').textContent = 'Running ' + p.t + ' through Copilot\'s chart...';
-      sendToken(p, res => { covbar();
-        const li = document.createElement('li'); li.className = wrong ? '' : 'none';
-        if (wrong) { G.fk.highlight(res.node, 'error'); li.innerHTML = '<b>' + p.t + '</b>: Copilot\'s order says ' + res.lane + ', Dante\'s order says ' + laneOf(p, DISPATCH) + '. This is the package that exposes the bug.';
-          $('#capB').textContent = res.desc + '. Dante\'s order says FREIGHT, because 60 > 50. The weight diamond was never reached.';
-          const pts = picks === 1 ? 10 : picks === 2 ? 5 : 0; settle(pts, 10, 'Found ' + p.t + ' on pick ' + picks, '<b>' + pts + ' of 10 points.</b> ' + p.t + ' is the only package where both of the first two conditions are True (60 lb and fragile). Whichever diamond comes first wins, so it is the only package that tells the two orders apart.' + (picks > 1 ? ' Each earlier pick had at most one True condition among the first two, so the order could not change its lane.' : '') + ' Round 10 asks for the fix.'); }
-        else { li.innerHTML = '<b>' + p.t + '</b>: lane ' + res.lane + ' in both orders. It cannot tell the two sorters apart.'; $('#capB').textContent = res.desc + '. Dante\'s order gives the same lane, so this package does not expose the bug. Try another.'; }
-        $('#plog').prepend(li); });
-    }
+// ------------------------------------------------------ the flowchart card ----
+function loadChart(spec) { const stage = $('#stage'); stage.querySelectorAll('svg.flow, .fk-zoom').forEach(e => e.remove()); fk = FlowKit(stage, spec); fk.onPick(id => onPick(id)); }
+function killPlay() { if (playing) { playing.kill(); playing = null; } if (spin) { spin.kill(); spin = null; } }
+// walk the loop: pre edges, then every pass (enter the test, the body symbols), then the exit; onRow(k) and onExit() fire when a pass ends
+function walk(plan, hooks) {
+  killPlay(); fk.clear();
+  const t = hasGSAP ? gsap.timeline() : null, call = f => t ? t.call(f) : f();
+  const tok = (edges, label, color) => {   // the token is built now but stays hidden (and its arrows unlit) until its turn in the timeline
+    if (!t) { fk.token(edges, label, color); return; }
+    const f = fk.token(edges, label, color), g = fk.layers.tokens.lastElementChild, keys = edges.filter(k => fk.edges[k]);
+    if (!f) return;
+    g.setAttribute('opacity', 0); keys.forEach(k => { fk.edges[k].path.setAttribute('stroke', EDGE); fk.edges[k].path.setAttribute('marker-end', 'url(#fk-arrow)'); });
+    t.call(() => { g.setAttribute('opacity', 1); keys.forEach(k => { fk.edges[k].path.setAttribute('stroke', '#E0B840'); fk.edges[k].path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); }); });
+    t.add(f);
   };
-  if (busy) queue.push(go); else go();
-});
+  const cap = s => call(() => { $('#capB').textContent = s; });
+  call(() => fk.highlight('start', 'done'));
+  (plan.pre || ['start>init']).forEach(e => { tok([e], 'go', '#E0B840'); call(() => fk.highlight(e.split('>')[1], 'done')); });
+  plan.passes.forEach((P, k) => {
+    tok(P.enter, P.label, SKY); call(() => { fk.highlight('test', 'active'); });
+    if (P.cap) cap(P.cap);
+    P.body.forEach(b => { tok(b.edges, b.label || P.label, SKY); call(() => { fk.highlight('test', 'done'); fk.highlight(b.node, 'active'); }); });
+    call(() => { P.body.forEach(b => fk.highlight(b.node, 'done')); if (hooks && hooks.onRow) hooks.onRow(k, P); });
+    if (t) t.to({}, {duration: .25});
+  });
+  const X = plan.exit;
+  tok(X.enter, X.label, CORAL); call(() => { fk.highlight('test', 'active'); if (X.cap) $('#capB').textContent = X.cap; if (hooks && hooks.onExit) hooks.onExit(); });
+  if (fk.edges['test>out']) { tok(['test>out'], X.label, CORAL); call(() => { fk.highlight('test', 'done'); fk.highlight('out', 'active'); if (hooks && hooks.onOut) hooks.onOut(); }); tok(['out>end'], 'done', GREEN); call(() => { fk.highlight('out', 'done'); fk.highlight('end', 'done'); }); }
+  else { tok(X.end || ['test>end'], 'done', GREEN); call(() => { fk.highlight('test', 'done'); fk.highlight('end', 'done'); if (hooks && hooks.onOut) hooks.onOut(); }); }
+  if (t) t.call(() => { playing = null; if (hooks && hooks.onDone) hooks.onDone(); }); else if (hooks && hooks.onDone) hooks.onDone();
+  if (t && window.__traceRaceFast) t.timeScale(8);
+  playing = t; return t;
+}
+// the infinite round: a token that circles test > body > test until Stop
+function startSpin() {
+  killPlay(); fk.clear(); fk.highlight('start', 'done'); fk.highlight('init', 'done');
+  const e1 = fk.edges['test>b1'], e2 = fk.edges['b1>test']; if (!e1 || !e2) return;
+  [e1, e2].forEach(e => { e.path.setAttribute('stroke', '#E0B840'); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+  if (!hasGSAP) { fk.highlight('test', 'error'); fk.highlight('b1', 'error'); $('#capB').textContent = 'Without animation: the token would circle test > body > test forever, because packages stays 5.'; return; }
+  const g = fk.el('g', {class: 'fk-token'}, fk.layers.tokens);
+  fk.el('circle', {r: 15, fill: CORAL, opacity: .28}, g); fk.el('rect', {x: -46, y: -11, width: 92, height: 22, rx: 11, fill: CORAL, stroke: '#0e1230'}, g);
+  const tx = fk.el('text', {y: 4, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", monospace'}, g); tx.textContent = 'packages = 5';
+  const L1 = e1.path.getTotalLength(), L2 = e2.path.getTotalLength(), o = {u: 0};
+  const place = () => { const d = o.u * (L1 + L2); const p = d <= L1 ? e1.path.getPointAtLength(d) : e2.path.getPointAtLength(d - L1); g.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')'); fk.highlight('test', d <= L1 ? 'active' : null); fk.highlight('b1', d > L1 ? 'active' : null); };
+  let laps = 0;
+  spin = gsap.timeline({repeat: -1, onRepeat: () => { laps++; $('#capB').textContent = 'Lap ' + laps + ': packages is still 5, so 5 > 0 is still True. loaded keeps growing. Press Stop.'; }}).to(o, {u: 1, duration: Math.max(1.6, (L1 + L2) / 300), ease: 'none', onUpdate: place});
+  spin.eventCallback('onInterrupt', () => g.remove()); spin.gRef = g;
+}
+function stopSpin() { if (spin) { if (spin.gRef) spin.gRef.remove(); spin.kill(); spin = null; } fk.highlight('test', 'error'); fk.highlight('b1', 'error'); $('#btnStop').hidden = true; }
 
-// ---- rounds ----
+// ---------------------------------------------------------------- rounds UI ----
 function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+function cellInput(ri, ci, wide) { return '<input type="text" class="cell' + (wide ? ' wide' : '') + '" data-r="' + ri + '" data-c="' + ci + '" autocomplete="off" spellcheck="false" aria-label="row ' + (ri + 1) + ' column ' + (ci + 2) + '">'; }
+function traceTable(R) {
+  return '<div class="scroll-x"><table class="data tt" id="tt"><tr><th>' + R.cols.map(esc).join('</th><th>') + '</th></tr>' + R.rows.map((row, ri) => '<tr><td class="p">' + esc(row.p) + '</td>' + row.c.map((c, ci) => '<td>' + (c.f !== undefined ? esc(c.f) : cellInput(ri, ci)) + '</td>').join('') + '</tr>').join('') + '</table></div>' +
+    '<div class="prints"><label for="prints">The program prints:</label><span class="pcell"><input type="text" id="prints" class="cell wide" style="width:140px;padding:6px 8px;border-radius:5px;border:1px solid var(--line-2);background:var(--code-bg);color:var(--silk);font:600 13px var(--font-mono)" autocomplete="off" spellcheck="false"></span></div>';
+}
 function showRound() {
-  const R = ROUNDS[r]; picked = null; lit = new Set(); used = []; picks = 0; done = false; queue = []; killAnim(); busy = false;
-  G = make($('#stage'), CHARTS[R.chart]());
-  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.name; $('#qText').textContent = R.q; $('#fb').innerHTML = '';
-  $('#capT').textContent = 'Ready'; $('#capB').textContent = R.kind === 'cover' ? 'Click a package below. The token runs it through the chart and every arrow it travels turns green.' : R.kind === 'find' ? 'This is Copilot\'s order: fragile first. Click a package below to run it.' : 'Pick an answer and press Check, then press Play the explanation.';
-  $('#shelfWrap').hidden = R.kind === 'mc'; $('#opts').innerHTML = '';
-  if (R.kind === 'mc') { R._opts = shuffle(R.opts); $('#opts').innerHTML = R._opts.map((o, i) => '<button type="button" data-i="' + i + '">' + esc(o[0]) + '</button>').join(''); $('#btnCheck').textContent = 'Check'; $('#btnCheck').hidden = false; $('#btnCheck').disabled = false;
-    guide(1, 'Read round ' + (r + 1) + ' below and <b>pick one answer</b>.'); }
-  else { renderShelf(); covbar(); $('#btnCheck').textContent = 'Check coverage'; $('#btnCheck').hidden = R.kind === 'find'; $('#btnCheck').disabled = false;
-    guide(1, R.kind === 'cover' ? 'Click package cards below until every arrow on the chart is green, then press <b>Check coverage</b>.' : 'Click the one package that lands on a different lane in Copilot\'s order.'); }
-  $('#btnNext').disabled = true; $('#btnPlay').disabled = true; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
+  cur = ROUNDS[order[r]]; picked = null; stage2 = null; killPlay();
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + cur.name; $('#qText').textContent = cur.q; $('#fb').innerHTML = '';
+  $('#btnCheck').disabled = false; $('#btnNext').disabled = true; $('#btnPlay').disabled = true; $('#btnStop').hidden = true; $('#capT').textContent = 'Round ' + (r + 1); drawProgress();
+  loadChart(cur.chart());
+  let html = '<div class="rgrid"><div>' + py(cur.code) + (cur.copilot ? '<div class="copi"><span class="k">Copilot said</span><ol>' + cur.copilot.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol></div>' : '') + (cur.table ? '<div class="scroll-x"><table class="data static"><tr><th>' + cur.table.cols.map(esc).join('</th><th>') + '</th></tr>' + cur.table.rows.map(row => '<tr><td>' + row.map(esc).join('</td><td>') + '</td></tr>').join('') + '</table></div>' : '') + '</div><div>';
+  if (cur.kind === 'trace') { html += '<p class="qnote">Type a number, True or False (T or F also works), or leave the cell empty when the loop never gets there. Then press Run.</p>' + traceTable(cur); $('#btnCheck').textContent = 'Run'; $('#capB').textContent = 'Fill the table, then press Run: the token walks the loop and every cell flips green or red.'; guide(1, 'Fill every cell of round ' + (r + 1) + ' and the "prints" box, then press <b>Run</b>.'); }
+  else if (cur.kind === 'infinite') { html += '<p class="qnote">Which symbol never changes the loop variable packages?</p><div class="sym" id="sym">' + cur.symbols.map((s, i) => '<button type="button" data-i="' + i + '">' + esc(s[1]) + '</button>').join('') + '</div><div id="fixes"></div>'; $('#btnCheck').textContent = 'Check'; $('#btnCheck').disabled = true; $('#btnStop').hidden = false; $('#capB').textContent = 'The token circles: packages stays 5, so 5 > 0 stays True. Press Stop when you have seen enough.'; guide(1, 'Watch the token on the flowchart, press <b>Stop</b>, then <b>click the symbol</b> that never changes packages.'); setTimeout(startSpin, 50); }
+  else { html += '<div class="opts" id="opts">' + shuffle(cur.opts.map((o, i) => [o, i])).map(p => '<button type="button" data-i="' + p[1] + '">' + esc(p[0][0]) + '</button>').join('') + '</div>'; $('#btnCheck').textContent = 'Check'; $('#capB').textContent = 'Pick an answer, press Check, then Play the explanation to watch the loop.'; guide(1, 'Read round ' + (r + 1) + ' and <b>pick one answer</b>, then press <b>Check</b>.'); }
+  html += '</div></div>';
+  $('#body').innerHTML = html;
+  if (cur.kind === 'trace') { const first = $('#tt input'); if (first && window.innerWidth > 860) first.focus(); }
 }
-function settle(pts, max, answer, html) {
-  done = true; total += pts; log[r] = {q: ROUNDS[r].name, a: answer, pts: pts, max: max};
-  $('#fb').innerHTML = '<div class="feedback ' + (pts === max ? 'ok' : pts > 0 ? 'info' : 'bad') + '">' + html + '</div>';
-  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; document.querySelectorAll('.pcard').forEach(b => { b.disabled = true; }); drawProgress();
-  guide(3, 'Press <b>Play the explanation</b> to see it on the flowchart, then <b>Next round</b>.');
+function onPick(id) {   // a click on a flowchart symbol: only the infinite round uses it
+  if (!cur || cur.kind !== 'infinite' || stage2) return;
+  const i = cur.symbols.findIndex(s => s[0] === id); if (i < 0) return;
+  pickSymbol(i);
 }
-$('#opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); guide(2, 'Press <b>Check</b> to see your points.'); });
+function pickSymbol(i) {
+  if (stage2) return; stopSpin(); stage2 = {sym: i};
+  const s = cur.symbols[i], best = cur.symbols.find(x => x[2] === 5);
+  document.querySelectorAll('#sym button').forEach((b, k) => { b.disabled = true; b.classList.toggle('right', cur.symbols[k][2] === 5); b.classList.toggle('wrong', k === i && s[2] !== 5); });
+  fk.highlight(best[0], 'error'); if (s[2] !== 5) fk.highlight(s[0], null);
+  $('#fb').innerHTML = '<div class="feedback ' + (s[2] === 5 ? 'ok' : s[2] ? 'info' : 'bad') + '"><b>' + s[2] + ' of 5 points for the symbol.</b> ' + esc(s[3]) + (s[2] === 5 ? '' : ' The symbol to blame: ' + esc(best[1]) + '.') + '</div>';
+  $('#fixes').innerHTML = '<p class="qnote" style="margin-top:12px">Now pick the fix (5 points), then press Check.</p><div class="opts" id="opts">' + shuffle(cur.fixes.map((o, k) => [o, k])).map(p => '<button type="button" data-i="' + p[1] + '">' + esc(p[0][0]) + '</button>').join('') + '</div>';
+  guide(1, 'Pick the fix below, then press <b>Check</b>.');
+}
+$('#body').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.closest('#sym')) { pickSymbol(+b.dataset.i); return; }
+  if (b.closest('#opts')) { picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); $('#btnCheck').disabled = false; guide(2, 'Press <b>Check</b> to see your points.'); }
+});
+$('#body').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('cell')) { e.preventDefault(); const all = Array.from(document.querySelectorAll('#body input.cell')); const i = all.indexOf(e.target); if (i < all.length - 1) all[i + 1].focus(); else $('#btnCheck').click(); } });
+$('#btnStop').addEventListener('click', () => { stopSpin(); $('#capB').textContent = 'Stopped. The condition packages > 0 was tested again and again with the same value. Click the symbol that never changes packages.'; guide(1, '<b>Click the symbol</b> that never changes packages (on the flowchart or in the list).'); });
+
+// ---------------------------------------------------------------- scoring ----
+const norm = v => String(v).trim().toLowerCase().replace(/\s+/g, ' ');
+function same(answer, expect) {
+  const a = norm(answer), x = norm(expect);
+  if (x === '') return a === '';
+  if (x === 'true' || x === 'false') return a === x || a === x[0];
+  if (/^-?\d+( -?\d+)*$/.test(x)) return a.replace(/,/g, ' ').replace(/\s+/g, ' ') === x;
+  return a === x;
+}
+function flipCell(td, html) {
+  if (hasFlip) { const st = Flip.getState(td); td.innerHTML = html; Flip.from(st, {duration: .35, ease: 'power1.inOut', scale: true}); gsap.fromTo(td.firstElementChild, {rotationX: 90, opacity: .2}, {rotationX: 0, opacity: 1, duration: .4}); }
+  else if (hasGSAP) { td.innerHTML = html; gsap.fromTo(td.firstElementChild, {rotationX: 90, opacity: .2}, {rotationX: 0, opacity: 1, duration: .4}); }
+  else td.innerHTML = html;
+}
+function resHtml(c) { return '<span class="res ' + (c.ok ? 'ok' : 'bad') + (c.expect === '' ? ' blank' : '') + '">' + (c.expect === '' ? '(empty)' : esc(c.expect)) + (c.ok ? '' : '<span class="was">you: ' + (c.got === '' ? '(empty)' : esc(c.got)) + '</span>') + '</span>'; }
+function checkTrace(R) {
+  const cells = []; let right = 0;
+  R.rows.forEach((row, ri) => row.c.forEach((c, ci) => { if (c.a === undefined) return; const inp = $('#tt input[data-r="' + ri + '"][data-c="' + ci + '"]'); const got = inp.value, ok = same(got, c.a); right += ok; cells.push({ri: ri, ci: ci, got: got, expect: c.a, ok: ok, td: inp.parentNode}); inp.disabled = true; }));
+  const pin = $('#prints'), pok = same(pin.value, R.prints); right += pok; pin.disabled = true;
+  const n = cells.length + 1, pts = Math.round(10 * right / n);
+  return {cells: cells, prints: {got: pin.value, expect: R.prints, ok: pok, td: pin.parentNode}, right: right, n: n, pts: pts};
+}
+function playTrace(R, res) {
+  return walk({pre: R.pre, passes: R.passes(), exit: R.exit}, {
+    onRow: k => res.cells.filter(c => c.ri === k).forEach(c => flipCell(c.td, resHtml(c))),
+    onExit: () => { if (R.exit.row != null) res.cells.filter(c => c.ri === R.exit.row).forEach(c => flipCell(c.td, resHtml(c))); },
+    onOut: () => { const p = res.prints; const html = '<span class="res ' + (p.ok ? 'ok' : 'bad') + '">' + esc(p.expect) + (p.ok ? '' : '<span class="was">you: ' + (p.got === '' ? '(empty)' : esc(p.got)) + '</span>') + '</span>'; flipCell(p.td, html); },
+    onDone: () => { $('#capT').textContent = 'Done'; }
+  });
+}
 $('#btnCheck').addEventListener('click', () => {
-  const R = ROUNDS[r]; if (done) return;
-  if (R.kind === 'mc') {
-    if (picked === null) { guide(1, 'Pick an answer first, then press <b>Check</b>.'); return; }
-    const o = R._opts[picked], max = 10, best = R._opts.find(x => x[1] === max);
-    document.querySelectorAll('#opts button').forEach((b, i) => { b.disabled = true; b.style.borderColor = ''; if (R._opts[i] === best) b.classList.add('right'); else if (i === picked) b.classList.add('wrong'); });
-    settle(o[1], max, o[0], '<b>' + o[1] + ' of ' + max + ' points.</b> ' + esc(o[2]) + (o === best ? '' : ' The best answer: ' + esc(best[0]) + '. ' + esc(best[2])));
-    return;
-  }
-  if (busy) { queue.push(() => $('#btnCheck').click()); return; }
-  if (!used.length) { guide(1, 'Click at least one package first, then press <b>Check coverage</b>.'); return; }
-  const dark = G.all.filter(k => !lit.has(k));
-  if (dark.length) {
-    G.paint(dark, CORAL);
-    const tips = dark.slice(0, 3).map(k => { const p = PK.find(x => G.run(x).path.includes(k)); return esc(G.names[k]) + (p ? ' (' + p.t + ' would light it)' : ''); });
-    settle(0, 10, used.length + ' packages, ' + dark.length + ' arrow' + (dark.length > 1 ? 's' : '') + ' dark', '<b>0 of 10 points.</b> ' + dark.length + ' arrow' + (dark.length > 1 ? 's' : '') + ' stayed dark (now shown in coral): ' + tips.join('; ') + '. A test plan that leaves a branch untested can miss a bug on exactly that branch.');
+  const R = cur; let pts = 0, max = 10, answer = '', fb = '';
+  if (R.kind === 'trace') {
+    const res = checkTrace(R); pts = res.pts; answer = res.right + ' of ' + res.n + ' cells right';
+    fb = '<b>' + pts + ' of 10 points</b> (' + res.right + ' of ' + res.n + ' cells right). Why: ' + esc(R.why) + (res.right < res.n ? ' Red cells show the real value and, below it, what you typed.' : '');
+    $('#capT').textContent = 'Running'; playTrace(R, res); R._res = res;
+  } else if (R.kind === 'infinite') {
+    if (!stage2) { guide(1, 'Press <b>Stop</b> and <b>click the symbol</b> that never changes packages.'); return; }
+    if (picked === null) { guide(1, 'Pick the fix first, then press <b>Check</b>.'); return; }
+    const s = R.symbols[stage2.sym], f = R.fixes[picked], best = R.fixes.find(x => x[1] === 5); pts = s[2] + f[1]; answer = 'symbol: ' + s[1] + '; fix: ' + f[0];
+    document.querySelectorAll('#opts button').forEach((b, i) => { b.disabled = true; b.style.borderColor = ''; if (R.fixes[+b.dataset.i] === best) b.classList.add('right'); else if (+b.dataset.i === picked) b.classList.add('wrong'); });
+    fb = '<b>' + pts + ' of 10 points</b> (' + s[2] + ' for the symbol, ' + f[1] + ' for the fix). ' + esc(f[2]) + (f === best ? '' : ' The fix: ' + esc(best[0]) + '. ' + esc(best[2]));
+    $('#capB').textContent = 'Press Play the explanation to watch the fixed loop end after 5 passes.';
   } else {
-    const extra = used.length - R.min, pts = Math.max(0, 10 - 2 * extra), duds = used.filter(u => !u.added).map(u => u.p.t);
-    settle(pts, 10, used.length + ' packages, every arrow green', '<b>' + pts + ' of 10 points.</b> Every arrow is green' + (extra ? ', but you used ' + used.length + ' packages and ' + R.min + ' are enough: minus 2 per extra package.' : ' with ' + used.length + ' packages, the minimum. One package per branch is a complete test plan with nothing wasted.') + (duds.length ? ' Packages that added nothing new: ' + duds.join(', ') + '.' : ''));
+    if (picked === null) { guide(1, 'Pick an answer first, then press <b>Check</b>.'); return; }
+    const o = R.opts[picked], best = R.opts.find(x => x[1] === 10); pts = o[1]; answer = o[0];
+    document.querySelectorAll('#opts button').forEach(b => { b.disabled = true; b.style.borderColor = ''; if (R.opts[+b.dataset.i] === best) b.classList.add('right'); else if (+b.dataset.i === picked) b.classList.add('wrong'); });
+    fb = '<b>' + pts + ' of 10 points.</b> ' + esc(o[2]) + (o === best ? '' : ' The best answer: ' + esc(best[0]) + '. ' + esc(best[2]));
+    $('#capB').textContent = 'Press Play the explanation to watch the loop on the flowchart.';
   }
+  total += pts; log[r] = {q: R.name, a: answer, pts: pts, max: max};
+  $('#fb').innerHTML = '<div class="feedback ' + (pts === max ? 'ok' : pts > 0 ? 'info' : 'bad') + '">' + fb + '</div>';
+  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
+  guide(3, 'Read the points and the explanation. Press <b>Play the explanation</b> to watch again, then <b>Next round</b>.');
 });
 $('#btnPlay').addEventListener('click', () => {
-  const R = ROUNDS[r], l = log[r]; if (!l || busy) return;
-  G.fk.clear();
-  if (R.kind === 'cover') {   // the smallest set: pick the package that lights the most new arrows until every arrow is green
-    const left = new Set(G.all), set = [];
-    while (left.size) { let best = null, n = 0; PK.forEach(p => { const c = G.run(p).path.filter(k => left.has(k)).length; if (c > n) { n = c; best = p; } }); if (!best) break; set.push(best); G.run(best).path.forEach(k => left.delete(k)); }
-    $('#capT').textContent = 'A complete set'; $('#capB').textContent = set.map(p => p.t).join(', ') + ': ' + set.length + ' packages, one per branch. Watch each one light its own arrows.';
-    const seen = new Set(); busy = true;
-    const t = mkTL(() => { busy = false; $('#capB').textContent = set.map(p => short(p) + ' ' + G.run(p).lane).join(', ') + ': every arrow green with ' + set.length + ' packages.'; });
-    set.forEach(p => { const res = G.run(p); const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2)); t.add(f); } t.call(() => { G.paint(res.path, GREEN); res.path.forEach(k => seen.add(k)); G.fk.highlight(res.node, 'done'); }); t.to({}, {duration: .25}); });
-    runTL(t);
-  } else {
-    const p = PK[R.kind === 'find' ? 4 : R.play], res = G.run(p);
-    $('#capT').textContent = p.t + (R.chart === 'copilot' ? ' in Copilot\'s order' : ' in Dante\'s order'); $('#capB').textContent = res.desc + '. Price $' + price(p).toFixed(2) + '.';
-    lit = new Set(); busy = true;
-    const t = mkTL(() => { busy = false; G.paint(res.path, GREEN); G.fk.highlight(res.node, R.chart === 'copilot' && res.lane !== laneOf(p, DISPATCH) ? 'error' : 'done'); });
-    const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2.4)); t.add(f); } t.to({}, {duration: .1}); runTL(t);
-  }
+  const R = cur; $('#capT').textContent = 'Explanation';
+  if (R.kind === 'trace') { R._res.cells.forEach(c => { c.td.innerHTML = '<span class="res" style="color:var(--silk-dim);border:1px dashed var(--line)">?</span>'; }); R._res.prints.td.innerHTML = '<span class="res" style="color:var(--silk-dim);border:1px dashed var(--line)">?</span>'; playTrace(R, R._res); }
+  else if (R.kind === 'infinite') { fk.setText('b1', 'loaded = loaded + 1\npackages = packages - 1'); let p = 5; walk({pre: ['start>init'], passes: [1, 2, 3, 4, 5].map((k, i) => { p--; return {enter: i ? ['b1>test'] : ['init>test'], label: 'packages = ' + (p + 1), body: [{edges: ['test>b1'], node: 'b1', label: 'packages = ' + p}], cap: 'Pass ' + k + ': ' + (p + 1) + ' > 0 is True; loaded becomes ' + k + ' and packages becomes ' + p + '.'}; }), exit: {enter: ['b1>test'], label: 'packages = 0', cap: '0 > 0 is False: with the fix the loop ends after 5 passes and prints 5.'}}); }
+  else { walk(R.explain()); }
 });
 $('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); } else finishAll(); });
 function finishAll() {
-  guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
-  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent: you can cover every branch and read a chain the way Python does.' : ' Press Try again to improve it; the rounds keep their order, so you can plan the minimum sets.'); $('#opts').innerHTML = ''; $('#shelfWrap').hidden = true; $('#btnCheck').disabled = true; $('#btnNext').disabled = true;
-  $('#resTable').innerHTML = '<tr><th>Round</th><th>What you did</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '. ' + esc(l.q) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
-  if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
+  killPlay(); guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent tracing.' : total >= 70 ? ' Good. Replay the rounds you missed.' : ' Try again: fill row 0 in your head first, then one row per pass.'); $('#body').innerHTML = ''; $('#btnCheck').disabled = true; $('#btnNext').disabled = true; $('#btnPlay').disabled = true;
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + ': ' + esc(l.q) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  if (total >= 90 && window.confetti) confetti({particleCount: 140, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
   drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
-function start() { r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+function start() { order = shuffle([0, 1, 2, 3, 4, 5, 6, 7]).concat([8, 9]); r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
 $('#btnAgain').addEventListener('click', start);
-window.__cover = {rounds: ROUNDS, pk: PK, lane: laneOf, charts: CHARTS, state: () => ({r: r, total: total, log: log, lit: lit.size, all: G.all.length, busy: busy})};
+window.__traceRace = {rounds: ROUNDS, order: () => order, current: () => cur, playing: () => !!playing, spinning: () => !!spin, total: () => total};
 start();
 })();
 </script>

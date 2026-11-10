@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Function calls</title>
-<meta name="description" content="COP1411 Week 4 interactive: Watch MAIN call a function: the arguments travel into the parameter boxes, the function's own flowchart runs, and the return value comes back while the local boxes vanish.">
+<meta name="description" content="COP1411 Week 3 interactive: Watch MAIN call a function: the arguments travel into the parameter boxes, the function's own flowchart runs, and the return value comes back while the local boxes vanish. Then count the steps and see how the count grows with the list.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
@@ -364,7 +364,7 @@
   }
   /* ===== end of theme ===== */
 
-  /* page-specific CSS (flowchart explorer: MAIN and the function side by side) */
+  /* page-specific CSS (flowchart explorer: MAIN and the function side by side, with a step counter) */
   .stage.flowstage{background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
   .stage .flow{position:absolute;left:0;right:0;top:52px;height:calc(100% - 100px);width:100%}
   @media(max-width:700px){.stage .flow{top:48px;height:calc(100% - 96px)}}
@@ -388,11 +388,14 @@
   .lrow{display:flex;flex-wrap:wrap;gap:6px}
   .lb{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:5px 8px;border:1px solid var(--line-2);border-radius:6px;background:var(--board-deep);font-family:var(--font-mono)}
   .lb .ix{font-size:10px;color:var(--silk-dim)}.lb b{font-size:14px;font-weight:600}
+  .lb .ptr{font:700 10.5px/13px var(--font-mono);min-height:13px;color:transparent}
+  .lb .ptr.on{color:var(--data)}
+  .lrow.sm{gap:4px}.lrow.sm .lb{min-width:46px;padding:3px 5px}.lrow.sm .lb b{font-size:12px}
   .lb.on{border-color:var(--cbt-sky);box-shadow:0 0 10px rgba(56,176,224,.4)}
   .lb.cmp{border-color:var(--cbt-gold);background:rgba(224,184,64,.14)}
   .lb.hit{border-color:var(--alu);background:rgba(111,212,155,.16)}
   .lb.miss{border-color:var(--ctrl);background:rgba(240,120,106,.14)}
-  .lb.ghost{border-style:dashed;opacity:.8}
+  .lb.extra{border-style:dashed;border-color:var(--cbt-gold)}
   .cond{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font:12.5px var(--font-mono);color:var(--silk-dim)}
   .cond .k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
   .cond code{color:var(--silk)}.cond b{color:var(--addr)}
@@ -400,11 +403,27 @@
   .hint{margin:0;font-size:12px;color:var(--silk-dim)}
   .memhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
   .memhead small{font:400 11px var(--font-mono);color:var(--silk-dim)}
+  /* the step counter: readouts, list-size buttons, the bar strip, the growth name */
+  .counter .regs{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+  .counter .reg .rv{font-size:22px}
+  .sizes{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0}
+  .sizes .k{font:500 10.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim);margin-right:4px}
+  .sizes .btn{padding:6px 12px;font-size:12px;min-width:44px}
+  .bars{display:flex;align-items:flex-end;gap:12px;height:136px;padding:8px 12px 6px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2)}
+  .bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;flex:1;min-width:0;height:100%}
+  .bar i{display:block;width:100%;max-width:56px;border-radius:4px 4px 0 0;background:var(--cbt-sky);transition:height .4s}
+  .bar.cur i{background:var(--cbt-gold)}
+  .bar.todo i{background:none;border:1px dashed var(--line-2)}
+  .bar .bv{font:600 13px var(--font-mono)}.bar .bs{font:500 11px var(--font-mono);color:var(--silk-dim)}
+  .barcap{margin:6px 0 0;font-size:11.5px;color:var(--silk-dim)}
+  .growth{margin:10px 0 6px;font-size:13.5px;color:var(--silk)}
+  .fk-box .v{overflow-wrap:anywhere}
   /* light theme: readable disabled buttons, the scope panel and the ghost chart on white */
   html[data-theme=light] .btn:disabled,html[data-theme=light] .btn[disabled]{opacity:1;background:var(--panel-2);border-color:var(--line);color:var(--silk-dim)}
   html[data-theme=light] .pysb-bar button:disabled{opacity:1;background:var(--panel-2);border-color:var(--line);color:var(--silk-dim)}
   html[data-theme=light] .scope{background:#F3FAF6}
   html[data-theme=light] .lb{background:#FFFFFF}
+  html[data-theme=light] .lb.extra{background:#FBF4DD}
   html[data-theme=light] .code .ln.bug{background:rgba(214,71,60,.10);box-shadow:inset 3px 0 0 var(--ctrl)}
 </style>
 </head>
@@ -412,15 +431,15 @@
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
-    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 4 · Interactive A</div>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 3 · Interactive A</div>
   </div>
 </header>
 
 <div class="app">
   <header class="lab-head">
-    <p class="eyebrow">COP1411 · Week 4 · Explorer</p>
+    <p class="eyebrow">COP1411 · Week 3 · Explorer</p>
     <h1>Function calls</h1>
-    <p class="lede">Watch MAIN call a function: the arguments travel into the parameter boxes, the function's own flowchart runs, and the return value comes back while the local boxes vanish.</p>
+    <p class="lede">Watch MAIN call a function: the arguments travel into the parameter boxes, the function's own flowchart runs, and the return value comes back while the local boxes vanish. Then count the steps the function took and see how the count grows with the list.</p>
   </header>
   <section class="stage flowstage" id="stage" aria-label="Two flowcharts: MAIN on the left and the function it calls on the right. Press Step to move the data token through the symbols; use the zoom buttons or scroll to zoom, drag to move.">
     <div class="hud hud-top">
@@ -449,8 +468,9 @@
       <li data-h="1">Under <b>Pick a function</b>, choose one of the five toolkit functions and its arguments. The charts redraw: MAIN on the left, the function on the right.</li>
       <li data-h="2">Press <b>Step</b>. Watch the token carry the arguments into the parameter boxes, walk the function, and bring the return value back to MAIN.</li>
       <li data-h="3">Press <b>Step back</b> to see a step again, or <b>Run</b> to play every step. Click any symbol to read what it does.</li>
-      <li data-h="4">Turn on <b>Copilot's refactor</b> and run the same call. Find the test that catches the bug (the narration names it).</li>
-      <li data-h="5">Scroll down to <b>Try it</b>, edit toolkit.py, and press <b>Run</b> there: five tests check your functions on real Python.</li>
+      <li data-h="4">Under <b>Step counter</b>, read the <b>Steps</b> readout, press another <b>List size</b>, and run again. The bars show the count for each size, and the growth name appears after two sizes.</li>
+      <li data-h="5">Turn on <b>Copilot's refactor</b> and run the same call. Find the test or the count that catches Copilot's mistake (the narration names it).</li>
+      <li data-h="6">Scroll down to <b>Try it</b>, edit toolkit.py, and press <b>Run</b> there: six tests check your functions on real Python.</li>
     </ol>
     <div>
       <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Press <b>Step</b> to start with price(12, 8, False), or pick another function first.</span></div>
@@ -478,15 +498,27 @@
       <div class="pick">
         <label>Function <select id="fnSel">
           <option value="price">price(weight, miles, fragile)</option>
-          <option value="zone">zone(city)</option>
           <option value="manifest_total">manifest_total(weights)</option>
           <option value="find_package">find_package(tracking, packages)</option>
-          <option value="sort_by_weight">sort_by_weight(weights)</option>
+          <option value="has_duplicate">has_duplicate(trackings)</option>
+          <option value="load_order">load_order(route)</option>
         </select></label>
         <div id="args"></div>
         <button type="button" class="btn" id="btnCopilot" aria-pressed="false">Copilot's refactor: off</button>
-        <p class="hint" id="pickHint">Any change here redraws the charts and resets the run. Copilot's refactor swaps the function for a version Microsoft Copilot wrote with one bug in it.</p>
+        <p class="hint" id="pickHint">Any change here redraws the charts and resets the run. Copilot's refactor swaps the function for a version Microsoft Copilot wrote: it has one bug, or one false claim written as a comment.</p>
       </div>
+    </section>
+    <section class="counter" aria-labelledby="counterTitle">
+      <div class="memhead"><h2 id="counterTitle">Step counter</h2><small id="stepWhat">counts the lines of the function that run</small></div>
+      <div class="regs" aria-live="polite">
+        <div class="reg kv" id="stepsReg"><span class="rn" id="stepsLabel">Steps</span><span class="rv" id="stepsVal">0</span></div>
+        <div class="reg kv"><span class="rn">List size</span><span class="rv" id="sizeVal" style="font-size:15px">no list</span></div>
+        <div class="reg kv" id="extraReg" hidden><span class="rn">Extra boxes</span><span class="rv" id="extraVal">0</span></div>
+      </div>
+      <div class="sizes" id="sizes" role="group" aria-label="List size"></div>
+      <div class="bars" id="bars" role="img" aria-label="Steps for each list size tried" hidden></div>
+      <p class="barcap" id="barcap" hidden>One bar per list size you have run to the end. The gold bar is the current size; a dashed bar is a size you have not tried yet.</p>
+      <p class="growth" id="growth" aria-live="polite"></p>
     </section>
     <section>
       <div class="memhead"><h2>MAIN's memory</h2><small>lives for the whole run</small></div>
@@ -495,7 +527,6 @@
         <h3 id="fnTitle">Inside the function (local boxes)</h3>
         <div id="fnmem"></div>
         <div id="listhost" hidden></div>
-        <div id="counts" hidden style="margin-top:10px"></div>
       </div>
     </section>
     <section>
@@ -509,7 +540,7 @@
     <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any symbol in the flowchart to learn what it does.</div>
     <section class="span-all">
       <h2>Try it: edit and run the Python</h2>
-      <p class="hint" style="margin-bottom:8px">The whole toolkit.py with five tests. Change a function, press Run, and watch the tests: a wrong return value turns its dot coral. Try adding <code>print(p)</code> after the last line to see the scope error.</p>
+      <p class="hint" style="margin-bottom:8px">The whole toolkit.py with six tests. Change a function, press Run, and watch the tests: a wrong return value turns its dot coral. Try adding <code>print(p)</code> after the last line to see the scope error.</p>
       <div id="sandbox"></div>
     </section>
     <section>
@@ -519,7 +550,11 @@
         <li>Arguments match parameters by position: the first argument fills the first parameter box. Swap the order and the function computes with the wrong numbers, with no error message.</li>
         <li>The parameter boxes and the local boxes appear at the call and are deleted at the return. MAIN only ever receives the returned value.</li>
         <li>return is not print. A function that prints instead of returning hands back None, and MAIN's result box stays empty.</li>
-        <li>A Copilot version that passes one test can still be wrong. The right test is the one that reaches the buggy symbol.</li>
+        <li>Count steps, not seconds. A fast computer hides slow code; the count is the same on every computer.</li>
+        <li>The growth name says what happens to the count when the list doubles. Constant: nothing changes. Linear: it doubles. Quadratic: it becomes about four times larger. Programmers write these names as O(1), O(n), and O(n squared), and call the notation Big O.</li>
+        <li>The same function has a best case and a worst case. find_package needs 1 comparison when the package is first and 8 when it is last or missing in a list of 8.</li>
+        <li>Time is not the only cost. load_order needs one extra box per stop; load_order_in_place needs one extra box in total, but it changes MAIN's own list.</li>
+        <li>A Copilot version that passes one test can still be wrong, and a Copilot claim about speed is checked the same way as its code: run it and count.</li>
       </ul>
     </section>
     <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
@@ -923,43 +958,82 @@ function PySandbox(host, opts) {
 }
 // PYSANDBOX END
 
-
 // ---- Python-style formatting (the same IEEE arithmetic as Python, printed the way Python prints it) ----
 const pyNum = x => Number.isInteger(x) ? x + '.0' : String(x);
 const pyStr = s => "'" + s + "'";
 const pyList = a => '[' + a.join(', ') + ']';
+const pyStrList = a => '[' + a.map(pyStr).join(', ') + ']';
 const pyBool = b => b ? 'True' : 'False';
 const money = x => x.toFixed(2);
-const PACKAGES = ['PP-2026-0001', 'PP-2026-0002', 'PP-2026-0003', 'PP-2026-0004', 'PP-2026-0005'];
-const PKG_LINE = 'packages = ["PP-2026-0001", "PP-2026-0002", "PP-2026-0003", "PP-2026-0004", "PP-2026-0005"]';
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+const pad4 = k => String(k).padStart(4, '0');
+const shortList = a => a.length <= 5 ? pyStrList(a) : "['" + a[0] + "', '" + a[1] + "', ... " + a.length + ' items]';
 
-// ---- the toolkit: the correct version and Copilot's refactor (one bug each) ----
+// ---- the data: the reference packages, repeated or extended to the list size the learner picks ----
+const VAN1 = [12, 3, 20, 50, 45], ROUTE5 = ['0002', '0001', '0006', '0004', '0007'];
+const weightsOf = n => { const a = []; for (let k = 0; k < n; k++) a.push(VAN1[k % 5]); return a; };              // the VAN-1 manifest, repeated
+const tracksOf = n => { const a = []; for (let k = 1; k <= n; k++) a.push('PP-2026-' + pad4(k)); return a; };      // distinct tracking numbers
+const routeOf = n => { const a = ROUTE5.slice(0, n); for (let k = 5; k < n; k++) a.push(pad4(k + 3)); return a; }; // the VAN-1 route, then stops 0008, 0009, ...
+const SIZES = {manifest_total: [0, 5, 10, 20, 40], find_package: [5, 8, 10, 20, 40], has_duplicate: [5, 10, 20, 40], load_order: [5, 10, 20, 40]};
+
+// ---- the step counts as plain functions (tested with node against the same functions in Python) ----
+const COUNT = {
+  price: (w, m, f) => ({steps: f ? 4 : 3, result: f ? 4.5 + 0.8 * w + 0.25 * m + 3 : 4.5 + 0.8 * w + 0.25 * m}),
+  manifest_total: ws => { let c = 0, t = 0; ws.forEach(x => { t += x; c++; }); return {steps: c, result: t}; },
+  find_package: (t, p) => { let c = 0; for (let i = 0; i < p.length; i++) { c++; if (p[i] === t) return {steps: c, result: i}; } return {steps: c, result: -1}; },
+  has_duplicate: t => { let c = 0; const n = t.length; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { c++; if (t[i] === t[j]) return {steps: c, result: true}; } return {steps: c, result: false}; },
+  load_order: r => { const o = []; let c = 0; for (let i = r.length - 1; i >= 0; i--) { o.push(r[i]); c++; } return {steps: c, extra: o.length, result: o}; },
+  load_order_in_place: r => { const a = r.slice(); let l = 0, h = a.length - 1, c = 0, extra = 0; while (l < h) { const t = a[l]; extra = 1; a[l] = a[h]; a[h] = t; l++; h--; c++; } return {steps: c, extra: extra, result: a}; }
+};
+
+// ---- the toolkit: the correct version and Copilot's refactor (one bug or one false claim each) ----
 const CODE = {
   price: {ok: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    if fragile:', '        p = p + 3.00', '    return p'],
     co: ['def price(weight, miles, fragile):', '    p = 4.50 + 0.80 * weight + 0.25 * miles', '    return p'], bug: 3,
     test: 'price(60, 14, True) expecting 59.0 (package 0005, fragile)'},
-  zone: {ok: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"'],
-    co: ['def zone(city):', '    if city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens" or city == "Kendall":', '        return "B"', '    elif city == "Homestead":', '        return "C"', '    else:', '        return "Ask dispatch"'], bug: 4,
-    test: 'zone("Kendall") expecting \'C\''},
   manifest_total: {ok: ['def manifest_total(weights):', '    total = 0', '    for w in weights:', '        total = total + w', '    return total'],
     co: ['def manifest_total(weights):', '    total = 1', '    for w in weights:', '        total = total + w', '    return total'], bug: 2,
     test: 'manifest_total([]) expecting 0 (Copilot\'s version answers 1)'},
   find_package: {ok: ['def find_package(tracking, packages):', '    for i in range(len(packages)):', '        if packages[i] == tracking:', '            return i', '    return -1'],
     co: ['def find_package(tracking, packages):', '    for i in range(len(packages)):', '        if packages[i] == tracking:', '            return packages[i]', '    return -1'], bug: 4,
-    test: 'find_package("PP-2026-0004", packages) expecting 3'},
-  sort_by_weight: {ok: ['def sort_by_weight(weights):', '    n = len(weights)', '    for i in range(n - 1):', '        for j in range(n - 1 - i):', '            if weights[j] > weights[j + 1]:', '                weights[j], weights[j + 1] = weights[j + 1], weights[j]', '    return weights'],
-    co: ['def sort_by_weight(weights):', '    n = len(weights)', '    for i in range(n - 1):', '        for j in range(n - i):', '            if weights[j] > weights[j + 1]:', '                weights[j], weights[j + 1] = weights[j + 1], weights[j]', '    return weights'], bug: 4,
-    test: 'sort_by_weight([12, 3, 20, 50, 45]) expecting [3, 12, 20, 45, 50] (Copilot\'s version stops with IndexError instead)'}
+    test: 'find_package("PP-2026-0008", packages) expecting 7 (Copilot\'s version answers \'PP-2026-0008\')'},
+  has_duplicate: {ok: ['def has_duplicate(trackings):', '    n = len(trackings)', '    for i in range(n):', '        for j in range(i + 1, n):', '            if trackings[i] == trackings[j]:', '                return True', '    return False'],
+    co: ['def has_duplicate(trackings):', '    # Copilot: "This function is linear: one comparison per item."', '    n = len(trackings)', '    for i in range(n):', '        for j in range(i + 1, n):', '            if trackings[i] == trackings[j]:', '                return True', '    return False'], bug: 2,
+    test: 'count the comparisons for 10 items with no duplicate: the counter shows 45, not 10'},
+  load_order: {ok: ['def load_order(route):', '    order = []', '    i = len(route) - 1', '    while i >= 0:', '        order.append(route[i])', '        i = i - 1', '    return order'],
+    co: ['def load_order(route):', '    # Copilot: "This reverses the route without using any extra memory."', '    order = []', '    i = len(route) - 1', '    while i >= 0:', '        order.append(route[i])', '        i = i - 1', '    return order'], bug: 2,
+    test: 'read Extra boxes after a run with 5 stops: 5, not 0'},
+  load_order_in_place: {ok: ['def load_order_in_place(route):', '    left = 0', '    right = len(route) - 1', '    while left < right:', '        temp = route[left]', '        route[left] = route[right]', '        route[right] = temp', '        left = left + 1', '        right = right - 1', '    return route'],
+    co: ['def load_order_in_place(route):', '    # Copilot: "MAIN\'s route list is not changed by this call."', '    left = 0', '    right = len(route) - 1', '    while left < right:', '        temp = route[left]', '        route[left] = route[right]', '        route[right] = temp', '        left = left + 1', '        right = right - 1', '    return route'], bug: 2,
+    test: 'add print(route) in MAIN after the call: it prints the reversed list'}
 };
-const TOOLKIT = [].concat(CODE.price.ok, [''], CODE.zone.ok, [''], CODE.manifest_total.ok, [''], CODE.find_package.ok, [''], CODE.sort_by_weight.ok, ['', PKG_LINE, 'result = price(12, 8, False)', 'print(result)']).join('\n');
+// a list written as Python, broken over several lines when it is long (still valid Python)
+function listLines(name, items, per) {
+  if (items.length <= per) return [name + ' = [' + items.join(', ') + ']'];
+  const out = [], padS = ' '.repeat(name.length + 4);
+  for (let k = 0; k < items.length; k += per) out.push((k === 0 ? name + ' = [' : padS) + items.slice(k, k + per).join(', ') + (k + per >= items.length ? ']' : ','));
+  return out;
+}
+const q = s => '"' + s + '"';
+const TOOLKIT = [].concat(CODE.price.ok, [''], CODE.manifest_total.ok, [''], CODE.find_package.ok, [''], CODE.has_duplicate.ok, [''], CODE.load_order.ok, [''], CODE.load_order_in_place.ok,
+  [''], listLines('packages', tracksOf(8).map(q), 4), ['result = price(12, 8, False)', 'print(result)']).join('\n');
 
 // ---- the learner's choices ----
-const CFG = {fn: 'price', copilot: false, weight: 12, miles: 8, fragile: false, city: 'Kendall', weights: [12, 3, 20, 50, 45], tracking: 'PP-2026-0004'};
-const PRESETS = {
-  price: [['0001', 12, 8, false], ['0002', 3, 2, true], ['0004', 20, 19, false], ['0005', 60, 14, true]],
-  lists: [['VAN-1', [12, 3, 20, 50, 45]], ['empty', []], ['overload', [400, 350, 300, 200]]],
-  sort: [['VAN-1', [12, 3, 20, 50, 45]], ['reversed', [50, 45, 20, 12, 3]], ['already sorted', [3, 12, 20, 45, 50]]]
-};
+const CFG = {fn: 'price', copilot: false, weight: 12, miles: 8, fragile: false, size: {manifest_total: 5, find_package: 8, has_duplicate: 5, load_order: 5}, target: 'last', dup: false, mode: 'new'};
+const PRESETS = {price: [['0001', 12, 8, false], ['0002', 3, 2, true], ['0004', 20, 19, false], ['0005', 60, 14, true]]};
+const fnName = () => CFG.fn === 'load_order' && CFG.mode === 'place' ? 'load_order_in_place' : CFG.fn;
+const variantKey = () => CFG.fn + (CFG.fn === 'find_package' ? ':' + CFG.target : CFG.fn === 'has_duplicate' ? ':' + (CFG.dup ? 'dup' : 'nodup') : CFG.fn === 'load_order' ? ':' + CFG.mode : '');
+function data() {
+  const fn = CFG.fn, n = CFG.size[fn] || 0;
+  if (fn === 'manifest_total') return {n: n, weights: weightsOf(n)};
+  if (fn === 'find_package') { const p = tracksOf(n); return {n: n, packages: p, tracking: CFG.target === 'first' ? p[0] : CFG.target === 'last' ? p[n - 1] : (n <= 8 ? 'PP-2026-0009' : 'PP-2026-0099')}; }
+  if (fn === 'has_duplicate') { const t = tracksOf(n); if (CFG.dup) t[1] = t[0]; return {n: n, trackings: t}; }
+  if (fn === 'load_order') return {n: n, route: routeOf(n)};
+  return {n: 0};
+}
+const UNIT = {price: 'line', manifest_total: 'addition', find_package: 'comparison', has_duplicate: 'comparison', load_order: 'copy', load_order_in_place: 'swap'};
+const unitWord = (n) => { const u = UNIT[fnName()]; return n === 1 ? u : (u === 'copy' ? 'copies' : u + 's'); };
+const TRIED = {};  // variant -> {size: {steps, extra}}: what the learner has run so far (the bar strip)
 
 // ---- chart geometry (grid units: col, row). MAIN in column 0, the function in column FC, its side branches in column BC ----
 const FC = 1.55, BC = 2.55, RET_LANE = 0.54, CALL_LANE = 0.66, LOOP_LANE = 0.9, RIGHT_LANE = 3.15, MAIN_W = 200;
@@ -971,32 +1045,29 @@ const E = (from, to, o) => Object.assign({from: from, to: to}, o || {});
 function byId(nodes, id) { return nodes.find(n => n.id === id); }
 function loopBack(nodes, from, to, lane, topRow) { const a = byId(nodes, from), b = byId(nodes, to); const s = AN(a, 'bottom'); return [s, [a.col, a.row + 0.5], [lane, a.row + 0.5], [lane, topRow], [b.col, topRow], AN(b, 'top')]; }
 
-function mainChart(fn) {
-  const call = {price: 'result =\nprice(' + CFG.weight + ', ' + CFG.miles + ', ' + pyBool(CFG.fragile) + ')', zone: 'result =\nzone("' + CFG.city + '")', manifest_total: 'result =\nmanifest_total(weights)', find_package: 'result = find_package(\ntracking, packages)', sort_by_weight: 'result =\nsort_by_weight(weights)'}[fn];
-  const setup = {manifest_total: 'weights =\n' + pyList(CFG.weights), find_package: 'packages = [5 numbers]\ntracking = "' + CFG.tracking + '"', sort_by_weight: 'weights =\n' + pyList(CFG.weights)}[fn] || null;
-  const CR = setup ? 2 : 1;
-  const nodes = [N('m_start', 'terminal', 'START (MAIN)', 0, 0, MAIN_W)];
-  if (setup) nodes.push(N('m_setup', 'process', setup, 0, 1, MAIN_W));
-  nodes.push(N('m_call', 'call', call, 0, CR, MAIN_W), N('m_out', 'io', 'OUTPUT result', 0, CR + 1, MAIN_W), N('m_end', 'terminal', 'END', 0, CR + 2, MAIN_W));
+function mainChart(fn, D) {
+  const name = fnName(), n = D.n;
+  const call = {price: 'result =\nprice(' + CFG.weight + ', ' + CFG.miles + ', ' + pyBool(CFG.fragile) + ')', manifest_total: 'result =\nmanifest_total(weights)', find_package: 'result = find_package(\ntracking, packages)',
+    has_duplicate: 'result =\nhas_duplicate(trackings)', load_order: 'result =\n' + name + '(route)'}[fn];
+  const setup = {manifest_total: n === 0 ? 'weights = []' : n <= 5 ? 'weights =\n' + pyList(D.weights || []) : 'weights =\n[' + n + ' weights]', find_package: 'packages = [' + n + ' numbers]\ntracking = "' + D.tracking + '"',
+    has_duplicate: 'trackings =\n[' + n + ' numbers]', load_order: 'route =\n[' + n + ' stops]'}[fn] || null;
+  const CR = setup ? 2 : 1, W = name === 'load_order_in_place' || fn === 'has_duplicate' ? 240 : fn === 'find_package' || fn === 'manifest_total' ? 216 : MAIN_W;
+  const nodes = [N('m_start', 'terminal', 'START (MAIN)', 0, 0, W)];
+  if (setup) nodes.push(N('m_setup', 'process', setup, 0, 1, W));
+  nodes.push(N('m_call', 'call', call, 0, CR, W), N('m_out', 'io', 'OUTPUT result', 0, CR + 1, W), N('m_end', 'terminal', 'END', 0, CR + 2, W));
   const edges = setup ? [E('m_start', 'm_setup'), E('m_setup', 'm_call')] : [E('m_start', 'm_call')];
   edges.push(E('m_call', 'm_out'), E('m_out', 'm_end'));
-  return {nodes: nodes, edges: edges, CR: CR};
+  return {nodes: nodes, edges: edges, CR: CR, W: W};
 }
 function fnChart(fn, co) {
+  const name = fnName();
   let nodes = [], edges = [], rows = 5;
-  const S = N('f_start', 'terminal', 'START ' + fn, FC, 0, fn.length > 6 ? 200 : 180);
+  const S = N('f_start', 'terminal', 'START ' + name, FC, 0, name.length > 14 ? 250 : name.length > 6 ? 200 : 180);
   if (fn === 'price') {
     nodes = [S, N('f_p', 'process', 'p = 4.50 + 0.80 * weight\n+ 0.25 * miles', FC, 1, 210)];
     if (co) { nodes.push(N('f_ret', 'terminal', 'RETURN p', FC, 2)); edges = [E('f_start', 'f_p'), E('f_p', 'f_ret')]; rows = 4; }
     else { nodes.push(N('f_d', 'decision', 'fragile?', FC, 2), N('f_add', 'process', 'p = p + 3.00', BC, 3), N('f_ret', 'terminal', 'RETURN p', FC, 4));
       edges = [E('f_start', 'f_p'), E('f_p', 'f_d'), E('f_d', 'f_add', {label: 'Yes', side: 'right'}), E('f_d', 'f_ret', {label: 'No'}), E('f_add', 'f_ret')]; rows = 5.4; }
-  } else if (fn === 'zone') {
-    nodes = [S, N('f_d1', 'decision', 'city == "Doral"?', FC, 1, 230), N('f_rA', 'terminal', 'RETURN "A"', BC, 1.5),
-      co ? N('f_d2', 'decision', 'city == "Hialeah" or\n"Miami Gardens"\nor "Kendall"?', FC, 2, 270) : N('f_d2', 'decision', 'city == "Hialeah" or\n"Miami Gardens"?', FC, 2, 250), N('f_rB', 'terminal', 'RETURN "B"', BC, 2.5),
-      co ? N('f_d3', 'decision', 'city == "Homestead"?', FC, 3, 250) : N('f_d3', 'decision', 'city == "Kendall" or\n"Homestead"?', FC, 3, 250), N('f_rC', 'terminal', 'RETURN "C"', BC, 3.5),
-      N('f_rAsk', 'terminal', 'RETURN "Ask dispatch"', FC, 4, 210)];
-    edges = [E('f_start', 'f_d1'), E('f_d1', 'f_rA', {label: 'Yes', side: 'right'}), E('f_d1', 'f_d2', {label: 'No'}), E('f_d2', 'f_rB', {label: 'Yes', side: 'right'}), E('f_d2', 'f_d3', {label: 'No'}), E('f_d3', 'f_rC', {label: 'Yes', side: 'right'}), E('f_d3', 'f_rAsk', {label: 'No'})];
-    rows = 5.4;
   } else if (fn === 'manifest_total') {
     nodes = [S, N('f_t', 'process', co ? 'total = 1' : 'total = 0', FC, 1), N('f_d', 'decision', 'more weights?', FC, 2), N('f_w', 'process', 'w = next weight', FC, 3), N('f_add', 'process', 'total = total + w', FC, 4), N('f_ret', 'terminal', 'RETURN total', BC, 3)];
     edges = [E('f_start', 'f_t'), E('f_t', 'f_d'), E('f_d', 'f_ret', {label: 'No', side: 'right'}), E('f_d', 'f_w', {label: 'Yes'}), E('f_w', 'f_add'), E('f_add', 'f_d', {points: loopBack(nodes, 'f_add', 'f_d', LOOP_LANE, 1.45)})];
@@ -1006,66 +1077,82 @@ function fnChart(fn, co) {
       N('f_ri', 'terminal', co ? 'RETURN packages[i]' : 'RETURN i', BC, 4), N('f_inc', 'process', 'i = i + 1', FC, 4)];
     edges = [E('f_start', 'f_i'), E('f_i', 'f_d1'), E('f_d1', 'f_rm', {label: 'No', side: 'right'}), E('f_d1', 'f_d2', {label: 'Yes'}), E('f_d2', 'f_ri', {label: 'Yes', side: 'right'}), E('f_d2', 'f_inc', {label: 'No'}), E('f_inc', 'f_d1', {points: loopBack(nodes, 'f_inc', 'f_d1', LOOP_LANE, 1.45)})];
     rows = 5.8;
-  } else {
-    nodes = [S, N('f_n', 'process', 'n = len(weights)', FC, 1), N('f_d1', 'decision', 'i < n - 1?\n(more passes)', FC, 2, 230), N('f_d2', 'decision', co ? 'j < n - i?\n(more pairs)' : 'j < n - 1 - i?\n(more pairs)', FC, 3, 230),
-      N('f_d3', 'decision', 'weights[j] >\nweights[j + 1]?', FC, 4, 230), N('f_sw', 'process', 'swap weights[j]\nand weights[j + 1]', FC, 5, 210), N('f_rw', 'terminal', 'RETURN weights', BC, 6.2)];
-    const d1 = byId(nodes, 'f_d1'), d2 = byId(nodes, 'f_d2'), d3 = byId(nodes, 'f_d3'), sw = byId(nodes, 'f_sw'), rw = byId(nodes, 'f_rw');
+  } else if (fn === 'has_duplicate') {
+    nodes = [S, N('f_n', 'process', 'n = len(trackings)', FC, 1), N('f_d1', 'decision', 'i < n?\n(next i)', FC, 2, 230), N('f_d2', 'decision', 'j < n?\n(j starts at i + 1)', FC, 3, 230),
+      N('f_d3', 'decision', 'trackings[i] ==\ntrackings[j]?', FC, 4, 230), N('f_rt', 'terminal', 'RETURN True', FC, 5), N('f_rf', 'terminal', 'RETURN False', BC, 5)];
+    const d1 = byId(nodes, 'f_d1'), d2 = byId(nodes, 'f_d2'), d3 = byId(nodes, 'f_d3'), rf = byId(nodes, 'f_rf');
     edges = [E('f_start', 'f_n'), E('f_n', 'f_d1'),
-      E('f_d1', 'f_rw', {label: 'No', side: 'right', points: [AN(d1, 'right'), [RIGHT_LANE, 2], [RIGHT_LANE, 6.2], AN(rw, 'right')]}),
+      E('f_d1', 'f_rf', {label: 'No', side: 'right', points: [AN(d1, 'right'), [RIGHT_LANE, 2], [RIGHT_LANE, 5], AN(rf, 'right')]}),
       E('f_d1', 'f_d2', {label: 'Yes'}), E('f_d2', 'f_d1', {label: 'No', side: 'left', points: [AN(d2, 'left'), [LOOP_LANE, 3], [LOOP_LANE, 1.45], [FC, 1.45], AN(d1, 'top')]}),
-      E('f_d2', 'f_d3', {label: 'Yes'}), E('f_d3', 'f_sw', {label: 'Yes'}),
-      E('f_d3', 'f_d2', {label: 'No', side: 'right', points: [AN(d3, 'right'), [2.9, 4], [2.9, 2.5], [FC, 2.5], AN(d2, 'top')]}),
-      E('f_sw', 'f_d2', {points: [AN(sw, 'bottom'), [FC, 5.6], [2.9, 5.6], [2.9, 2.5], [FC, 2.5], AN(d2, 'top')]})];
-    rows = 7.2;
+      E('f_d2', 'f_d3', {label: 'Yes'}), E('f_d3', 'f_rt', {label: 'Yes'}),
+      E('f_d3', 'f_d2', {label: 'No', side: 'right', points: [AN(d3, 'right'), [2.9, 4], [2.9, 2.5], [FC, 2.5], AN(d2, 'top')]})];
+    rows = 6.3;
+  } else if (name === 'load_order') {
+    nodes = [S, N('f_o', 'process', 'order = []', FC, 1), N('f_i', 'process', 'i = len(route) - 1', FC, 2), N('f_d', 'decision', 'i >= 0?', FC, 3), N('f_app', 'process', 'order.append(route[i])', FC, 4, 200), N('f_dec', 'process', 'i = i - 1', FC, 5), N('f_ret', 'terminal', 'RETURN order', BC, 4)];
+    edges = [E('f_start', 'f_o'), E('f_o', 'f_i'), E('f_i', 'f_d'), E('f_d', 'f_ret', {label: 'No', side: 'right'}), E('f_d', 'f_app', {label: 'Yes'}), E('f_app', 'f_dec'), E('f_dec', 'f_d', {points: loopBack(nodes, 'f_dec', 'f_d', LOOP_LANE, 2.45)})];
+    rows = 6.6;
+  } else {
+    nodes = [S, N('f_init', 'process', 'left = 0\nright = len(route) - 1', FC, 1, 210), N('f_d', 'decision', 'left < right?', FC, 2), N('f_t', 'process', 'temp = route[left]', FC, 3), N('f_sw', 'process', 'route[left] = route[right]\nroute[right] = temp', FC, 4, 250),
+      N('f_mv', 'process', 'left = left + 1\nright = right - 1', FC, 5, 200), N('f_ret', 'terminal', 'RETURN route', BC, 3)];
+    edges = [E('f_start', 'f_init'), E('f_init', 'f_d'), E('f_d', 'f_ret', {label: 'No', side: 'right'}), E('f_d', 'f_t', {label: 'Yes'}), E('f_t', 'f_sw'), E('f_sw', 'f_mv'), E('f_mv', 'f_d', {points: loopBack(nodes, 'f_mv', 'f_d', LOOP_LANE, 1.45)})];
+    rows = 6.6;
   }
   return {nodes: nodes, edges: edges, rows: rows};
 }
 // the return arrow is drawn when the return happens: from the RETURN symbol that fires, around the chart, back into the call symbol
 function retRoute(id) {
   const n = fk.nodes[id]; const B = CHART.rows - 0.45;
-  const tail = [[RET_LANE, B], [RET_LANE, CHART.CR + 0.2], [MAIN_W / 2 / 230, CHART.CR + 0.2]];
+  const tail = [[RET_LANE, B], [RET_LANE, CHART.CR + 0.2], [CHART.W / 2 / 230, CHART.CR + 0.2]];
   if (Math.abs(n.col - FC) < 0.01) return [AN(n, 'bottom'), [FC, B]].concat(tail);
   return [AN(n, 'right'), [RIGHT_LANE, n.row], [RIGHT_LANE, B]].concat(tail);
 }
 
 // ---- click-to-explain notes ----
 function infoFor(fn, co) {
+  const name = fnName(), bad = s => ' <span style="color:var(--ctrl)">' + s + '</span>';
   const I = {m_start: '<b>START (MAIN).</b> MAIN is the part of the program outside every def. It runs from top to bottom. The def lines only teach Python each recipe; nothing inside a function runs until MAIN calls it. The faint chart on the right is that recipe, waiting for a call.',
     m_setup: '<b>PROCESS (MAIN).</b> MAIN creates its own boxes before the call. They live for the whole run, so the function can receive them as arguments.',
     m_call: '<b>CALL.</b> The rectangle with double side bars means "run this function and wait for its answer". The arguments inside the parentheses travel into the function by position; the value it returns lands in the box result.',
     m_out: '<b>OUTPUT (MAIN).</b> print(result) shows the returned value on the screen. Printing happens here, in MAIN, not inside the function.',
     m_end: '<b>END.</b> MAIN stops. Every box MAIN owns disappears when the program ends.',
-    f_start: '<b>START of ' + fn + '.</b> The parameters are the function\'s own input boxes. The call fills them with its arguments, first to first, second to second. They are local: they exist only while the function runs.'};
-  if (fn === 'price') Object.assign(I, {f_p: '<b>PROCESS.</b> p is a local variable, created here and deleted at the return. Python line: <code>p = 4.50 + 0.80 * weight + 0.25 * miles</code>.',
+    f_start: '<b>START of ' + name + '.</b> The parameters are the function\'s own input boxes. The call fills them with its arguments, first to first, second to second. They are local: they exist only while the function runs.'};
+  if (fn === 'price') Object.assign(I, {f_p: '<b>PROCESS.</b> p is a local variable, created here and deleted at the return. Python line: <code>p = 4.50 + 0.80 * weight + 0.25 * miles</code>. This line runs once for any package, heavy or light: that is why price is constant.',
     f_d: '<b>DECISION.</b> <code>if fragile:</code> reads the parameter box. True takes the Yes arrow to the surcharge; False goes straight to the return.',
     f_add: '<b>PROCESS.</b> <code>p = p + 3.00</code>: the fragile surcharge, only on the Yes path.',
-    f_ret: '<b>RETURN.</b> <code>return p</code> ends the function at once and sends the value back to the call symbol. return is not print: nothing appears on the screen here.' + (co ? ' <span style="color:var(--ctrl)">Copilot\'s version returns before any surcharge: the parameter fragile is never read.</span>' : '')});
-  if (fn === 'zone') Object.assign(I, {f_d1: '<b>DECISION.</b> <code>if city == "Doral":</code>. Text comparison is exact: "doral" in lower case is not "Doral".',
-    f_d2: '<b>DECISION.</b> The elif runs only when the first check was False. <code>or</code> makes the branch True when either city matches.' + (co ? ' <span style="color:var(--ctrl)">Copilot put Kendall here, with the zone B cities. Kendall is zone C.</span>' : ''),
-    f_d3: '<b>DECISION.</b> The last elif. ' + (co ? 'In Copilot\'s version only Homestead reaches zone C.' : 'Kendall and Homestead are zone C.'),
-    f_rA: '<b>RETURN "A".</b> The first True branch returns and the function is over: the other diamonds are never checked.', f_rB: '<b>RETURN "B".</b> Hialeah and Miami Gardens are zone B.', f_rC: '<b>RETURN "C".</b> Zone C.',
-    f_rAsk: '<b>RETURN "Ask dispatch".</b> The else branch: any city the chain did not match. Without an else, the function would fall off its end and return None.'});
-  if (fn === 'manifest_total') Object.assign(I, {f_t: '<b>PROCESS.</b> The accumulator starts at ' + (co ? '1. <span style="color:var(--ctrl)">Copilot started it at 1, so every total is one pound too high, and an empty list totals 1.</span>' : '0 before the loop adds anything.'),
+    f_ret: '<b>RETURN.</b> <code>return p</code> ends the function at once and sends the value back to the call symbol. return is not print: nothing appears on the screen here.' + (co ? bad('Copilot\'s version returns before any surcharge: the parameter fragile is never read.') : '')});
+  if (fn === 'manifest_total') Object.assign(I, {f_t: '<b>PROCESS.</b> The accumulator starts at ' + (co ? '1.' + bad('Copilot started it at 1, so every total is one pound too high, and an empty list totals 1.') : '0 before the loop adds anything.'),
     f_d: '<b>DECISION (for loop).</b> <code>for w in weights:</code> asks: is there another item? Yes takes the next item; No leaves the loop.',
-    f_w: '<b>PROCESS.</b> The for loop copies the next item into the box w, one item per pass.', f_add: '<b>PROCESS.</b> <code>total = total + w</code> adds the item to the accumulator, then the arrow loops back to the diamond.',
+    f_w: '<b>PROCESS.</b> The for loop copies the next item into the box w, one item per pass.', f_add: '<b>PROCESS.</b> <code>total = total + w</code> adds the item to the accumulator, then the arrow loops back to the diamond. The step counter counts this symbol: one addition per weight.',
     f_ret: '<b>RETURN.</b> After the last item the loop ends and the total goes back to MAIN.'});
   if (fn === 'find_package') Object.assign(I, {f_i: '<b>PROCESS.</b> <code>for i in range(len(packages))</code> starts the counter i at 0: the first index of the list.',
-    f_d1: '<b>DECISION (for loop).</b> Is i still a valid index? With 5 packages the indexes are 0 to 4, so the loop runs while i < 5.',
-    f_d2: '<b>DECISION.</b> <code>if packages[i] == tracking:</code> compares the item at index i with the number we are looking for.',
-    f_rm: '<b>RETURN -1.</b> Reached only after every item was checked and none matched. -1 is a signal that means "not found": no real index is negative.',
-    f_ri: co ? '<b>RETURN packages[i].</b> <span style="color:var(--ctrl)">Copilot returns the item, which is the tracking number MAIN already had. MAIN needs the position i to look up the weight.</span>' : '<b>RETURN i.</b> The position of the match. Returning ends the loop early: the remaining items are never checked.',
+    f_d1: '<b>DECISION (for loop).</b> Is i still a valid index? With ' + CFG.size.find_package + ' packages the indexes are 0 to ' + (CFG.size.find_package - 1) + ', so the loop runs while i < ' + CFG.size.find_package + '.',
+    f_d2: '<b>DECISION.</b> <code>if packages[i] == tracking:</code> compares the item at index i with the number we are looking for. The step counter counts this symbol: one comparison per item checked. This way of searching, one item after another from the start, is called a sequential search.',
+    f_rm: '<b>RETURN -1.</b> Reached only after every item was checked and none matched: the worst case. -1 is a signal that means "not found": no real index is negative.',
+    f_ri: co ? '<b>RETURN packages[i].</b>' + bad('Copilot returns the item, which is the tracking number MAIN already had. MAIN needs the position i to look up the weight.') : '<b>RETURN i.</b> The position of the match. Returning ends the loop early: the remaining items are never checked. When the match is the first item, this happens after 1 comparison: the best case.',
     f_inc: '<b>PROCESS.</b> No match: the for loop moves i to the next index and loops back.'});
-  if (fn === 'sort_by_weight') Object.assign(I, {f_n: '<b>PROCESS.</b> n is the number of items. With 5 items, there are 4 neighboring pairs.',
-    f_d1: '<b>DECISION (outer loop).</b> <code>for i in range(n - 1)</code>: one pass per item except the last. Each pass bubbles the heaviest remaining weight to the end.',
-    f_d2: '<b>DECISION (inner loop).</b> ' + (co ? '<code>for j in range(n - i)</code>. <span style="color:var(--ctrl)">One pair too many: on the first pass j reaches n - 1 and weights[j + 1] does not exist.</span>' : '<code>for j in range(n - 1 - i)</code>: the pairs still unsorted. Each pass checks one pair fewer, because the end of the list is already in order.'),
-    f_d3: '<b>DECISION.</b> <code>if weights[j] > weights[j + 1]:</code> compares two neighbors. True means they are out of order.',
-    f_sw: '<b>PROCESS.</b> <code>weights[j], weights[j + 1] = weights[j + 1], weights[j]</code> swaps the two neighbors in one line.',
-    f_rw: '<b>RETURN weights.</b> The list is handed back lightest first. It is the same list MAIN passed in, so MAIN\'s copy is sorted too.'});
+  if (fn === 'has_duplicate') Object.assign(I, {f_n: '<b>PROCESS.</b> n is the number of tracking numbers in the list.',
+    f_d1: '<b>DECISION (outer loop).</b> <code>for i in range(n)</code>: the pointer i visits every item, one per pass of the outer loop.',
+    f_d2: '<b>DECISION (inner loop).</b> <code>for j in range(i + 1, n)</code>: for each i, the pointer j visits every later item. j starts at i + 1, so an item is never compared with itself, and no pair is checked twice.',
+    f_d3: '<b>DECISION.</b> <code>if trackings[i] == trackings[j]:</code> compares one pair. The step counter counts this symbol. With n items and no duplicate there are n × (n - 1) / 2 pairs: 10 pairs for 5 items, 45 for 10.' + (co ? bad('Copilot\'s comment says one comparison per item. Count them.') : ''),
+    f_rt: '<b>RETURN True.</b> Two equal numbers were found, so the function answers at once and skips the remaining pairs.',
+    f_rf: '<b>RETURN False.</b> Reached only after every pair was compared and no two were equal: the worst case.'});
+  if (name === 'load_order') Object.assign(I, {f_o: '<b>PROCESS.</b> <code>order = []</code> creates a new, empty list. Every item appended to it needs its own box in memory.' + (co ? bad('Copilot\'s comment says no extra memory is used. Watch the Extra boxes readout.') : ''),
+    f_i: '<b>PROCESS.</b> i starts at the last index of the route, because the last stop must be loaded first.',
+    f_d: '<b>DECISION (while loop).</b> <code>while i >= 0:</code> keeps going until i has walked past the first item (index 0).',
+    f_app: '<b>PROCESS.</b> <code>order.append(route[i])</code> copies one stop to the end of the new list. The step counter counts this symbol (one copy per stop), and Extra boxes grows by 1.',
+    f_dec: '<b>PROCESS.</b> <code>i = i - 1</code> moves the pointer one item toward the front, then the arrow loops back.',
+    f_ret: '<b>RETURN order.</b> The new list goes back to MAIN. MAIN\'s own route is untouched, and the price is n extra boxes.'});
+  if (name === 'load_order_in_place') Object.assign(I, {f_init: '<b>PROCESS.</b> Two pointers: left at the first index and right at the last one.',
+    f_d: '<b>DECISION (while loop).</b> <code>while left < right:</code> the loop runs until the two pointers meet in the middle. A list of n items needs n // 2 swaps.',
+    f_t: '<b>PROCESS.</b> <code>temp = route[left]</code> saves the left item in one extra box, so it is not lost when the right item is written over it.',
+    f_sw: '<b>PROCESS.</b> The right item moves to the left position, then temp fills the right position. The step counter counts this symbol: one swap.',
+    f_mv: '<b>PROCESS.</b> Both pointers move one step toward the middle, then the arrow loops back.',
+    f_ret: '<b>RETURN route.</b> It is the same list MAIN passed in, now reversed. No copy was made: one extra box (temp) was enough.' + (co ? bad('Copilot\'s comment says MAIN\'s route is not changed. Look at MAIN\'s route box after the return.') : '')});
   return I;
 }
 
 // ---- building the chart, the code, and the memory for the current choice ----
-let fk = null, CHART = null, MEM = null, MAIN_VARS = [], FNMEM = null, CON = null, STEPS = [], INFO = {}, LINES = [], BUG_LINE = 0, FN_LINES = 0;
+let fk = null, CHART = null, MEM = null, MAIN_VARS = [], FNMEM = null, CON = null, STEPS = [], INFO = {}, LINES = [], BUG_LINE = 0, FN_LINES = 0, DATA = {n: 0}, SETUP_LINES = [], CALL_LINE = 0, PRINT_LINE = 0;
 function fnEls() { const els = []; Object.keys(fk.nodes).forEach(id => { if (id[0] === 'f') els.push(fk.nodes[id].g); }); Object.keys(fk.edges).forEach(k => { if (k.indexOf('f_') >= 0) { els.push(fk.edges[k].g); if (fk.edges[k].lab) els.push(fk.edges[k].lab); } }); return els; }
 const GHOST = document.documentElement.getAttribute('data-theme') === 'light' ? .45 : .16;  // the ghost chart needs more ink on a white board
 function setFnVisible(show, animate, faded) {
@@ -1079,184 +1166,200 @@ function setFnVisible(show, animate, faded) {
 function ensureRet(id) { const key = id + '>m_call'; if (fk.edges[key]) return; fk.addEdge({from: id, to: 'm_call', points: retRoute(id)}); }
 function clearRet() { Object.keys(fk.edges).forEach(k => { if (k.endsWith('>m_call') && k[0] === 'f') { const e = fk.edges[k]; e.g.remove(); if (e.lab) e.lab.remove(); delete fk.edges[k]; } }); }
 function build() {
-  const fn = CFG.fn, co = CFG.copilot;
+  const fn = CFG.fn, co = CFG.copilot, name = fnName();
+  DATA = data();
   const stage = $('#stage'); stage.querySelectorAll('svg.flow, .fk-zoom').forEach(e => e.remove()); if (window.__flows) window.__flows.length = 0;
-  const M = mainChart(fn), F = fnChart(fn, co);
+  const M = mainChart(fn, DATA), F = fnChart(fn, co);
   const call = byId(M.nodes, 'm_call'), fs = byId(F.nodes, 'f_start');
   const edges = M.edges.concat(F.edges, [E('m_call', 'f_start', {points: [AN(call, 'right'), [CALL_LANE, M.CR], [CALL_LANE, 0], AN(fs, 'left')]})]);
-  CHART = {cols: fn === 'sort_by_weight' || fn === 'zone' || fn === 'find_package' || fn === 'manifest_total' ? 3.5 : 3.2, rows: Math.max(F.rows, M.CR + 3.2), nodes: M.nodes.concat(F.nodes), edges: edges, CR: M.CR};
+  CHART = {cols: fn === 'price' ? 3.2 : 3.5, rows: Math.max(F.rows, M.CR + 3.2), nodes: M.nodes.concat(F.nodes), edges: edges, CR: M.CR, W: M.W};
   fk = FlowKit(stage, CHART); if (window.innerWidth < 700) fk.focus('m_start');
   INFO = infoFor(fn, co); fk.onPick(id => { $('#info').innerHTML = INFO[id] || ''; });
   // code: the function that runs now plus MAIN
-  const fl = CODE[fn][co ? 'co' : 'ok']; FN_LINES = fl.length; BUG_LINE = co ? CODE[fn].bug : 0;
-  const mainLines = {price: ['result = price(' + CFG.weight + ', ' + CFG.miles + ', ' + pyBool(CFG.fragile) + ')', 'print(result)'], zone: ['result = zone("' + CFG.city + '")', 'print(result)'],
-    manifest_total: ['weights = ' + pyList(CFG.weights), 'result = manifest_total(weights)', 'print(result)'], find_package: [PKG_LINE, 'tracking = "' + CFG.tracking + '"', 'result = find_package(tracking, packages)', 'print(result)'],
-    sort_by_weight: ['weights = ' + pyList(CFG.weights), 'result = sort_by_weight(weights)', 'print(result)']}[fn];
-  LINES = fl.concat(['']).concat(mainLines);
+  const fl = CODE[name][co ? 'co' : 'ok']; FN_LINES = fl.length; BUG_LINE = co ? CODE[name].bug : 0;
+  const setup = {price: [], manifest_total: listLines('weights', DATA.weights || [], 10), find_package: fn === 'find_package' ? listLines('packages', DATA.packages.map(q), 4).concat(['tracking = ' + q(DATA.tracking)]) : [],
+    has_duplicate: fn === 'has_duplicate' ? listLines('trackings', DATA.trackings.map(q), 4) : [], load_order: fn === 'load_order' ? listLines('route', DATA.route.map(q), 8) : []}[fn];
+  const callText = {price: 'result = price(' + CFG.weight + ', ' + CFG.miles + ', ' + pyBool(CFG.fragile) + ')', manifest_total: 'result = manifest_total(weights)', find_package: 'result = find_package(tracking, packages)',
+    has_duplicate: 'result = has_duplicate(trackings)', load_order: 'result = ' + name + '(route)'}[fn];
+  LINES = fl.concat([''], setup, [callText, 'print(result)']);
+  SETUP_LINES = setup.map((l, k) => FN_LINES + 2 + k); CALL_LINE = FN_LINES + 2 + setup.length; PRINT_LINE = CALL_LINE + 1;
   $('#codeTitle').textContent = co ? 'toolkit.py (Copilot\'s refactor): the part that runs now' : 'toolkit.py: the part that runs now';
   // MAIN memory
-  MAIN_VARS = {price: ['result'], zone: ['result'], manifest_total: ['weights', 'result'], find_package: ['packages', 'tracking', 'result'], sort_by_weight: ['weights', 'result']}[fn];
-  const labels = {result: 'what the function returned', weights: 'a list of package weights (lb)', packages: 'tracking numbers on the manifest', tracking: 'the number we are looking for'};
+  MAIN_VARS = {price: ['result'], manifest_total: ['weights', 'result'], find_package: ['packages', 'tracking', 'result'], has_duplicate: ['trackings', 'result'], load_order: ['route', 'result']}[fn];
+  const labels = {result: 'what the function returned', weights: 'a list of package weights (lb)', packages: 'tracking numbers on the manifest', tracking: 'the number we are looking for', trackings: 'tracking numbers to check', route: 'the stops in delivery order'};
   MEM = FlowKit.memory($('#memory'), MAIN_VARS.map(v => ({name: v, label: labels[v]})));
   STEPS = simulate();
 }
-const mainLine = k => FN_LINES + 2 + k;
 
 // ---- the explanation as steps, generated by simulating the chosen call with real values ----
 function simulate() {
-  const fn = CFG.fn, co = CFG.copilot, steps = [], CR = CHART.CR, T = CODE[fn].test;
+  const fn = CFG.fn, co = CFG.copilot, name = fnName(), steps = [], D = DATA, n = D.n, T = CODE[name].test;
   const st = o => steps.push(Object.assign({color: '#38B0E0', path: null, label: '', apply: () => {}, phase: 'body', line: 0}, o));
-  const callLine = mainLine(CR - 1), printLine = mainLine(CR);
-  const callText = LINES[callLine - 1];
-  const prev = CR === 2 ? 'm_setup' : 'm_start';
-  st({node: 'm_start', phase: 'main', text: 'START. MAIN begins with empty memory. The def of ' + fn + ' above only taught Python the recipe: nothing inside the function has run yet.'});
-  if (fn === 'manifest_total' || fn === 'sort_by_weight') st({node: 'm_setup', phase: 'main', path: ['m_start>m_setup'], label: '?', line: mainLine(0), text: 'MAIN creates the list weights = ' + pyList(CFG.weights) + '. This box belongs to MAIN.', apply: s => { s.main.weights = pyList(CFG.weights); }});
-  if (fn === 'find_package') st({node: 'm_setup', phase: 'main', path: ['m_start>m_setup'], label: '?', line: mainLine(1), text: 'MAIN creates two boxes: packages, the five tracking numbers on today\'s manifest, and tracking = \'' + CFG.tracking + '\', the number we want to find.', apply: s => { s.main.packages = '[5 numbers]'; s.main.tracking = pyStr(CFG.tracking); }});
-  const argText = {price: CFG.weight + ', ' + CFG.miles + ', ' + pyBool(CFG.fragile), zone: pyStr(CFG.city), manifest_total: CFG.weights.length > 4 ? 'list of ' + CFG.weights.length : pyList(CFG.weights), find_package: pyStr(CFG.tracking) + ', list', sort_by_weight: CFG.weights.length > 4 ? 'list of ' + CFG.weights.length : pyList(CFG.weights)}[fn];
-  st({node: 'm_call', phase: 'call', path: [prev + '>m_call'], label: '?', line: callLine, text: 'MAIN reaches the call symbol: ' + callText + '. Python pauses MAIN right here and jumps into ' + fn + ', carrying the arguments (' + argText + ') with it.'});
-  const scope = (names) => ' The call is over, so the boxes inside ' + fn + ' (' + names + ') are deleted: that is scope. If MAIN tried print(' + names.split(', ').pop() + ') now, Python would stop with NameError: name \'' + names.split(', ').pop() + '\' is not defined.';
-  const ret = (from, value, ok, names, extra) => st({node: 'm_call', phase: 'return', retFrom: from, path: [from + '>m_call'], label: value, color: ok ? '#6FD49B' : '#F0786A', line: callLine,
-    text: (ok ? 'The value ' + value + ' travels back to MAIN and lands in the box result.' : 'The value ' + value + ' travels back to MAIN and lands in the box result, but it is wrong.') + scope(names) + (extra || ''),
-    apply: s => { s.fn = null; s.fnFaded = true; s.list = null; s.marks = null; s.counts = null; s.cond = null; s.main.result = value; s.main.bad = !ok; s.retFrom = from; if (fn === 'sort_by_weight') s.main.weights = value; }});
-  const outAndEnd = (printed) => { st({node: 'm_out', phase: 'output', path: ['m_call>m_out'], label: printed, color: '#9FE7FF', line: printLine, text: 'OUTPUT: MAIN prints result. The screen shows ' + printed + '.', apply: s => { s.console.push(printed); }});
-    st({node: 'm_end', phase: 'output', path: ['m_out>m_end'], label: 'done', color: '#6FD49B', text: 'END. MAIN stops. Pick another function or arguments, or turn on Copilot\'s refactor and run the same call again.'}); };
+  const callText = LINES[CALL_LINE - 1];
+  const prev = CHART.CR === 2 ? 'm_setup' : 'm_start';
+  st({node: 'm_start', phase: 'main', text: 'START. MAIN begins with empty memory. The def of ' + name + ' above only taught Python the recipe: nothing inside the function has run yet.'});
+  if (fn === 'manifest_total') st({node: 'm_setup', phase: 'main', path: ['m_start>m_setup'], label: '?', line: SETUP_LINES, text: 'MAIN creates the list weights' + (n <= 5 ? ' = ' + pyList(D.weights) : ': ' + n + ' weights, the VAN-1 manifest repeated ' + (n / 5) + ' times') + '. This box belongs to MAIN.', apply: s => { s.main.weights = n <= 5 ? pyList(D.weights) : 'list of ' + n + ' weights'; }});
+  if (fn === 'find_package') st({node: 'm_setup', phase: 'main', path: ['m_start>m_setup'], label: '?', line: SETUP_LINES, text: 'MAIN creates two boxes: packages, the ' + n + ' tracking numbers on today\'s manifest (PP-2026-0001 to ' + D.packages[n - 1] + '), and tracking = ' + pyStr(D.tracking) + ', the number we want to find.', apply: s => { s.main.packages = 'list of ' + n + ' numbers'; s.main.tracking = pyStr(D.tracking); }});
+  if (fn === 'has_duplicate') st({node: 'm_setup', phase: 'main', path: ['m_start>m_setup'], label: '?', line: SETUP_LINES, text: 'MAIN creates the list trackings: ' + n + ' tracking numbers' + (CFG.dup ? ', and the first two are the same number (someone scanned PP-2026-0001 twice).' : ', all different.'), apply: s => { s.main.trackings = 'list of ' + n + ' numbers'; }});
+  if (fn === 'load_order') st({node: 'm_setup', phase: 'main', path: ['m_start>m_setup'], label: '?', line: SETUP_LINES, text: 'MAIN creates the list route: the ' + n + ' stops in delivery order' + (n <= 5 ? ', ' + pyStrList(D.route) : '') + '. The van is a stack, so the loader needs them reversed.', apply: s => { s.main.route = shortList(D.route); }});
+  const argText = {price: CFG.weight + ', ' + CFG.miles + ', ' + pyBool(CFG.fragile), manifest_total: n > 4 ? 'list of ' + n : pyList(D.weights || []), find_package: pyStr(D.tracking || '') + ', list', has_duplicate: 'list of ' + n, load_order: 'list of ' + n}[fn];
+  st({node: 'm_call', phase: 'call', path: [prev + '>m_call'], label: '?', line: CALL_LINE, text: 'MAIN reaches the call symbol: ' + callText + '. Python pauses MAIN right here and jumps into ' + name + ', carrying the ' + (fn === 'price' || fn === 'find_package' ? 'arguments' : 'argument') + ' (' + argText + ') with it.'});
+  const scope = names => ' The call is over, so the boxes inside ' + name + ' (' + names + ') are deleted: that is scope. If MAIN tried print(' + names.split(', ').pop() + ') now, Python would stop with NameError: name \'' + names.split(', ').pop() + '\' is not defined.';
+  // o: {from, value (shown in the result box), label (on the token), ok, names, extra, main (other MAIN boxes that changed)}
+  const ret = o => st({node: 'm_call', phase: 'return', retFrom: o.from, rec: true, path: [o.from + '>m_call'], label: o.label || o.value, color: o.ok ? '#6FD49B' : '#F0786A', line: CALL_LINE,
+    text: (o.ok ? 'The value ' + o.value + ' travels back to MAIN and lands in the box result.' : 'The value ' + o.value + ' travels back to MAIN and lands in the box result, but it is wrong.') + scope(o.names) + (o.extra || ''),
+    apply: s => { s.fn = null; s.fnFaded = true; s.list = null; s.list2 = null; s.marks = null; s.cond = null; s.main.result = o.value; s.main.bad = !o.ok; s.retFrom = o.from; if (o.main) Object.assign(s.main, o.main); }});
+  const outAndEnd = printed => { st({node: 'm_out', phase: 'output', path: ['m_call>m_out'], label: printed.length > 14 ? 'result' : printed, color: '#9FE7FF', line: PRINT_LINE, text: 'OUTPUT: MAIN prints result. The screen shows ' + (printed.length > 60 ? 'the whole list' : printed) + '.', apply: s => { s.console.push(printed); }});
+    st({node: 'm_end', phase: 'output', path: ['m_out>m_end'], label: 'done', color: '#6FD49B', text: 'END. MAIN stops. ' + (fn === 'price' ? 'Pick another function or other arguments, or turn on Copilot\'s refactor and run the same call again.' : 'In Step counter, pick another list size and run again to compare the counts, or turn on Copilot\'s refactor.')}); };
   const luck = ' Copilot\'s version answered correctly this time, so this call cannot reveal its bug. The test that catches it: ' + T + '.';
   const caught = ' The test that catches it: ' + T + '.';
+  const counted = c => ' Step counter: ' + plural(c, UNIT[name]).replace('copys', 'copies') + (fn === 'price' ? ' of the function ran.' : ' for a list of ' + n + '.');
 
   if (fn === 'price') {
     const w = CFG.weight, m = CFG.miles, f = CFG.fragile, base = 4.5 + 0.8 * w + 0.25 * m, fin = f ? base + 3 : base;
-    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The arguments arrive in the parameter boxes, by position: weight = ' + w + ', miles = ' + m + ', fragile = ' + pyBool(f) + '. These boxes belong to price only: they are local.', apply: s => { s.fnShown = true; s.fn = {name: 'price', vars: {weight: w, miles: m, fragile: pyBool(f), p: null}}; }});
-    st({node: 'f_p', path: ['f_start>f_p'], label: w + ', ' + m, line: 2, text: 'p = 4.50 + 0.80 × ' + w + ' + 0.25 × ' + m + ' = 4.50 + ' + money(0.8 * w) + ' + ' + money(0.25 * m) + ' = ' + pyNum(base) + '. The box p is local too.' + (co ? ' Notice that nothing reads the parameter fragile.' : ''), apply: s => { s.fn.vars.p = pyNum(base); }});
+    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The arguments arrive in the parameter boxes, by position: weight = ' + w + ', miles = ' + m + ', fragile = ' + pyBool(f) + '. These boxes belong to price only: they are local.', apply: s => { s.fnShown = true; s.count = 0; s.fn = {name: 'price', vars: {weight: w, miles: m, fragile: pyBool(f), p: null}}; }});
+    st({node: 'f_p', path: ['f_start>f_p'], label: w + ', ' + m, line: 2, text: 'p = 4.50 + 0.80 × ' + w + ' + 0.25 × ' + m + ' = 4.50 + ' + money(0.8 * w) + ' + ' + money(0.25 * m) + ' = ' + pyNum(base) + '. The box p is local too.' + (co ? ' Notice that nothing reads the parameter fragile.' : ''), apply: s => { s.fn.vars.p = pyNum(base); s.count = 1; }});
     if (co) {
-      st({node: 'f_ret', path: ['f_p>f_ret'], label: pyNum(base), line: 3, text: 'RETURN p: Copilot\'s version returns ' + pyNum(base) + ' right away. There is no fragile decision in this chart at all.'});
-      ret('f_ret', pyNum(base), !f, 'weight, miles, fragile, p', f ? ' A fragile package should cost ' + money(base + 3) + ' (the surcharge of 3.00 is missing).' + caught : luck);
+      st({node: 'f_ret', path: ['f_p>f_ret'], label: pyNum(base), line: 3, text: 'RETURN p: Copilot\'s version returns ' + pyNum(base) + ' right away. There is no fragile decision in this chart at all.', apply: s => { s.count = 2; }});
+      ret({from: 'f_ret', value: pyNum(base), ok: !f, names: 'weight, miles, fragile, p', extra: f ? ' A fragile package should cost ' + money(base + 3) + ' (the surcharge of 3.00 is missing).' + caught : luck});
     } else {
-      st({node: 'f_d', path: ['f_p>f_d'], label: pyNum(base), line: 3, text: 'Decision: fragile? The box fragile holds ' + pyBool(f) + ', so the answer is ' + (f ? 'Yes: the token takes the Yes arrow to the surcharge.' : 'No: the token goes straight down and skips the surcharge.'), apply: s => { s.cond = [{expr: 'if fragile:', value: pyBool(f)}]; }});
-      if (f) st({node: 'f_add', path: ['f_d>f_add'], label: 'Yes', line: 4, text: 'p = ' + pyNum(base) + ' + 3.00 = ' + pyNum(fin) + ': the fragile surcharge.', apply: s => { s.fn.vars.p = pyNum(fin); }});
-      st({node: 'f_ret', path: [f ? 'f_add>f_ret' : 'f_d>f_ret'], label: pyNum(fin), line: 5, text: 'RETURN p: price hands ' + pyNum(fin) + ' back to the symbol that called it. A return ends the function at once. Nothing is printed here.', apply: s => { s.cond = null; }});
-      ret('f_ret', pyNum(fin), true, 'weight, miles, fragile, p');
+      st({node: 'f_d', path: ['f_p>f_d'], label: pyNum(base), line: 3, text: 'Decision: fragile? The box fragile holds ' + pyBool(f) + ', so the answer is ' + (f ? 'Yes: the token takes the Yes arrow to the surcharge.' : 'No: the token goes straight down and skips the surcharge.'), apply: s => { s.cond = [{expr: 'if fragile:', value: pyBool(f)}]; s.count = 2; }});
+      if (f) st({node: 'f_add', path: ['f_d>f_add'], label: 'Yes', line: 4, text: 'p = ' + pyNum(base) + ' + 3.00 = ' + pyNum(fin) + ': the fragile surcharge.', apply: s => { s.fn.vars.p = pyNum(fin); s.count = 3; }});
+      st({node: 'f_ret', path: [f ? 'f_add>f_ret' : 'f_d>f_ret'], label: pyNum(fin), line: 5, text: 'RETURN p: price hands ' + pyNum(fin) + ' back to the symbol that called it. A return ends the function at once. Nothing is printed here.', apply: s => { s.cond = null; s.count = f ? 4 : 3; }});
+      ret({from: 'f_ret', value: pyNum(fin), ok: true, names: 'weight, miles, fragile, p', extra: counted(f ? 4 : 3) + ' A heavier package or a longer trip changes the numbers, not the amount of work: price is constant.'});
     }
-    outAndEnd(pyNum(fin));
-  }
-  if (fn === 'zone') {
-    const c = CFG.city, isA = c === 'Doral', isB = c === 'Hialeah' || c === 'Miami Gardens' || (co && c === 'Kendall'), isC = co ? c === 'Homestead' : (c === 'Kendall' || c === 'Homestead');
-    const right = c === 'Doral' ? 'A' : (c === 'Hialeah' || c === 'Miami Gardens') ? 'B' : (c === 'Kendall' || c === 'Homestead') ? 'C' : 'Ask dispatch';
-    const got = isA ? 'A' : isB ? 'B' : isC ? 'C' : 'Ask dispatch';
-    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The argument arrives: city = ' + pyStr(c) + '. One parameter, one box, local to zone.', apply: s => { s.fnShown = true; s.fn = {name: 'zone', vars: {city: pyStr(c)}}; }});
-    st({node: 'f_d1', path: ['f_start>f_d1'], label: pyStr(c), line: 2, text: 'Decision: city == "Doral"? The box city holds ' + pyStr(c) + ', so this is ' + pyBool(isA) + (isA ? ': the token takes the Yes arrow.' : ': the token takes the No arrow to the next elif.' + (c === 'doral' ? ' Text comparison is exact: "doral" is not "Doral".' : '')), apply: s => { s.cond = [{expr: 'city == "Doral"', value: pyBool(isA)}]; }});
-    if (isA) st({node: 'f_rA', path: ['f_d1>f_rA'], label: 'Yes', line: 3, text: 'RETURN "A": the first True branch returns. The other diamonds are never checked.', apply: s => { s.cond = null; }});
-    else {
-      st({node: 'f_d2', path: ['f_d1>f_d2'], label: 'No', line: 4, text: 'Decision: ' + (co ? 'Hialeah, Miami Gardens, or Kendall? ' : 'Hialeah or Miami Gardens? ') + 'With city = ' + pyStr(c) + ' this is ' + pyBool(isB) + '.' + (co && c === 'Kendall' ? ' Copilot listed Kendall with the zone B cities.' : ''), apply: s => { s.cond = [{expr: co ? 'city == "Hialeah" or city == "Miami Gardens" or city == "Kendall"' : 'city == "Hialeah" or city == "Miami Gardens"', value: pyBool(isB)}]; }});
-      if (isB) st({node: 'f_rB', path: ['f_d2>f_rB'], label: 'Yes', line: 5, text: 'RETURN "B": zone B.', apply: s => { s.cond = null; }});
-      else {
-        st({node: 'f_d3', path: ['f_d2>f_d3'], label: 'No', line: 6, text: 'Decision: ' + (co ? 'Homestead? ' : 'Kendall or Homestead? ') + 'With city = ' + pyStr(c) + ' this is ' + pyBool(isC) + '.', apply: s => { s.cond = [{expr: co ? 'city == "Homestead"' : 'city == "Kendall" or city == "Homestead"', value: pyBool(isC)}]; }});
-        if (isC) st({node: 'f_rC', path: ['f_d3>f_rC'], label: 'Yes', line: 7, text: 'RETURN "C": zone C.', apply: s => { s.cond = null; }});
-        else st({node: 'f_rAsk', path: ['f_d3>f_rAsk'], label: 'No', line: 9, text: 'No diamond matched, so the else branch runs: RETURN "Ask dispatch". Without this else the function would return None.', apply: s => { s.cond = null; }});
-      }
-    }
-    const from = isA ? 'f_rA' : isB ? 'f_rB' : isC ? 'f_rC' : 'f_rAsk';
-    ret(from, pyStr(got), got === right, 'city', co ? (got === right ? luck : ' ' + c + ' is zone ' + right + ', not ' + got + '.' + caught) : '');
-    outAndEnd(got);
+    outAndEnd(pyNum(co ? base : fin));
   }
   if (fn === 'manifest_total') {
-    const W = CFG.weights.slice(); let total = co ? 1 : 0;
-    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The argument arrives: the parameter weights now names MAIN\'s list ' + pyList(W) + '. Python does not copy the list; both names point to the same ' + W.length + ' items.', apply: s => { s.fnShown = true; s.fn = {name: 'manifest_total', vars: {weights: W.length ? 'the list' : '[]', total: null, w: null}}; s.list = W.map((v, k) => ({k: k, v: v})); s.listName = 'weights, item by item'; }});
+    const W = D.weights.slice(); let total = co ? 1 : 0;
+    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The argument arrives: the parameter weights now names MAIN\'s list' + (n <= 5 ? ' ' + pyList(W) : ' of ' + n + ' weights') + '. Python does not copy the list; both names point to the same ' + plural(n, 'item') + '.', apply: s => { s.fnShown = true; s.count = 0; s.fn = {name: 'manifest_total', vars: {weights: W.length ? 'the list' : '[]', total: null, w: null}}; s.list = W.map((v, k) => ({k: k, v: v})); s.listName = 'weights, item by item'; }});
     st({node: 'f_t', path: ['f_start>f_t'], label: '', line: 2, text: 'total = ' + total + '. The accumulator ' + (co ? 'starts at 1 in Copilot\'s version. Every total will be one pound too high.' : 'starts at 0: nothing has been added yet.'), apply: s => { s.fn.vars.total = total; }});
     let from = 'f_t';
     W.forEach((v, k) => {
-      const before = total; total += v;
+      const before = total; total += v; const after = total;
       st({node: 'f_d', path: [from + '>f_d'], label: String(before), line: 3, text: 'more weights? Yes: item ' + k + ' (' + v + ') has not been read yet, so the loop body runs again.', apply: s => { s.cond = [{expr: 'for w in weights', value: 'item ' + k + ' of ' + W.length}]; s.marks = {on: k}; }});
       st({node: 'f_w', path: ['f_d>f_w'], label: 'Yes', line: 3, text: 'w = ' + v + ': the for loop copies item ' + k + ' into the box w.', apply: s => { s.fn.vars.w = v; }});
-      st({node: 'f_add', path: ['f_w>f_add'], label: String(v), line: 4, text: 'total = ' + before + ' + ' + v + ' = ' + total + '. Then the arrow loops back to the diamond.', apply: s => { s.fn.vars.total = total; s.marks = {hit: k}; }});
+      st({node: 'f_add', path: ['f_w>f_add'], label: String(v), line: 4, text: 'total = ' + before + ' + ' + v + ' = ' + after + '. That is addition number ' + (k + 1) + '. Then the arrow loops back to the diamond.', apply: s => { s.fn.vars.total = after; s.marks = {hit: k}; s.count = k + 1; }});
       from = 'f_add';
     });
     st({node: 'f_d', path: [from + '>f_d'], label: String(total), line: 3, text: 'more weights? No: ' + (W.length ? 'all ' + W.length + ' items have been read.' : 'the list is empty, so the body never runs.') + ' The token leaves the loop.', apply: s => { s.cond = [{expr: 'for w in weights', value: 'no more items'}]; s.marks = null; }});
     st({node: 'f_ret', path: ['f_d>f_ret'], label: 'No', line: 5, text: 'RETURN total: ' + total + ' goes back to MAIN.', apply: s => { s.cond = null; }});
     const right = W.reduce((a, b) => a + b, 0);
-    ret('f_ret', String(total), total === right, 'weights, total, w', co ? ' The right total is ' + right + '.' + caught : (right > 1200 ? ' That is above the 1,200 lb capacity of VAN-1; MAIN could warn about it.' : ''));
+    ret({from: 'f_ret', value: String(total), ok: total === right, names: 'weights, total, w', extra: (co ? ' The right total is ' + right + '.' + caught : (right > 1200 ? ' That is above the 1,200 lb capacity of VAN-1; MAIN could warn about it.' : '')) + counted(n) + ' One addition per weight.'});
     outAndEnd(String(total));
   }
   if (fn === 'find_package') {
-    const t = CFG.tracking;
-    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'Two arguments arrive: tracking = ' + pyStr(t) + ' and packages, MAIN\'s list of five tracking numbers (shared, not copied).', apply: s => { s.fnShown = true; s.fn = {name: 'find_package', vars: {tracking: pyStr(t), packages: 'the list', i: null}}; s.list = PACKAGES.map((v, k) => ({k: k, v: v.replace('PP-2026-', '')})); s.listName = 'packages (PP-2026-xxxx), item by item'; }});
-    st({node: 'f_i', path: ['f_start>f_i'], label: '', line: 2, text: 'i = 0. The for loop over range(len(packages)) counts i from 0 to 4: the five indexes of the list.', apply: s => { s.fn.vars.i = 0; }});
+    const t = D.tracking, P = D.packages;
+    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'Two arguments arrive: tracking = ' + pyStr(t) + ' and packages, MAIN\'s list of ' + n + ' tracking numbers (shared, not copied).', apply: s => { s.fnShown = true; s.count = 0; s.fn = {name: 'find_package', vars: {tracking: pyStr(t), packages: 'the list', i: null}}; s.list = P.map((v, k) => ({k: k, v: v.replace('PP-2026-', '')})); s.listName = 'packages (PP-2026-xxxx), item by item'; }});
+    st({node: 'f_i', path: ['f_start>f_i'], label: '', line: 2, text: 'i = 0. The for loop over range(len(packages)) counts i from 0 to ' + (n - 1) + ': the ' + n + ' indexes of the list.', apply: s => { s.fn.vars.i = 0; }});
     let from = 'f_i', found = -1;
-    for (let i = 0; i < PACKAGES.length; i++) {
-      st({node: 'f_d1', path: [from + '>f_d1'], label: 'i = ' + i, line: 2, text: 'i < len(packages)? ' + i + ' < 5 is True: index ' + i + ' exists, so check it.', apply: s => { s.cond = [{expr: 'i < len(packages)', value: 'True'}]; s.marks = {on: i}; }});
-      const hit = PACKAGES[i] === t;
-      st({node: 'f_d2', path: ['f_d1>f_d2'], label: 'Yes', line: 3, text: 'packages[' + i + '] is ' + pyStr(PACKAGES[i]) + '. Equal to ' + pyStr(t) + '? ' + pyBool(hit) + (hit ? ': found it at index ' + i + '.' : ': not this one.'), apply: s => { s.cond = [{expr: 'packages[i] == tracking', value: pyBool(hit)}]; s.marks = hit ? {hit: i} : {miss: i}; }});
-      if (hit) { found = i; st({node: 'f_ri', path: ['f_d2>f_ri'], label: 'Yes', line: 4, text: (co ? 'RETURN packages[i]: Copilot\'s version returns the item itself, ' + pyStr(t) + '.' : 'RETURN i: the position ' + i + ' goes back to MAIN.') + ' The loop ends early: the items after index ' + i + ' are never checked.', apply: s => { s.cond = null; }}); break; }
+    for (let i = 0; i < n; i++) {
+      st({node: 'f_d1', path: [from + '>f_d1'], label: 'i = ' + i, line: 2, text: 'i < len(packages)? ' + i + ' < ' + n + ' is True: index ' + i + ' exists, so check it.', apply: s => { s.cond = [{expr: 'i < len(packages)', value: 'True'}]; s.marks = {on: i}; }});
+      const hit = P[i] === t;
+      st({node: 'f_d2', path: ['f_d1>f_d2'], label: 'Yes', line: 3, text: 'Comparison ' + (i + 1) + ': packages[' + i + '] is ' + pyStr(P[i]) + '. Equal to ' + pyStr(t) + '? ' + pyBool(hit) + (hit ? ': found it at index ' + i + '.' : ': not this one.'), apply: s => { s.cond = [{expr: 'packages[i] == tracking', value: pyBool(hit)}]; s.marks = hit ? {hit: i} : {miss: i}; s.count = i + 1; }});
+      if (hit) { found = i; st({node: 'f_ri', path: ['f_d2>f_ri'], label: 'Yes', line: 4, text: (co ? 'RETURN packages[i]: Copilot\'s version returns the item itself, ' + pyStr(t) + '.' : 'RETURN i: the position ' + i + ' goes back to MAIN.') + (i < n - 1 ? ' The loop ends early: the items after index ' + i + ' are never checked.' : ' It was the last item, so every item had to be checked first.'), apply: s => { s.cond = null; }}); break; }
       st({node: 'f_inc', path: ['f_d2>f_inc'], label: 'No', line: 2, text: 'No match. The for loop moves i from ' + i + ' to ' + (i + 1) + ' and loops back.', apply: s => { s.fn.vars.i = i + 1; }});
       from = 'f_inc';
     }
+    const cnt = found < 0 ? n : found + 1;
+    const why = CFG.target === 'first' ? ' The match was the first item: the best case, 1 comparison whatever the length of the list.' : CFG.target === 'last' ? ' The match was the last item: a worst case, one comparison for every item.' : ' The number is not in the list: a worst case, one comparison for every item and still no match.';
     if (found < 0) {
-      st({node: 'f_d1', path: ['f_inc>f_d1'], label: 'i = 5', line: 2, text: 'i < len(packages)? 5 < 5 is False: every index was checked and nothing matched. The token leaves the loop.', apply: s => { s.cond = [{expr: 'i < len(packages)', value: 'False'}]; s.marks = null; }});
+      st({node: 'f_d1', path: ['f_inc>f_d1'], label: 'i = ' + n, line: 2, text: 'i < len(packages)? ' + n + ' < ' + n + ' is False: every index was checked and nothing matched. The token leaves the loop.', apply: s => { s.cond = [{expr: 'i < len(packages)', value: 'False'}]; s.marks = null; }});
       st({node: 'f_rm', path: ['f_d1>f_rm'], label: 'No', line: 5, text: 'RETURN -1: the signal for "not found". No real index is negative, so MAIN can tell the difference.', apply: s => { s.cond = null; }});
-      ret('f_rm', '-1', true, 'tracking, packages, i', co ? luck : '');
+      ret({from: 'f_rm', value: '-1', ok: true, names: 'tracking, packages, i', extra: (co ? luck : '') + counted(cnt) + why});
       outAndEnd('-1');
     } else {
       const val = co ? pyStr(t) : String(found);
-      ret('f_ri', val, !co, 'tracking, packages, i', co ? ' MAIN wanted the position (' + found + ') to look up that package\'s weight; it got the tracking number it already had.' + caught : '');
+      ret({from: 'f_ri', value: val, label: co ? '\'' + t.slice(-4) + '\'' : val, ok: !co, names: 'tracking, packages, i', extra: (co ? ' MAIN wanted the position (' + found + ') to look up that package\'s weight; it got the tracking number it already had.' + caught : '') + counted(cnt) + why});
       outAndEnd(co ? t : String(found));
     }
   }
-  if (fn === 'sort_by_weight') {
-    const W = CFG.weights.slice(), n = W.length; const keys = W.map((v, k) => ({k: k, v: v}));
-    const counts = {pass: 0, cmp: 0, swap: 0}; const snap = () => keys.map(o => ({k: o.k, v: o.v}));
-    const list = () => pyList(keys.map(o => o.v));
-    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The argument arrives: the parameter weights names MAIN\'s list ' + pyList(W) + '. It is the same list, not a copy, so every swap inside the function changes MAIN\'s list too.', apply: s => { s.fnShown = true; s.fn = {name: 'sort_by_weight', vars: {weights: 'the list', n: null, i: null, j: null}}; s.list = snap(); s.listName = 'weights, item by item'; s.counts = {pass: 0, cmp: 0, swap: 0}; }});
-    st({node: 'f_n', path: ['f_start>f_n'], label: '', line: 2, text: 'n = len(weights) = ' + n + '. With ' + n + ' items there are ' + Math.max(0, n - 1) + ' neighboring pairs to compare on the first pass.', apply: s => { s.fn.vars.n = n; }});
-    let from = 'f_n', crashed = false;
-    for (let i = 0; i < n - 1 && !crashed; i++) {
-      counts.pass = i + 1;
-      const pc = Object.assign({}, counts);
-      st({node: 'f_d1', path: [from + '>f_d1'], label: 'i = ' + i, line: 3, text: 'i = ' + i + ': ' + i + ' < ' + (n - 1) + '? True. Pass ' + (i + 1) + ' begins.' + (i > 0 ? ' The last ' + i + ' item' + (i > 1 ? 's are' : ' is') + ' already in place, so this pass checks ' + (co ? n - i : n - 1 - i) + ' pairs.' : ''), apply: s => { s.fn.vars.i = i; s.fn.vars.j = null; s.counts = pc; s.cond = [{expr: 'i < n - 1', value: 'True'}]; s.marks = null; }});
+  if (fn === 'has_duplicate') {
+    const TR = D.trackings, o = co ? 1 : 0, short = v => v.replace('PP-2026-', '');
+    let cnt = 0, from = 'f_n', hitAt = null;
+    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The argument arrives: the parameter trackings names MAIN\'s list of ' + n + ' tracking numbers (shared, not copied).' + (co ? ' Copilot\'s comment on line 2 claims the function is linear. The step counter will check that.' : ''), apply: s => { s.fnShown = true; s.count = 0; s.fn = {name: 'has_duplicate', vars: {trackings: 'the list', n: null, i: null, j: null}}; s.list = TR.map((v, k) => ({k: k, v: short(v)})); s.listName = 'trackings (PP-2026-xxxx): pointer i and pointer j'; }});
+    st({node: 'f_n', path: ['f_start>f_n'], label: '', line: 2 + o, text: 'n = len(trackings) = ' + n + '. With ' + n + ' items there are ' + n + ' × ' + (n - 1) + ' / 2 = ' + (n * (n - 1) / 2) + ' different pairs to compare.', apply: s => { s.fn.vars.n = n; }});
+    for (let i = 0; i < n && !hitAt; i++) {
+      const ii = i, later = n - 1 - i;
+      st({node: 'f_d1', path: [from + '>f_d1'], label: 'i = ' + ii, line: 3 + o, text: 'Outer loop: i = ' + ii + ', and ' + ii + ' < ' + n + ' is True. Pointer i stops on item ' + ii + ' (' + short(TR[ii]) + '). Pointer j will now visit the ' + plural(later, 'item') + ' after it.', apply: s => { s.fn.vars.i = ii; s.fn.vars.j = null; s.cond = [{expr: 'i < n', value: 'True'}]; s.marks = {ptr: [[ii, 'i']]}; }});
       from = 'f_d1';
-      const pairs = co ? n - i : n - 1 - i;
-      for (let j = 0; j < pairs; j++) {
-        if (j + 1 >= n) {  // Copilot's bug: weights[j + 1] does not exist
-          counts.cmp++;
-          const cc = Object.assign({}, counts), jj = j;
-          st({node: 'f_d3', err: true, path: [from + '>f_d2', 'f_d2>f_d3'], label: 'j = ' + jj, color: '#F0786A', line: 5, text: 'Pair j = ' + jj + ': ' + jj + ' < ' + pairs + ' is True in Copilot\'s version, so the loop continues. But weights[j + 1] is weights[' + (jj + 1) + '] and the list only has indexes 0 to ' + (n - 1) + '. Python stops: IndexError: list index out of range. The fix is range(n - 1 - i).' + caught + ' MAIN never gets a value.',
-            apply: s => { s.fn.vars.j = jj; s.counts = cc; s.cond = [{expr: 'j < n - i', value: 'True'}, {expr: 'weights[' + jj + '] > weights[' + (jj + 1) + ']', value: 'IndexError'}]; s.marks = {cmp: [jj, jj + 1], ghost: true}; s.error = true;
-              s.console.push('Traceback (most recent call last):', '  File "toolkit.py", line ' + mainLine(1) + ', in <module>', '    result = sort_by_weight(weights)', '  File "toolkit.py", line 5, in sort_by_weight', '    if weights[j] > weights[j + 1]:', 'IndexError: list index out of range'); }});
-          crashed = true; break;
-        }
-        counts.cmp++;
-        const a = keys[j].v, b = keys[j + 1].v, gt = a > b, cc = Object.assign({}, counts), jj = j;
-        st({node: 'f_d3', path: [from + '>f_d2', 'f_d2>f_d3'], label: 'j = ' + jj, line: 5, text: 'Pair j = ' + jj + ' (' + jj + ' < ' + pairs + ', more pairs): compare weights[' + jj + '] = ' + a + ' with weights[' + (jj + 1) + '] = ' + b + '. Is ' + a + ' > ' + b + '? ' + pyBool(gt) + (gt ? ': out of order, so the next symbol swaps them.' : ': already in order, no swap.') + ' Comparisons so far: ' + cc.cmp + '.',
-          apply: s => { s.fn.vars.j = jj; s.counts = cc; s.cond = [{expr: (co ? 'j < n - i' : 'j < n - 1 - i'), value: 'True'}, {expr: 'weights[' + jj + '] > weights[' + (jj + 1) + ']', value: pyBool(gt)}]; s.marks = {cmp: [jj, jj + 1]}; }});
-        if (gt) {
-          const tmp = keys[j]; keys[j] = keys[j + 1]; keys[j + 1] = tmp; counts.swap++;
-          const sc = Object.assign({}, counts), after = snap(), ls = list();
-          st({node: 'f_sw', path: ['f_d3>f_sw'], label: 'Yes', line: 6, text: 'Swap: weights[' + jj + '] and weights[' + (jj + 1) + '] trade places. The list is now ' + ls + '. Swaps so far: ' + sc.swap + '.', apply: s => { s.counts = sc; s.list = after; s.marks = {cmp: [jj, jj + 1]}; s.cond = null; }});
-          from = 'f_sw';
-        } else from = 'f_d3';
+      for (let j = i + 1; j < n; j++) {
+        cnt++;
+        const jj = j, c = cnt, eq = TR[i] === TR[j];
+        st({node: 'f_d3', path: from === 'f_d1' ? ['f_d1>f_d2', 'f_d2>f_d3'] : ['f_d3>f_d2', 'f_d2>f_d3'], label: 'j = ' + jj, line: 5 + o, text: 'Comparison ' + c + ': j = ' + jj + ' (' + jj + ' < ' + n + '). Is trackings[' + ii + '] (' + short(TR[ii]) + ') equal to trackings[' + jj + '] (' + short(TR[jj]) + ')? ' + pyBool(eq) + (eq ? ': a duplicate.' : ': different, so j moves on.'),
+          apply: s => { s.fn.vars.j = jj; s.count = c; s.cond = [{expr: 'j < n', value: 'True'}, {expr: 'trackings[' + ii + '] == trackings[' + jj + ']', value: pyBool(eq)}]; s.marks = eq ? {ptr: [[ii, 'i'], [jj, 'j']], hits: [ii, jj]} : {ptr: [[ii, 'i'], [jj, 'j']], cmp: [ii, jj]}; }});
+        from = 'f_d3';
+        if (eq) { hitAt = [i, j]; break; }
       }
-      if (crashed) break;
-      const pc2 = Object.assign({}, counts), ls = list(), jEnd = pairs;
-      st({node: 'f_d2', path: [from + '>f_d2'], label: 'j = ' + jEnd, line: 4, text: 'j = ' + jEnd + ': ' + jEnd + ' < ' + pairs + '? False. Pass ' + (i + 1) + ' is complete: ' + ls + '. The heaviest of the unsorted part has bubbled to position ' + (n - 1 - i) + '.', apply: s => { s.fn.vars.j = jEnd; s.counts = pc2; s.cond = [{expr: (co ? 'j < n - i' : 'j < n - 1 - i'), value: 'False'}]; s.marks = {hit: n - 1 - i}; }});
+      if (hitAt) break;
+      st({node: 'f_d2', path: [from + '>f_d2'], label: 'j = ' + n, line: 4 + o, text: (later === 0 ? 'Inner loop: j would start at ' + n + ', and ' + n + ' < ' + n + ' is False. The last item has nothing after it to compare with.' : 'Inner loop: j = ' + n + ', and ' + n + ' < ' + n + ' is False. Item ' + ii + ' was compared with every later item (' + plural(later, 'comparison') + ').') + ' Back to the outer loop. Comparisons so far: ' + cnt + '.', apply: s => { s.fn.vars.j = n; s.cond = [{expr: 'j < n', value: 'False'}]; s.marks = {ptr: [[ii, 'i']]}; }});
       from = 'f_d2';
     }
-    if (!crashed) {
-      const fc = Object.assign({}, counts), ls = list();
-      st({node: 'f_d1', path: [(n > 1 ? 'f_d2' : 'f_n') + '>f_d1'], label: 'i = ' + Math.max(0, n - 1), line: 3, text: 'i = ' + Math.max(0, n - 1) + ': ' + Math.max(0, n - 1) + ' < ' + Math.max(0, n - 1) + '? False. No more passes. Totals: ' + fc.pass + ' pass' + (fc.pass === 1 ? '' : 'es') + ', ' + fc.cmp + ' comparison' + (fc.cmp === 1 ? '' : 's') + ', ' + fc.swap + ' swap' + (fc.swap === 1 ? '' : 's') + '.', apply: s => { s.fn.vars.i = Math.max(0, n - 1); s.counts = fc; s.cond = [{expr: 'i < n - 1', value: 'False'}]; s.marks = null; }});
-      st({node: 'f_rw', path: ['f_d1>f_rw'], label: 'No', line: 7, text: 'RETURN weights: the list ' + ls + ', lightest first, goes back to MAIN.', apply: s => { s.cond = null; }});
-      ret('f_rw', ls, true, 'weights, n, i, j', co ? luck : ' MAIN\'s own weights box shows the sorted list too: it was the same list all along.');
-      outAndEnd(ls);
+    if (hitAt) {
+      st({node: 'f_rt', path: ['f_d3>f_rt'], label: 'Yes', color: '#6FD49B', line: 6 + o, text: 'RETURN True: items ' + hitAt[0] + ' and ' + hitAt[1] + ' hold the same number, so the function answers at once. The remaining pairs are never compared.', apply: s => { s.cond = null; }});
+      ret({from: 'f_rt', value: 'True', ok: true, names: 'trackings, n, i, j', extra: counted(cnt) + (cnt === 1 ? ' The first pair matched: the best case.' : '') + (co ? ' A run that ends this early cannot test Copilot\'s claim. Pick the list with no duplicate (the worst case) and count again.' : '')});
+      outAndEnd('True');
+    } else {
+      st({node: 'f_d1', path: ['f_d2>f_d1'], label: 'i = ' + n, line: 3 + o, text: 'Outer loop: i = ' + n + ', and ' + n + ' < ' + n + ' is False. Every pair has been compared: ' + cnt + ' comparisons, and no two numbers were equal.', apply: s => { s.fn.vars.i = n; s.fn.vars.j = null; s.cond = [{expr: 'i < n', value: 'False'}]; s.marks = null; }});
+      st({node: 'f_rf', path: ['f_d1>f_rf'], label: 'No', line: 7 + o, text: 'RETURN False: no duplicate in the list.', apply: s => { s.cond = null; }});
+      ret({from: 'f_rf', value: 'False', ok: true, names: 'trackings, n, i, j', extra: counted(cnt) + ' No duplicate is the worst case: every pair had to be compared.' + (co ? ' Copilot\'s comment says linear, which would mean about ' + n + ' comparisons for ' + n + ' items. The counter shows ' + cnt + '. The claim is wrong: the count follows the number of pairs, n × (n - 1) / 2, and that growth is called quadratic.' + caught : '')});
+      outAndEnd('False');
     }
+  }
+  if (name === 'load_order') {
+    const R = D.route, o = co ? 1 : 0, order = [];
+    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The argument arrives: the parameter route names MAIN\'s list of ' + n + ' stops (shared, not copied).' + (co ? ' Copilot\'s comment on line 2 claims no extra memory is used. The Extra boxes readout will check that.' : ''), apply: s => { s.fnShown = true; s.count = 0; s.extra = 0; s.fn = {name: 'load_order', vars: {route: 'the list', order: null, i: null}}; s.list = R.map((v, k) => ({k: k, v: v})); s.listName = 'route: MAIN\'s list, read from the back'; }});
+    st({node: 'f_o', path: ['f_start>f_o'], label: '', line: 2 + o, text: 'order = []: a new, empty list. It is local, and every stop appended to it will need a box of its own.', apply: s => { s.fn.vars.order = '[]'; s.list2 = []; s.list2Name = 'order: the new list (each box here is an extra box)'; }});
+    st({node: 'f_i', path: ['f_o>f_i'], label: '', line: 3 + o, text: 'i = len(route) - 1 = ' + (n - 1) + ': the index of the last stop. The last delivery is the first package to load.', apply: s => { s.fn.vars.i = n - 1; s.marks = {ptr: [[n - 1, 'i']]}; }});
+    let from = 'f_i';
+    for (let i = n - 1; i >= 0; i--) {
+      const ii = i; order.push(R[i]); const snap = order.map((v, k) => ({k: 'o' + k, v: v})), c = order.length;
+      st({node: 'f_d', path: [from + '>f_d'], label: 'i = ' + ii, line: 4 + o, text: 'i >= 0? ' + ii + ' >= 0 is True: there is still a stop to copy.', apply: s => { s.cond = [{expr: 'i >= 0', value: 'True'}]; s.marks = {ptr: [[ii, 'i']]}; }});
+      st({node: 'f_app', path: ['f_d>f_app'], label: 'Yes', line: 5 + o, text: 'order.append(route[' + ii + ']): stop ' + pyStr(R[ii]) + ' is copied to the end of the new list. That is copy number ' + c + ', and the new list now uses ' + plural(c, 'extra box').replace('boxs', 'boxes') + '.', apply: s => { s.fn.vars.order = 'list of ' + c; s.list2 = snap; s.marks = {ptr: [[ii, 'i']], hit: ii, hit2: c - 1}; s.count = c; s.extra = c; }});
+      st({node: 'f_dec', path: ['f_app>f_dec'], label: pyStr(R[ii]), line: 6 + o, text: 'i = ' + ii + ' - 1 = ' + (ii - 1) + '. The pointer moves one stop toward the front and the arrow loops back.', apply: s => { s.fn.vars.i = ii - 1; s.marks = ii - 1 >= 0 ? {ptr: [[ii - 1, 'i']]} : null; }});
+      from = 'f_dec';
+    }
+    st({node: 'f_d', path: [from + '>f_d'], label: 'i = -1', line: 4 + o, text: 'i >= 0? -1 >= 0 is False: every stop has been copied. The token leaves the loop.', apply: s => { s.cond = [{expr: 'i >= 0', value: 'False'}]; s.marks = null; }});
+    st({node: 'f_ret', path: ['f_d>f_ret'], label: 'No', line: 7 + o, text: 'RETURN order: the new list, ' + shortList(order) + ', goes back to MAIN. MAIN\'s route was only read, never changed.', apply: s => { s.cond = null; }});
+    ret({from: 'f_ret', value: shortList(order), label: 'list of ' + n, ok: true, names: 'route, order, i', extra: counted(n) + ' Extra boxes: ' + n + ', one for every stop, because the answer is a second list as long as the route.' + (co ? ' Copilot\'s comment says no extra memory is used. The readout shows ' + n + ' extra boxes for ' + n + ' stops. The claim is wrong.' + caught : '')});
+    outAndEnd(pyStrList(order));
+  }
+  if (name === 'load_order_in_place') {
+    const o = co ? 1 : 0, keys = D.route.map((v, k) => ({k: k, v: v})), snap = () => keys.map(x => ({k: x.k, v: x.v}));
+    let left = 0, right = n - 1, swaps = 0, from = 'f_init';
+    st({node: 'f_start', phase: 'call', showFn: true, path: ['m_call>f_start'], label: argText, line: 1, text: 'The argument arrives: the parameter route names MAIN\'s list of ' + n + ' stops. It is the same list, not a copy, so every swap inside the function changes MAIN\'s list too.' + (co ? ' Copilot\'s comment on line 2 claims MAIN\'s route is not changed. Watch MAIN\'s route box at the return.' : ''), apply: s => { s.fnShown = true; s.count = 0; s.extra = 0; s.fn = {name: 'load_order_in_place', vars: {route: 'the list', left: null, right: null, temp: null}}; s.list = snap(); s.listName = 'route: MAIN\'s own list, swapped in place'; }});
+    st({node: 'f_init', path: ['f_start>f_init'], label: '', line: [2 + o, 3 + o], text: 'left = 0 and right = len(route) - 1 = ' + (n - 1) + ': two pointers, one on each end of the list.', apply: s => { s.fn.vars.left = 0; s.fn.vars.right = n - 1; s.marks = {ptr: [[0, 'left'], [n - 1, 'right']]}; }});
+    while (left < right) {
+      const l = left, r = right, a = keys[l].v, b = keys[r].v;
+      st({node: 'f_d', path: [from + '>f_d'], label: l + ', ' + r, line: 4 + o, text: 'left < right? ' + l + ' < ' + r + ' is True: the pointers have not met, so swap the two ends.', apply: s => { s.cond = [{expr: 'left < right', value: 'True'}]; s.marks = {ptr: [[l, 'left'], [r, 'right']]}; }});
+      st({node: 'f_t', path: ['f_d>f_t'], label: 'Yes', line: 5 + o, text: 'temp = route[' + l + '] = ' + pyStr(a) + '. The left item is saved in one extra box, so it is not lost in the next symbol.', apply: s => { s.fn.vars.temp = pyStr(a); s.extra = 1; s.marks = {ptr: [[l, 'left'], [r, 'right']], cmp: [l, r]}; }});
+      const tmp = keys[l]; keys[l] = keys[r]; keys[r] = tmp; swaps++;
+      const after = snap(), c = swaps;
+      st({node: 'f_sw', path: ['f_t>f_sw'], label: pyStr(a), line: [6 + o, 7 + o], text: 'route[' + l + '] = route[' + r + '] puts ' + pyStr(b) + ' on the left, then route[' + r + '] = temp puts ' + pyStr(a) + ' on the right. That is swap number ' + c + '.', apply: s => { s.list = after; s.count = c; s.marks = {ptr: [[l, 'left'], [r, 'right']], cmp: [l, r]}; s.cond = null; }});
+      left++; right--;
+      const l2 = left, r2 = right;
+      st({node: 'f_mv', path: ['f_sw>f_mv'], label: '', line: [8 + o, 9 + o], text: 'left = ' + l2 + ' and right = ' + r2 + ': both pointers move one step toward the middle, and the arrow loops back.', apply: s => { s.fn.vars.left = l2; s.fn.vars.right = r2; s.marks = {ptr: l2 === r2 ? [[l2, 'left, right']] : [[l2, 'left'], [r2, 'right']]}; }});
+      from = 'f_mv';
+    }
+    const fin = keys.map(x => x.v);
+    st({node: 'f_d', path: [from + '>f_d'], label: left + ', ' + right, line: 4 + o, text: 'left < right? ' + left + ' < ' + right + ' is False: the pointers met in the middle' + (left === right ? ' (the middle item stays where it is)' : '') + '. The list is reversed after ' + plural(swaps, 'swap') + '.', apply: s => { s.cond = [{expr: 'left < right', value: 'False'}]; s.marks = null; }});
+    st({node: 'f_ret', path: ['f_d>f_ret'], label: 'No', line: 10 + o, text: 'RETURN route: the same list, now ' + shortList(fin) + ', goes back to MAIN.', apply: s => { s.cond = null; }});
+    ret({from: 'f_ret', value: shortList(fin), label: 'list of ' + n, ok: true, names: 'route, left, right, temp', main: {route: shortList(fin)}, extra: counted(swaps) + ' (' + n + ' // 2). Extra boxes: 1, the box temp, whatever the length of the route. MAIN\'s own route box changed too: result and route are the same list, so the delivery order is gone unless MAIN kept a copy.' + (co ? ' Copilot\'s comment says MAIN\'s route is not changed. It was.' + caught : '')});
+    outAndEnd(pyStrList(fin));
   }
   return steps;
 }
 
 // ---- state, drawing, and the step engine ----
-const fresh = () => ({step: 0, phase: null, node: null, done: [], fnShown: false, fnFaded: false, main: {result: null, bad: false}, fn: null, list: null, listName: '', marks: null, counts: null, console: [], cond: null, error: false, retFrom: null});
+const fresh = () => ({step: 0, phase: null, node: null, done: [], fnShown: false, fnFaded: false, main: {result: null, bad: false}, fn: null, list: null, listName: '', list2: null, list2Name: '', marks: null, console: [], cond: null, retFrom: null, count: 0, extra: null});
 const clone = o => JSON.parse(JSON.stringify(o));
 let S = fresh(), hist = [], tl = null, running = false, timer = null, speed = 1;
 const SPEEDS = [0.25, 0.5, 1, 2, 4];
+const LONG_RUN = 100;  // a run with more steps than this plays in batches, with no token, so it ends in a few seconds
 function setPhase(p) { document.querySelectorAll('.phases li').forEach(li => li.classList.toggle('on', li.dataset.p === p)); const li = document.querySelector('.phases li[data-p="' + p + '"]'); $('#phaseTag').textContent = li ? li.textContent : 'Ready'; $('#phaseTag').style.setProperty('--pc', li ? getComputedStyle(li).getPropertyValue('--c') : 'var(--silk-dim)'); }
 function renderCode(active) {
-  const el = $('#code'); el.innerHTML = LINES.map((l, i) => '<span class="ln' + (i + 1 === active ? ' on' : '') + (i + 1 === BUG_LINE ? ' bug' : '') + '"><span class="no">' + (i + 1) + '</span>' + (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
+  const act = Array.isArray(active) ? active : [active];
+  const el = $('#code'); el.innerHTML = LINES.map((l, i) => '<span class="ln' + (act.indexOf(i + 1) >= 0 ? ' on' : '') + (i + 1 === BUG_LINE ? ' bug' : '') + '"><span class="no">' + (i + 1) + '</span>' + (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
   const on = el.querySelector('.ln.on'); if (on) el.scrollTop = Math.max(0, on.offsetTop - el.clientHeight / 2);
 }
 function drawList(prev, animate) {
@@ -1264,28 +1367,62 @@ function drawList(prev, animate) {
   host.hidden = false;
   const changed = prev && prev.list && prev.list.map(x => x.k).join() !== S.list.map(x => x.k).join();
   const state = animate && changed && hasGSAP && window.Flip ? Flip.getState(host.querySelectorAll('.lb[data-flip-id]')) : null;
-  const M = S.marks || {};
-  host.innerHTML = '<div class="lbl">' + esc(S.listName) + '</div><div class="lrow">' + S.list.map((it, i) => { let cls = 'lb'; if (M.cmp && (M.cmp[0] === i || M.cmp[1] === i)) cls += ' cmp'; if (M.hit === i) cls += ' hit'; if (M.miss === i) cls += ' miss'; if (M.on === i) cls += ' on';
-    return '<div class="' + cls + '" data-flip-id="k' + it.k + '"><span class="ix">[' + i + ']</span><b>' + esc(it.v) + '</b></div>'; }).join('') +
-    (M.ghost ? '<div class="lb ghost miss"><span class="ix">[' + S.list.length + ']</span><b>?</b></div>' : '') + (S.list.length ? '' : '<span class="hint">(empty list: no items)</span>') + '</div>';
+  const M = S.marks || {}, small = S.list.length > 10 ? ' sm' : '';
+  const ptrOf = i => (M.ptr || []).filter(p => p[0] === i).map(p => p[1]).join(', ');
+  let html = '<div class="lbl">' + esc(S.listName) + '</div><div class="lrow' + small + '">' + S.list.map((it, i) => { let cls = 'lb'; if (M.cmp && M.cmp.indexOf(i) >= 0) cls += ' cmp'; if (M.hit === i || (M.hits && M.hits.indexOf(i) >= 0)) cls += ' hit'; if (M.miss === i) cls += ' miss'; if (M.on === i) cls += ' on';
+    const p = ptrOf(i);
+    return '<div class="' + cls + '" data-flip-id="k' + it.k + '"><span class="ix">[' + i + ']</span><b>' + esc(it.v) + '</b>' + (M.ptr ? '<span class="ptr' + (p ? ' on' : '') + '">' + (p ? esc(p) : '&nbsp;') + '</span>' : '') + '</div>'; }).join('') +
+    (S.list.length ? '' : '<span class="hint">(empty list: no items)</span>') + '</div>';
+  if (S.list2) html += '<div class="lbl">' + esc(S.list2Name) + '</div><div class="lrow' + small + '">' + S.list2.map((it, i) => '<div class="lb extra' + (M.hit2 === i ? ' hit' : '') + '"><span class="ix">[' + i + ']</span><b>' + esc(it.v) + '</b></div>').join('') + (S.list2.length ? '' : '<span class="hint">(empty so far: 0 extra boxes)</span>') + '</div>';
+  host.innerHTML = html;
   if (state) Flip.from(state, {targets: host.querySelectorAll('.lb[data-flip-id]'), duration: .7, ease: 'power1.inOut'});
+  if (animate && hasGSAP && M.hit2 != null && prev && (!prev.list2 || prev.list2.length !== S.list2.length)) { const nb = host.querySelector('.lb.extra.hit'); if (nb) gsap.fromTo(nb, {scale: .5, opacity: 0}, {scale: 1, opacity: 1, duration: .4, clearProps: 'transform'}); }
 }
-function drawCounts(prev, animate) {
-  const host = $('#counts'); if (!S.counts) { host.innerHTML = ''; host.hidden = true; return; }
-  host.hidden = false; const c = S.counts, p = prev && prev.counts ? prev.counts : {};
-  host.innerHTML = '<div class="lbl">Counters</div><div class="regs" style="grid-template-columns:repeat(3,minmax(0,1fr))">' + ['pass', 'cmp', 'swap'].map(k => '<div class="reg kv' + (animate && p[k] !== c[k] ? ' flash' : '') + '"><span class="rn">' + ({pass: 'passes', cmp: 'comparisons', swap: 'swaps'})[k] + '</span><span class="rv">' + c[k] + '</span></div>').join('') + '</div>';
+// ---- the step counter: the live readout, the list-size buttons, the bar strip, and the growth name ----
+function growthText() {
+  const fn = CFG.fn;
+  if (fn === 'price') return '<b>Growth: constant.</b> price runs the same 3 or 4 lines for any package (2 in Copilot\'s version). There is no list, so there is nothing that can grow.';
+  const t = TRIED[variantKey()] || {}, sizes = Object.keys(t).map(Number).filter(k => k > 0).sort((a, b) => a - b);
+  if (sizes.length < 2) return 'Growth name: run this function to the end with <b>two or more list sizes</b>, and the name appears here.' + (sizes.length ? ' So far: ' + sizes[0] + ' items took ' + t[sizes[0]].steps + ' ' + unitWord(t[sizes[0]].steps) + '.' : '');
+  const ev = sizes.map(k => k + ' items took ' + t[k].steps).join(', ');
+  if (fn === 'manifest_total') return '<b>Growth: linear.</b> One addition per weight (' + ev + '). Double the list and the count doubles.';
+  if (fn === 'find_package') return CFG.target === 'first' ? '<b>Best case: constant.</b> The first item matches, so the count is 1 at any size (' + ev + ').' : '<b>Worst case: linear.</b> Every item is compared once (' + ev + '). Double the list and the count doubles. On average, for a package that is in the list, the search checks about half of it.';
+  if (fn === 'has_duplicate') return CFG.dup ? '<b>Best case: constant.</b> The first pair matches, so the count is 1 at any size (' + ev + ').' : '<b>Worst case: quadratic.</b> Every pair is compared (' + ev + '). Double the list and the count is about four times larger.';
+  const ex = sizes.map(k => t[k].extra + ' for ' + k + ' stops').join(', ');
+  return CFG.mode === 'new' ? '<b>Time: linear. Space: linear.</b> One copy per stop (' + ev + '), and one extra box per stop (' + ex + ').' : '<b>Time: linear. Space: constant.</b> One swap for every two stops (' + ev + '), and always 1 extra box, temp (' + ex + ').';
 }
+function drawCounter(animate, prev) {
+  const fn = CFG.fn, name = fnName();
+  $('#stepsLabel').textContent = {price: 'Steps (lines run)', manifest_total: 'Steps (additions)', find_package: 'Steps (comparisons)', has_duplicate: 'Steps (comparisons)', load_order: 'Steps (copies)', load_order_in_place: 'Steps (swaps)'}[name];
+  const sv = $('#stepsVal'); sv.textContent = S.count; $('#stepsReg').classList.toggle('flash', !!(animate && prev && prev.count !== S.count));
+  $('#sizeVal').textContent = fn === 'price' ? 'no list' : DATA.n + (fn === 'load_order' ? ' stops' : ' items');
+  const er = $('#extraReg'); er.hidden = fn !== 'load_order'; $('#extraVal').textContent = S.extra == null ? 0 : S.extra; er.classList.toggle('flash', !!(animate && prev && prev.extra !== S.extra && fn === 'load_order'));
+}
+function drawBars() {
+  const fn = CFG.fn, host = $('#bars'), sz = $('#sizes');
+  $('#stepWhat').textContent = {price: 'counts the lines of the function that run', manifest_total: 'counts one step per addition', find_package: 'counts one step per == comparison', has_duplicate: 'counts one step per == comparison', load_order: CFG.mode === 'new' ? 'counts one step per copied stop' : 'counts one step per swap'}[fn];
+  if (fn === 'price') { sz.innerHTML = '<span class="hint">price has no list, so there is no size to change. Try a heavier package: the count stays the same.</span>'; host.innerHTML = ''; host.hidden = true; $('#barcap').hidden = true; $('#growth').innerHTML = growthText(); return; }
+  const sizes = SIZES[fn], cur = CFG.size[fn], t = TRIED[variantKey()] || {};
+  sz.innerHTML = '<span class="k">List size</span>' + sizes.map(k => '<button type="button" class="btn" data-size="' + k + '" aria-pressed="' + (k === cur) + '">' + (k === 0 ? 'empty' : k) + '</button>').join('');
+  const max = Math.max.apply(null, [1].concat(sizes.map(k => t[k] ? t[k].steps : 0)));
+  host.hidden = false; $('#barcap').hidden = false;
+  host.innerHTML = sizes.filter(k => k > 0).map(k => { const r = t[k]; const h = r ? Math.max(3, Math.round(84 * r.steps / max)) : 22;
+    return '<div class="bar' + (r ? '' : ' todo') + (k === cur ? ' cur' : '') + '"><span class="bv">' + (r ? r.steps : '?') + '</span><i style="height:' + h + 'px"></i><span class="bs">' + k + '</span></div>'; }).join('');
+  host.setAttribute('aria-label', 'Steps for each list size tried: ' + (sizes.filter(k => t[k]).map(k => k + ' items, ' + t[k].steps + ' steps').join('; ') || 'none yet'));
+  $('#growth').innerHTML = growthText();
+}
+function record() { if (CFG.fn === 'price') return; const k = variantKey(); if (!TRIED[k]) TRIED[k] = {}; TRIED[k][DATA.n] = {steps: S.count, extra: S.extra == null ? 0 : S.extra}; drawBars(); }
 function draw(prev, animate) {
   fk.clear();
   if (!S.retFrom) clearRet(); else ensureRet(S.retFrom);
   S.done.forEach(id => fk.highlight(id, 'done'));
-  if (S.node) fk.highlight(S.node, S.error && S.step >= STEPS.length ? 'error' : 'active');
+  if (S.node) fk.highlight(S.node, 'active');
   setFnVisible(S.fnShown, false, S.fnFaded);  // the jump step animates the slide-in itself
   MAIN_VARS.forEach(v => { const val = S.main[v]; MEM.set(v, val == null ? null : val, {pop: !!(animate && prev && prev.main[v] !== val)}); });
   const rb = $('#memory [data-n="result"] .v'); if (rb) rb.style.color = S.main.bad ? 'var(--ctrl)' : '';
   const fw = $('#fnwrap'), fh = $('#fnmem');
   if (S.fn) {
-    fw.hidden = false;
+    fw.hidden = false; if (hasGSAP) { gsap.killTweensOf(fw); gsap.set(fw, {opacity: 1}); }
     const keys = Object.keys(S.fn.vars);
     if (!FNMEM || FNMEM.name !== S.fn.name || FNMEM.keys !== keys.join()) { FNMEM = {name: S.fn.name, keys: keys.join(), mem: FlowKit.memory(fh, keys.map(k => ({name: k, label: ''})))}; }
     keys.forEach(k => FNMEM.mem.set(k, S.fn.vars[k], {pop: !!(animate && (!prev || !prev.fn || prev.fn.vars[k] !== S.fn.vars[k]))}));
@@ -1293,92 +1430,112 @@ function draw(prev, animate) {
     if (animate && hasGSAP && (!prev || !prev.fn)) gsap.fromTo(fw, {opacity: 0, y: 10}, {opacity: 1, y: 0, duration: .5, clearProps: 'transform'});
   } else if (prev && prev.fn && animate && hasGSAP) {
     gsap.to(fw, {opacity: 0, duration: .5, onComplete: () => { if (!S.fn) { fw.hidden = true; fh.innerHTML = ''; FNMEM = null; } gsap.set(fw, {opacity: 1}); }});
-  } else { fw.hidden = true; fh.innerHTML = ''; FNMEM = null; }
-  drawList(prev, animate); drawCounts(prev, animate);
+  } else { if (hasGSAP) { gsap.killTweensOf(fw); gsap.set(fw, {opacity: 1}); } fw.hidden = true; fh.innerHTML = ''; FNMEM = null; }
+  drawList(prev, animate); drawCounter(animate, prev);
   CON.clear(); S.console.forEach(l => CON.print(l));
-  const cd = $('#cond'); if (S.cond) { cd.hidden = false; cd.innerHTML = '<span class="k">Live check</span>' + S.cond.map(c => '<span><code>' + esc(c.expr) + '</code> &rarr; <b class="' + (c.value === 'True' ? 't' : c.value === 'False' || c.value === 'IndexError' ? 'f' : '') + '">' + esc(c.value) + '</b></span>').join(''); } else { cd.hidden = true; cd.innerHTML = ''; }
+  const cd = $('#cond'); if (S.cond) { cd.hidden = false; cd.innerHTML = '<span class="k">Live check</span>' + S.cond.map(c => '<span><code>' + esc(c.expr) + '</code> &rarr; <b class="' + (c.value === 'True' ? 't' : c.value === 'False' ? 'f' : '') + '">' + esc(c.value) + '</b></span>').join(''); } else { cd.hidden = true; cd.innerHTML = ''; }
 }
 function restoreView() { draw(null, false); }
 function render() {
-  const N = STEPS.length, last = S.step >= N;
-  $('#hudStep').textContent = S.step; $('#ctx').textContent = 'Step ' + S.step + ' of ' + N; $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = last; $('#btnRun').textContent = running ? 'Pause' : 'Run';
+  const NS = STEPS.length, last = S.step >= NS, fn = CFG.fn;
+  $('#hudStep').textContent = S.step; $('#ctx').textContent = 'Step ' + S.step + ' of ' + NS; $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = last; $('#btnRun').textContent = running ? 'Pause' : 'Run';
   renderCode(S.step > 0 ? STEPS[S.step - 1].line : 0);
-  const fnName = CFG.fn;
-  guide(S.step === 0 ? 2 : !last ? 3 : CFG.copilot ? 5 : 4,
-    S.step === 0 ? 'Press <b>Step</b> to start ' + fnName + ', or <b>Run</b> to play every step.'
-    : !last ? 'Read the explanation, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + N + '.'
-    : S.error ? 'Copilot\'s version crashed. Turn <b>Copilot\'s refactor</b> off and run again, or scroll to <b>Try it</b> and fix range(n - i) yourself.'
-    : CFG.copilot ? 'You saw which test catches the bug. Scroll to <b>Try it</b> and run the five tests, or pick another function.'
+  const tried = Object.keys(TRIED[variantKey()] || {}).filter(k => +k > 0).length;
+  guide(S.step === 0 ? 2 : !last ? 3 : CFG.copilot ? 6 : (fn !== 'price' && tried < 2) ? 4 : 5,
+    S.step === 0 ? 'Press <b>Step</b> to start ' + fnName() + ', or <b>Run</b> to play every step.' + (NS > LONG_RUN ? ' This run has ' + NS + ' steps, so <b>Run</b> plays it fast, without the token.' : '')
+    : !last ? 'Read the explanation, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + NS + '.'
+    : CFG.copilot ? 'You saw what catches Copilot\'s mistake. Scroll to <b>Try it</b> and run the six tests, or pick another function.'
+    : (fn !== 'price' && tried < 2) ? 'Done: ' + S.count + ' ' + unitWord(S.count) + ' for a list of ' + DATA.n + '. In <b>Step counter</b>, press another <b>List size</b> and run again to see how the count grows.'
     : 'Done. Turn on <b>Copilot\'s refactor</b> and run the same call, or pick another function.');
 }
-function stepFwd(animated) {
-  if (tl) { tl.progress(1); return; }
-  if (S.step >= STEPS.length) return;
+// one step of the program: the next state, with the old one saved for Step back
+function advance() {
   const m = STEPS[S.step];
   hist.push(clone(S));
   const prev = clone(S), next = clone(S);
   m.apply(next); next.step = S.step + 1; next.phase = m.phase;
   if (S.node && S.node !== m.node && next.done.indexOf(S.node) < 0) next.done.push(S.node);
   next.node = m.node;
+  return {m: m, prev: prev, next: next};
+}
+const boost = () => running ? Math.min(4, Math.max(1, STEPS.length / 30)) : 1;  // Run plays longer programs faster
+function stepFwd(animated) {
+  if (tl) { tl.progress(1); return; }
+  if (S.step >= STEPS.length) return;
+  const a = advance(), m = a.m, prev = a.prev, next = a.next;
   setPhase(m.phase); $('#narration').textContent = m.text; renderCode(m.line);
   if (m.retFrom) ensureRet(m.retFrom);
   if (window.innerWidth < 700) fk.focus(m.node);
-  const finishStep = () => { tl = null; S = next; draw(prev, true); render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed); } };
+  const finishStep = () => { tl = null; S = next; draw(prev, true); if (m.rec) record(); render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed / boost()); } };
   if (animated !== false && hasGSAP) {
     tl = gsap.timeline({onComplete: finishStep});
     tl.call(() => { if (S.node) fk.highlight(S.node, 'done'); });
     if (m.showFn) { tl.call(() => setFnVisible(true, true, false)); tl.to({}, {duration: .6}); }
     if (m.path) { const f = fk.token(m.path, m.label, m.color); if (f) tl.add(f); }
-    tl.call(() => fk.highlight(m.node, m.err ? 'error' : 'active'));
+    tl.call(() => fk.highlight(m.node, 'active'));
     tl.to({}, {duration: .35});
-    tl.timeScale(speed);
+    tl.timeScale(speed * boost());
   } else { if (m.showFn) setFnVisible(true, false, false); if (m.path) fk.token(m.path, m.label, m.color); finishStep(); }
 }
+// a long run (20 or 40 items): several steps per tick, no token, the boxes and the counter still update; every step stays in the history for Step back
+function fastTick() {
+  if (!running) return;
+  const chunk = Math.max(1, Math.ceil(STEPS.length / 220)), prev = clone(S);
+  let m = null, rec = false;
+  for (let k = 0; k < chunk && S.step < STEPS.length; k++) { const a = advance(); m = a.m; S = a.next; if (m.rec) rec = true; }
+  if (m) { setPhase(m.phase); $('#narration').textContent = m.text; }
+  draw(prev, false); if (rec) record(); render();
+  if (S.step >= STEPS.length) stop(); else timer = setTimeout(fastTick, 45 / speed);
+}
 function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); setPhase(S.phase); restoreView(); $('#narration').textContent = 'Stepped back. Press Step to watch that step again.'; render(); }
-function run() { if (S.step >= STEPS.length) return; running = true; render(); stepFwd(); }
+function run() { if (tl) tl.progress(1); if (S.step >= STEPS.length) return; running = true; render(); if (STEPS.length - S.step > LONG_RUN || !hasGSAP && STEPS.length > 60) fastTick(); else stepFwd(); }
 function stop() { running = false; clearTimeout(timer); render(); }
 function reset() { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); hist = []; setPhase(null); restoreView(); $('#narration').textContent = 'Press Step to start, or Run to play every step.'; render(); }
-function rebuild() { stop(); if (tl) { tl.kill(); tl = null; } FNMEM = null; $('#fnmem').innerHTML = ''; build(); S = fresh(); hist = []; setPhase(null); restoreView(); $('#narration').textContent = 'Charts redrawn for ' + LINES[mainLine(CHART.CR - 1) - 1] + '. Press Step to start.'; $('#info').innerHTML = 'Click any symbol in the flowchart to learn what it does.'; render(); }
+function rebuild() { stop(); if (tl) { tl.kill(); tl = null; } FNMEM = null; $('#fnmem').innerHTML = ''; build(); S = fresh(); hist = []; setPhase(null); restoreView(); drawBars(); $('#narration').textContent = 'Charts redrawn for ' + LINES[CALL_LINE - 1] + '. Press Step to start.'; $('#info').innerHTML = 'Click any symbol in the flowchart to learn what it does.'; render(); }
 
 // ---- argument pickers ----
 function argsUI() {
   const fn = CFG.fn, host = $('#args');
+  const opt = (v, cur, text) => '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + text + '</option>';
   if (fn === 'price') host.innerHTML = '<div class="presets">' + PRESETS.price.map((p, i) => '<button type="button" class="btn" data-preset="' + i + '">PP-2026-' + p[0] + ': ' + p[1] + ' lb, ' + p[2] + ' mi' + (p[3] ? ', fragile' : '') + '</button>').join('') + '</div>' +
     '<div class="row"><label>weight (lb) <input type="number" id="aW" min="0" max="999" step="1" value="' + CFG.weight + '"></label><label>miles <input type="number" id="aM" min="0" max="999" step="1" value="' + CFG.miles + '"></label><label>fragile <select id="aF"><option value="False"' + (CFG.fragile ? '' : ' selected') + '>False</option><option value="True"' + (CFG.fragile ? ' selected' : '') + '>True</option></select></label></div>';
-  else if (fn === 'zone') host.innerHTML = '<label>city <select id="aC">' + ['Doral', 'Hialeah', 'Miami Gardens', 'Kendall', 'Homestead', 'Fort Lauderdale', 'doral'].map(c => '<option' + (c === CFG.city ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></label>';
-  else if (fn === 'find_package') host.innerHTML = '<label>tracking <select id="aT">' + ['PP-2026-0001', 'PP-2026-0003', 'PP-2026-0004', 'PP-2026-0005', 'PP-2026-0009'].map(t => '<option' + (t === CFG.tracking ? ' selected' : '') + '>' + t + (t === 'PP-2026-0009' ? ' (not on the list)' : '') + '</option>').join('') + '</select></label><p class="hint">packages is always the five numbers PP-2026-0001 to PP-2026-0005.</p>';
-  else host.innerHTML = '<div class="presets">' + (fn === 'sort_by_weight' ? PRESETS.sort : PRESETS.lists).map((p, i) => '<button type="button" class="btn" data-list="' + i + '">' + p[0] + ': ' + pyList(p[1]) + '</button>').join('') + '</div>' +
-    '<label>weights (whole numbers, separated by commas; 6 at most) <input type="text" id="aL" value="' + CFG.weights.join(', ') + '"></label>';
+  else if (fn === 'manifest_total') host.innerHTML = '<p class="hint">weights is the VAN-1 manifest (12, 3, 20, 50, 45), repeated to fill the <b>List size</b> you pick under Step counter. The size "empty" passes an empty list.</p>';
+  else if (fn === 'find_package') host.innerHTML = '<label>tracking: which package to look for <select id="aT">' + opt('first', CFG.target, 'the first item (best case)') + opt('last', CFG.target, 'the last item (worst case)') + opt('missing', CFG.target, 'a number that is not in the list (worst case)') + '</select></label><p class="hint">packages starts as the eight reference numbers, PP-2026-0001 to PP-2026-0008. Change the <b>List size</b> under Step counter to search a shorter or longer list.</p>';
+  else if (fn === 'has_duplicate') host.innerHTML = '<label>trackings: which list to check <select id="aD">' + opt('nodup', CFG.dup ? 'dup' : 'nodup', 'no duplicate (worst case)') + opt('dup', CFG.dup ? 'dup' : 'nodup', 'the first two numbers are the same (best case)') + '</select></label><p class="hint">Change the <b>List size</b> under Step counter to check a longer list.</p>';
+  else host.innerHTML = '<div class="k" style="font-size:12.5px;color:var(--silk-dim)">Where the reversed route is written</div><div class="presets" role="group" aria-label="Version of load_order"><button type="button" class="btn" data-mode="new" aria-pressed="' + (CFG.mode === 'new') + '">new list</button><button type="button" class="btn" data-mode="place" aria-pressed="' + (CFG.mode === 'place') + '">in place</button></div>' +
+    '<p class="hint">"new list" runs load_order, which builds a second list. "in place" runs load_order_in_place, which swaps the two ends of the same list and moves inward. Watch the <b>Extra boxes</b> readout under Step counter.</p>';
 }
 function readArgs() {
   const fn = CFG.fn;
   if (fn === 'price') { CFG.weight = Math.max(0, Math.min(999, Math.round(+$('#aW').value) || 0)); CFG.miles = Math.max(0, Math.min(999, Math.round(+$('#aM').value) || 0)); CFG.fragile = $('#aF').value === 'True'; }
-  else if (fn === 'zone') CFG.city = $('#aC').value;
-  else if (fn === 'find_package') CFG.tracking = $('#aT').value.split(' ')[0];
-  else { const v = $('#aL').value.split(',').map(x => x.trim()).filter(x => x !== '').map(x => Math.round(+x)).filter(x => !isNaN(x)).slice(0, 6); CFG.weights = v; $('#aL').value = v.join(', '); }
+  else if (fn === 'find_package') CFG.target = $('#aT').value;
+  else if (fn === 'has_duplicate') CFG.dup = $('#aD').value === 'dup';
 }
-$('#fnSel').addEventListener('change', e => { CFG.fn = e.target.value; if (CFG.fn === 'sort_by_weight' && CFG.weights.length === 0) CFG.weights = [12, 3, 20, 50, 45]; argsUI(); rebuild(); });
+$('#fnSel').addEventListener('change', e => { CFG.fn = e.target.value; argsUI(); rebuild(); });
 $('#args').addEventListener('change', () => { readArgs(); rebuild(); });
 $('#args').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.preset != null) { const p = PRESETS.price[+b.dataset.preset]; CFG.weight = p[1]; CFG.miles = p[2]; CFG.fragile = p[3]; }
-  if (b.dataset.list != null) { CFG.weights = (CFG.fn === 'sort_by_weight' ? PRESETS.sort : PRESETS.lists)[+b.dataset.list][1].slice(); }
+  if (b.dataset.mode) CFG.mode = b.dataset.mode;
   argsUI(); rebuild(); });
-$('#btnCopilot').addEventListener('click', e => { CFG.copilot = !CFG.copilot; e.currentTarget.setAttribute('aria-pressed', String(CFG.copilot)); e.currentTarget.textContent = 'Copilot\'s refactor: ' + (CFG.copilot ? 'on' : 'off'); rebuild(); if (CFG.copilot) guide(4, 'Copilot\'s version is on the chart. Press <b>Run</b> and read which test catches the bug.'); });
+$('#sizes').addEventListener('click', e => { const b = e.target.closest('button[data-size]'); if (!b) return; CFG.size[CFG.fn] = +b.dataset.size; rebuild(); guide(2, 'List size ' + (CFG.size[CFG.fn] || 'empty') + '. Press <b>Run</b> and compare the new count with the bars you already have.'); });
+$('#btnCopilot').addEventListener('click', e => { CFG.copilot = !CFG.copilot; e.currentTarget.setAttribute('aria-pressed', String(CFG.copilot)); e.currentTarget.textContent = 'Copilot\'s refactor: ' + (CFG.copilot ? 'on' : 'off'); rebuild(); if (CFG.copilot) guide(6, CFG.fn === 'has_duplicate' || CFG.fn === 'load_order' ? 'Copilot\'s version is on the chart, with a claim in a comment (the coral line in the code). Press <b>Run</b> and check the claim against the counter.' : 'Copilot\'s version is on the chart. Press <b>Run</b> and read which test catches the bug.'); });
 
 $('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
 $('#btnRun').addEventListener('click', () => running ? stop() : run());
 $('#btnBack').addEventListener('click', back);
 $('#btnReset').addEventListener('click', reset);
-$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
+$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed * boost()); });
 document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
   if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click(); });
 
 CON = FlowKit.console($('#screen'));
-argsUI(); build(); restoreView(); render();
+argsUI(); build(); restoreView(); drawBars(); render();
 PySandbox($('#sandbox'), {code: TOOLKIT, inputs: '', tests: [
-  {expr: 'price(12, 8, False)', expect: '16.1'}, {expr: 'price(60, 14, True)', expect: '59.0'}, {expr: 'zone("Kendall")', expect: "'C'"},
-  {expr: 'find_package("PP-2026-0009", packages)', expect: '-1'}, {expr: 'sort_by_weight([12, 3, 20, 50, 45])', expect: '[3, 12, 20, 45, 50]'}]});
-window.__fc = {cfg: CFG, state: () => S, steps: () => STEPS, step: stepFwd, back: back, reset: reset, rebuild: rebuild};
+  {expr: 'price(12, 8, False)', expect: '16.1'}, {expr: 'price(60, 14, True)', expect: '59.0'}, {expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'},
+  {expr: 'find_package("PP-2026-0009", packages)', expect: '-1'}, {expr: 'has_duplicate(["PP-2026-0001", "PP-2026-0002", "PP-2026-0001"])', expect: 'True'},
+  {expr: 'load_order(["0002", "0001", "0006", "0004", "0007"])', expect: "['0007', '0004', '0006', '0001', '0002']"}]});
+window.__fc = {cfg: CFG, state: () => S, steps: () => STEPS, step: stepFwd, back: back, reset: reset, rebuild: rebuild, run: run, count: COUNT, data: data, tried: TRIED, toolkit: TOOLKIT,
+  lists: {weightsOf: weightsOf, tracksOf: tracksOf, routeOf: routeOf}, set: o => { if (o.size != null) CFG.size[o.fn || CFG.fn] = o.size; ['fn', 'target', 'dup', 'mode', 'copilot', 'weight', 'miles', 'fragile'].forEach(k => { if (o[k] != null) CFG[k] = o[k]; }); $('#fnSel').value = CFG.fn; $('#btnCopilot').setAttribute('aria-pressed', String(CFG.copilot)); $('#btnCopilot').textContent = 'Copilot\'s refactor: ' + (CFG.copilot ? 'on' : 'off'); argsUI(); rebuild(); }};
 })();
 </script>
 </body>

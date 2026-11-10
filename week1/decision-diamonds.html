@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Loop runner</title>
-<meta name="description" content="COP1411 Week 3 interactive: Watch the daily manifest loop run on a living flowchart: the data token circles the loop once per package while the trace table fills one row per pass.">
+<title>Decision diamonds</title>
+<meta name="description" content="COP1411 Week 1 practice: Watch the Palmetto Parcel sorter decide a package&#x27;s lane one diamond at a time, then change the order of the checks and see why Copilot&#x27;s version sends a 60 lb fragile box to the wrong place.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
@@ -370,111 +370,90 @@
   .stage.flowstage{background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
   .stage .flow{position:absolute;left:0;right:0;top:52px;height:calc(100% - 100px);width:100%}
   @media(max-width:700px){.stage .flow{top:48px;height:calc(100% - 96px)}}
-  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  .code{margin:0;padding:12px 14px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:var(--silk);overflow:auto;white-space:pre}
   .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
   .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
-  .picks{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
-  .picks .btn{padding:8px 12px;font-size:13.5px}
-  .own{display:grid;gap:8px;margin-top:6px}
-  .own label{display:block;font-size:12.5px;color:var(--silk-dim);margin-bottom:3px}
-  .own input{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:6px;border:1px solid var(--line-2);background:var(--code-bg);color:var(--silk);font:13px var(--font-mono)}
-  .own input:focus{outline:2px solid var(--cbt-gold);outline-offset:1px}
-  .own .row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.own .row>div{flex:1 1 180px}
-  .mhint{font-size:12.5px;color:var(--silk-dim);margin:6px 0 0;min-height:18px}
-  .mhint.bad{color:var(--bad)}
-  .follow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--silk-dim);margin-top:10px}
-  .follow input{accent-color:var(--cbt-gold)}
-  .listwrap{margin-top:10px}
-  .listwrap .n{font:600 10.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim);margin-bottom:6px}
-  .boxes{display:flex;flex-wrap:wrap;gap:6px;min-height:46px}
-  .boxes .b{width:52px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel-2);text-align:center;padding:4px 0 3px}
-  .boxes .b .v{font:700 15px var(--font-mono);color:var(--silk)}.boxes .b .i{font:500 10px var(--font-mono);color:var(--silk-dim);border-top:1px solid var(--line);margin-top:3px;padding-top:2px}
-  .boxes .b.on{border-color:var(--cbt-gold);box-shadow:0 0 0 1px var(--cbt-gold) inset}
-  .boxes .empty{font-size:12.5px;color:var(--silk-dim);align-self:center}
-  .capbar{margin-top:12px}
-  .capbar .n{display:flex;justify-content:space-between;font:600 10.5px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim);margin-bottom:5px}
-  .capbar .n b{color:var(--silk)}
-  .capbar .bar{position:relative;height:16px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line-2);overflow:hidden}
-  .capbar .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--ok);border-radius:8px;transition:width .4s ease,background .3s}
-  .capbar .bar i.near{background:#E0B840}.capbar .bar i.over{background:var(--bad)}
-  .capbar .bar em{position:absolute;top:0;bottom:0;right:0;width:2px;background:var(--cbt-gold)}
-  .capbar .msg{font-size:12.5px;color:var(--silk-dim);margin-top:5px;min-height:16px}.capbar .msg.over{color:var(--bad);font-weight:600}
-  .trace{font:500 12.5px var(--font-mono)}
-  .trace td,.trace th{text-align:center}
-  .trace td.new{color:var(--cbt-gold);font-weight:700}
-  .trace tr.cur td{background:rgba(224,184,64,.10)}
-  .trace td.t{color:var(--ok)}.trace td.f{color:var(--bad)}
-  .versions{display:flex;flex-wrap:wrap;gap:8px}
-  .versions .btn{flex:1 1 120px}
-  .sents{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
-  .sents li{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--panel-2);display:grid;gap:8px}
-  .sents .s{font-size:14.5px;line-height:1.45}
-  .sents .tf{display:flex;gap:6px;flex-wrap:wrap}
-  .sents .tf button{padding:6px 14px;border-radius:6px;border:1px solid var(--line-2);background:var(--panel);color:var(--silk);font:600 13px var(--font-body);cursor:pointer}
-  .sents .tf button[aria-pressed="true"]{border-color:var(--cbt-sky);background:rgba(56,176,224,.18);color:var(--data)}
-  html[data-theme=light] .sents .tf button{color:var(--cbt-navy)}
-  html[data-theme=light] .sents .tf button[aria-pressed="true"]{background:#E6F5FB;color:var(--data)}
-  .sents .why{font-size:13px;color:var(--silk-dim);line-height:1.45;display:none}
-  .sents li.ok{border-color:var(--ok)}.sents li.ok .why{display:block;color:var(--ok)}
-  .sents li.bad{border-color:var(--bad)}.sents li.bad .why{display:block;color:var(--bad)}
-  .chk{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
-  .chk .score{font-size:14px}
-  .ticks small{font-weight:400;color:var(--silk-dim)}
+  .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:10px}
+  .field{display:flex;flex-direction:column;gap:4px;font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim)}
+  .field input,.field select{width:100%;text-transform:none;letter-spacing:0}
+  .hint{margin:8px 0 0;font-size:13px;color:var(--silk-dim)}
+  .hint code{font-family:var(--font-mono);color:var(--out)}
+  .order{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px;position:relative}
+  .order li{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);cursor:grab;touch-action:none;user-select:none}
+  .order li.dragging{border-color:var(--cbt-gold);box-shadow:0 6px 18px rgba(26,29,46,.3);z-index:2}
+  .order li .grip{color:var(--silk-dim);font:700 15px var(--font-mono);letter-spacing:-3px}
+  .order li .t{flex:1;font-size:14px}
+  .order li .n{font:700 12px var(--font-mono);color:var(--addr);width:1.4em}
+  .order li .ud{display:flex;gap:4px}
+  .order li .ud button{width:30px;height:28px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--silk);cursor:pointer;font-size:12px}
+  .order li .ud button:disabled{opacity:.35;cursor:default}
+  .dec{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:11px 13px;font-size:14px;line-height:1.5}
+  .dec code{font-family:var(--font-mono);font-size:13px;color:var(--out)}
+  .pill{display:inline-block;padding:1px 10px;border-radius:999px;font:700 12px var(--font-mono);border:1px solid var(--line);color:var(--silk-dim);vertical-align:1px}
+  .pill.t{background:rgba(111,212,155,.18);color:var(--ok);border-color:var(--ok)}
+  .pill.f{background:rgba(169,180,255,.16);color:var(--oper);border-color:var(--oper)}
+  .pill.x{background:rgba(240,120,106,.16);color:var(--bad);border-color:var(--bad)}
+  .hud .views button.on{color:var(--cbt-gold)}
+  html[data-theme=light] .hud .views button.on{color:#FFFFFF}
+  html[data-theme=light] .pill.t{background:var(--ok-soft)}html[data-theme=light] .pill.f{background:rgba(91,102,201,.10)}html[data-theme=light] .pill.x{background:var(--bad-soft)}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
-    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 3 · Interactive A</div>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 1 · Practice</div>
   </div>
 </header>
 
 <div class="app">
   <header class="lab-head">
-    <p class="eyebrow">COP1411 · Week 3 · Explorer</p>
-    <h1>Loop runner</h1>
-    <p class="lede">Watch the daily manifest loop run on a living flowchart: the data token circles the loop once per package while the trace table fills one row per pass.</p>
+    <p class="eyebrow">COP1411 · Week 1 · Practice</p>
+    <h1>Decision diamonds</h1>
+    <p class="lede">Watch the Palmetto Parcel sorter decide a package's lane one diamond at a time, then change the order of the checks and see why Copilot's version sends a 60 lb fragile box to the wrong place.</p>
   </header>
-  <section class="stage flowstage" id="stage" aria-label="Flowchart of the daily manifest loop. Press Step to move the data token through the symbols; use the zoom buttons or scroll to zoom, drag to move.">
+  <section class="stage flowstage" id="stage" aria-label="Flowchart of the package sorter. Press Step to move the data token through the symbols; use the zoom buttons or scroll to zoom, drag to move.">
     <div class="hud hud-top">
       <ol class="phases" aria-label="Phase">
-        <li data-p="p1" style="--c:var(--cbt-gold)">Setup</li>
-        <li data-p="p2" style="--c:var(--cbt-sky)">Read</li>
-        <li data-p="p3" style="--c:var(--alu)">Loop body</li>
-        <li data-p="p4" style="--c:var(--oper)">Report</li>
+        <li data-p="start" style="--c:var(--cbt-gold)">Start</li>
+        <li data-p="input" style="--c:var(--cbt-sky)">Input</li>
+        <li data-p="price" style="--c:var(--alu)">Price</li>
+        <li data-p="decide" style="--c:var(--oper)">Decide</li>
+        <li data-p="lane" style="--c:var(--cbt-gold)">Lane</li>
+        <li data-p="output" style="--c:var(--out)">Output</li>
       </ol>
-      <div class="ticks">step <b id="hudStep">0</b> <small>of <span id="hudTotal">0</span></small> · pass <b id="hudPass">0</b></div>
+      <div class="ticks">step <b id="hudStep">0</b></div>
     </div>
     <div class="hud hud-bottom">
       <div class="legend" aria-label="Colors">
         <span style="--c:var(--cbt-gold)"><i></i>the symbol running now</span>
-        <span style="--c:var(--cbt-sky)"><i></i>the token carrying a weight</span>
-        <span style="--c:var(--ok)"><i></i>done</span>
-        <span style="--c:var(--bad)"><i></i>the sentinel -1 or a warning</span>
-        <span style="--c:var(--out)"><i></i>output</span>
+        <span style="--c:var(--cbt-sky)"><i></i>the data token</span>
+        <span style="--c:var(--alu)"><i></i>True, the Yes arrow</span>
+        <span style="--c:var(--oper)"><i></i>False, the No arrow</span>
+        <span style="--c:var(--ctrl)"><i></i>a lane dispatch did not expect</span>
       </div>
+      <div class="views" aria-label="View"><button type="button" id="btnFollow" class="on" aria-pressed="true">Follow the token</button><button type="button" id="btnWhole">Whole chart</button></div>
     </div>
   </section>
 
   <section class="guide" aria-labelledby="guideTitle">
     <h2 id="guideTitle">How to use this lab</h2>
     <ol class="steps" id="howSteps">
-      <li data-h="1">Pick a manifest: <b>VAN-1 manifest</b>, <b>Overload manifest</b>, or type your own weights and press <b>Use these</b>.</li>
-      <li data-h="2">Press <b>Step</b> to move the token one symbol at a time. Watch the memory boxes, the trace table, the screen, and the lit line of Python. <b>Run</b> plays every step.</li>
-      <li data-h="3">Press <b>Step back</b> to see a step again. Then press <b>For version</b> and <b>Index version</b> to see the same job with a for loop and with an index.</li>
-      <li data-h="4">Scroll down to <b>Check Copilot's explanation</b>: mark the six sentences True or False using the trace table, then press <b>Check sentences</b>.</li>
-      <li data-h="5">Scroll to <b>Try it</b>, change the code or the inputs, and press <b>Run</b> there to run real Python.</li>
+      <li data-h="1">Pick a <b>Reference package</b> below, or type your own weight, miles, city, and fragile answer.</li>
+      <li data-h="2">Press <b>Step</b>. The token leaves START and carries each value into the chart. At every diamond, read the comparison and its True or False in the Decisions box.</li>
+      <li data-h="3">Press <b>Step back</b> to see a decision again, or <b>Run</b> to play every step. Click any symbol for a plain-language note.</li>
+      <li data-h="4">Press <b>Copilot's order</b>, pick package PP-2026-0005, and run again: the token lands on FRAGILE and the narration names the diamond that was never reached. Drag the checks into any order you like and run again.</li>
+      <li data-h="5">Scroll down to <b>Try it</b>, change the code, and press <b>Run</b> there to run real Python with three tests.</li>
     </ol>
     <div>
-      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Press <b>Step</b> to start the VAN-1 manifest.</span></div>
-      <ul class="tips"><li>Keyboard: Space steps, B steps back, R runs or pauses. Over the flowchart: + and - zoom, drag to move, FIT shows the whole chart.</li><li>Click any symbol to read what it does and which Python line it becomes.</li></ul>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Pick a package below, then press <b>Step</b>.</span></div>
+      <ul class="tips"><li>Keyboard: Space steps, B steps back, R runs or pauses. Over the flowchart: + and - zoom, drag to move, FIT shows everything. Follow the token keeps the running symbol in view.</li></ul>
     </div>
   </section>
 
   <aside class="panel">
     <section class="narr" aria-live="polite">
-      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 0</span></div>
+      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 14</span></div>
       <p id="narration">Press Step to start, or Run to play every step.</p>
     </section>
     <div>
@@ -485,72 +464,56 @@
         <button type="button" class="btn" id="btnReset">Reset</button>
       </div>
       <div class="speed" style="margin-top:12px"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="4" step="1" value="2"><output id="speedOut">1×</output></div>
-      <label class="follow"><input type="checkbox" id="follow" checked> Follow the token (zoom to the running symbol)</label>
     </div>
     <section>
-      <h2>Manifest</h2>
-      <div class="picks">
-        <button type="button" class="btn" id="pickVan" aria-pressed="true">VAN-1 manifest</button>
-        <button type="button" class="btn" id="pickOver" aria-pressed="false">Overload manifest</button>
+      <h2>Package</h2>
+      <label class="field">Reference package<select id="pkg"></select></label>
+      <div class="fields">
+        <label class="field">Weight (lb)<input type="number" id="inW" min="0" step="1" value="12"></label>
+        <label class="field">Miles<input type="number" id="inM" min="0" step="1" value="8"></label>
+        <label class="field">City<input type="text" id="inC" value="Hialeah" list="cities" autocomplete="off"></label>
+        <label class="field">Fragile<select id="inF"><option value="no">no</option><option value="yes">yes</option></select></label>
       </div>
-      <div class="own">
-        <div class="row">
-          <div><label for="ownW">Your weights in lb (up to 6, separated by commas; leave empty for an empty manifest)</label><input id="ownW" type="text" value="600, 600" inputmode="numeric" autocomplete="off"></div>
-          <div id="ownFwrap" hidden><label for="ownF">Fragile answers, yes or no, one per package</label><input id="ownF" type="text" value="no, yes" autocomplete="off"></div>
-          <button type="button" class="btn" id="btnOwn">Use these</button>
-        </div>
-        <p class="mhint" id="mhint">The sentinel -1 is added for you at the end.</p>
-      </div>
+      <datalist id="cities"><option value="Doral"></option><option value="Hialeah"></option><option value="Miami Gardens"></option><option value="Kendall"></option><option value="Homestead"></option><option value="Fort Lauderdale"></option></datalist>
+      <p class="hint">Changing a value resets the run. Python compares the city letter by letter, so "doral" is not "Doral".</p>
     </section>
     <section>
-      <h2>Version</h2>
-      <div class="versions">
-        <button type="button" class="btn" data-v="while" aria-pressed="true">While version</button>
-        <button type="button" class="btn" data-v="for" aria-pressed="false">For version</button>
-        <button type="button" class="btn" data-v="index" aria-pressed="false">Index version</button>
-      </div>
-      <p class="mhint" id="vhint">A while loop with a sentinel: it reads weights until -1 arrives.</p>
+      <h2>Order of the checks</h2>
+      <p class="hint" style="margin-top:0">The sorter asks these checks in order and stops at the first True one. Drag a check up or down, or use the arrows: the chart and the Python redraw in the new order.</p>
+      <ul class="order" id="orderList" aria-label="Order of the checks"></ul>
+      <div class="stepper"><button type="button" class="btn" id="btnDispatch">Dispatch order</button><button type="button" class="btn" id="btnCopilot">Copilot's order</button></div>
+      <p class="hint" id="orderNote"></p>
     </section>
     <section>
       <h2>Memory</h2>
       <div id="memory"></div>
-      <div class="listwrap"><div class="n" id="listName">weights (the list, with the index of each item)</div><div class="boxes" id="listW"></div></div>
-      <div class="listwrap" id="listFwrap" hidden><div class="n">fragile (a second list: fragile[i] answers for weights[i])</div><div class="boxes" id="listF"></div></div>
-      <div class="capbar"><div class="n"><span>VAN-1 capacity 1,200 lb</span><b id="capVal">total 0 lb</b></div><div class="bar"><i id="capFill"></i><em></em></div><div class="msg" id="capMsg">The bar turns gold within 100 lb of the capacity and red above it.</div></div>
+    </section>
+    <section>
+      <h2>Decisions this run</h2>
+      <div class="dec" id="decBox">No diamond reached yet. Each diamond asks one comparison; Python answers True or False.</div>
+      <div class="scroll-x" style="margin-top:10px"><table class="data" id="decTable"></table></div>
     </section>
     <section>
       <h2>Screen</h2>
       <div id="screen"></div>
     </section>
     <section class="span-all">
-      <h2>Trace table (one row per pass)</h2>
-      <div class="scroll-x"><table class="data trace" id="trace"></table></div>
-      <p class="mhint">Row 0 holds the values before the loop. The last row shows the test that ends the loop: nothing is added or counted on that row.</p>
-    </section>
-    <section class="span-all">
-      <h2 id="codeTitle">The same algorithm in Python: manifest.py</h2>
+      <h2>The same algorithm in Python: sorter.py</h2>
       <pre class="code" id="code"></pre>
     </section>
-    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any symbol in the flowchart to learn what it does and which Python line it becomes.</div>
-    <section class="span-all" id="checker">
-      <h2>Check Copilot's explanation</h2>
-      <p style="margin:0;font-size:14.5px">You pasted the while version into Microsoft Copilot and asked: "Explain this loop line by line." It answered with the six sentences below. An explanation that sounds right is not proof: mark each sentence <b>True</b> or <b>False</b> using the trace table above (run the VAN-1 manifest and the Overload manifest first), then press <b>Check sentences</b>.</p>
-      <ol class="sents" id="sents"></ol>
-      <div class="chk"><button type="button" class="btn primary" id="btnSents">Check sentences</button><span class="score" id="sentScore"></span></div>
-    </section>
+    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any symbol in the flowchart to learn what it does and which line of Python it becomes.</div>
     <section class="span-all">
       <h2>Try it: edit and run the Python</h2>
-      <p style="margin:0 0 10px;font-size:14px;color:var(--silk-dim)">The inputs box holds the VAN-1 manifest, one weight per line, ending with -1. Change the weights, or change the code, and press Run. The two tests below the output call a small helper that the code defines (functions come in week 4; leave it as it is).</p>
+      <p class="hint" style="margin:0 0 10px">The lane chain sits inside a small function called <code>lane</code> so the three tests can call it with different packages (functions get their own week later in the course). Try moving the fragile check above the weight check, or changing <code>&gt;</code> to <code>&gt;=</code>, and watch which test fails.</p>
       <div id="sandbox"></div>
     </section>
     <section>
       <h2>Things to notice</h2>
       <ul class="notice">
-        <li>The first INPUT happens before the loop, so the test has a value to check. The second INPUT is the last symbol of the body: without it the loop never ends.</li>
-        <li>The sentinel -1 is read, tested, and never processed: the exit row of the trace table keeps the same total and count as the row above it.</li>
-        <li>For VAN-1, heaviest = weight runs 3 times in 5 passes (12, 20, 50). The test is False for 3 and for 45.</li>
-        <li>The for version has no sentinel and no INPUT inside the loop: it stops by itself after the last item. The index version adds i, which runs from 0 to len(weights) - 1.</li>
-        <li>The capacity check comes after the loop. The overload manifest still reads every package: the loop does not stop at 1,200.</li>
+        <li>Python runs only the first True branch of an if, elif, else chain. In dispatch order, PP-2026-0005 answers True at weight &gt; 50 and the fragile diamond is never asked.</li>
+        <li>Exactly 50 is not above 50: the comparison 50 &gt; 50 is False, so PP-2026-0006 stays in a van (lane B). A sorter written with &gt;= would send it to FREIGHT.</li>
+        <li>The surcharge decision is separate from the lane chain and has no else, so the price never depends on the order of the lane checks.</li>
+        <li>Seven of the eight reference packages land in the same lane in both orders. Only a test plan with one package per lane, the boundary, and the fragile-and-heavy case shows the difference.</li>
       </ul>
     </section>
     <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
@@ -954,470 +917,253 @@ function PySandbox(host, opts) {
 }
 // PYSANDBOX END
 
-// ---------------------------------------------------------------- data ----
-const CAP = 1200;
-const SKY = '#38B0E0', CORAL = '#F0786A', ICE = '#9FE7FF', GREEN = '#6FD49B', GOLD = '#E0B840';
-const MANIFESTS = {
-  van: {key: 'van', name: 'VAN-1 manifest', w: [12, 3, 20, 50, 45], f: ['no', 'yes', 'no', 'no', 'yes']},
-  over: {key: 'over', name: 'Overload manifest', w: [400, 350, 300, 200], f: ['no', 'no', 'yes', 'no']}
-};
-let M = MANIFESTS.van, VER = 'while';
-const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
-const fmt = n => n.toLocaleString('en-US');
-const pyList = a => '[' + a.join(', ') + ']';
-const pyStrList = a => '[' + a.map(x => '"' + x + '"').join(', ') + ']';
-// wrap a long list text into two lines at a comma, for a flowchart symbol
-function wrap(s, max) { if (s.length <= max) return s; const cut = s.lastIndexOf(', ', max); if (cut < 0) return s; return s.slice(0, cut + 1) + '\n' + s.slice(cut + 2); }
-const widthFor = text => Math.max(190, Math.max(...text.split('\n').map(l => l.length)) * 7.6 + 28);
 
-// --------------------------------------------------------- the charts ----
-// grid: main column 1, the Yes side branches at column 0, the report branch at columns 2 and 3, the loop lane at column -0.5
-const GEO = {cols: 4, colW: 230, rowH: 90, nodeH: 52, nodeW: 190, pad: 60};
-const LANE = -0.5, MERGE = 2.43;                 // the loop-back arrow rejoins the main line between the symbol above the test and the test
-function loopBack(fromId, fromCol, fromRow, bottomRow, h) {   // explicit route: down a bit, over to the lane, up, and into the main line above the test
-  return {from: fromId, to: 'test', points: [[fromCol, fromRow + h / GEO.rowH], [fromCol, bottomRow], [LANE, bottomRow], [LANE, MERGE], [1, MERGE]]};
-}
-const REPORT_NODES = txt => [
-  {id: 'rep', type: 'io', text: txt, col: 2, row: 4, w: widthFor(txt) + 16},
-  {id: 'capq', type: 'decision', text: 'total > 1200?', col: 2, row: 5},
-  {id: 'warn', type: 'io', text: 'OUTPUT "WARNING"', col: 3, row: 6},
-  {id: 'end', type: 'terminal', text: 'END', col: 2, row: 7}
+/// ---- Palmetto Parcel: the reference packages and the sorter's checks ----
+const PK = [
+  {t: 'PP-2026-0001', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 12, m: 8, f: 'no'},
+  {t: 'PP-2026-0002', who: 'Doral Dental Group', city: 'Doral', w: 3, m: 2, f: 'yes'},
+  {t: 'PP-2026-0003', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 55, m: 14, f: 'no'},
+  {t: 'PP-2026-0004', who: 'Kendall Office Supply', city: 'Kendall', w: 20, m: 19, f: 'no'},
+  {t: 'PP-2026-0005', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 60, m: 14, f: 'yes'},
+  {t: 'PP-2026-0006', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 50, m: 8, f: 'no'},
+  {t: 'PP-2026-0007', who: 'Casa Lopez Furniture', city: 'Homestead', w: 45, m: 30, f: 'yes'},
+  {t: 'PP-2026-0008', who: 'Blue Heron Clinic', city: 'Fort Lauderdale', w: 5, m: 25, f: 'no'}
 ];
-const REPORT_EDGES = [{from: 'rep', to: 'capq'}, {from: 'capq', to: 'warn', label: 'Yes', side: 'right'}, {from: 'capq', to: 'end', label: 'No'}, {from: 'warn', to: 'end'}];
-function chartWhile() {
-  return Object.assign({rows: 10, nodes: [
-    {id: 'start', type: 'terminal', text: 'START', col: 1, row: 0},
-    {id: 'init', type: 'process', text: 'total = 0  count = 0\nheaviest = 0  weights = []', col: 1, row: 1, w: 236},
-    {id: 'in1', type: 'io', text: 'INPUT weight', col: 1, row: 2},
-    {id: 'test', type: 'decision', text: 'weight != -1?', col: 1, row: 3},
-    {id: 'app', type: 'process', text: 'weights.append(weight)', col: 1, row: 4},
-    {id: 'tot', type: 'process', text: 'total = total + weight', col: 1, row: 5},
-    {id: 'cnt', type: 'process', text: 'count = count + 1', col: 1, row: 6},
-    {id: 'hq', type: 'decision', text: 'weight > heaviest?', col: 1, row: 7},
-    {id: 'hset', type: 'process', text: 'heaviest = weight', col: 0, row: 8},
-    {id: 'in2', type: 'io', text: 'INPUT weight', col: 1, row: 9}
-  ].concat(REPORT_NODES('OUTPUT count, total,\nheaviest')), edges: [
-    {from: 'start', to: 'init'}, {from: 'init', to: 'in1'}, {from: 'in1', to: 'test'},
-    {from: 'test', to: 'app', label: 'Yes'}, {from: 'test', to: 'rep', label: 'No', side: 'right'},
-    {from: 'app', to: 'tot'}, {from: 'tot', to: 'cnt'}, {from: 'cnt', to: 'hq'},
-    {from: 'hq', to: 'hset', label: 'Yes', side: 'left'}, {from: 'hq', to: 'in2', label: 'No'}, {from: 'hset', to: 'in2'},
-    loopBack('in2', 1, 9, 9.6, 26)
-  ].concat(REPORT_EDGES)}, GEO);
-}
-function chartFor() {
-  const lt = wrap('weights = ' + pyList(M.w), 30);
-  return Object.assign({rows: 10, nodes: [
-    {id: 'start', type: 'terminal', text: 'START', col: 1, row: 0},
-    {id: 'list', type: 'process', text: lt, col: 1, row: 1, w: widthFor(lt)},
-    {id: 'init', type: 'process', text: 'total = 0  count = 0\nheaviest = 0', col: 1, row: 2},
-    {id: 'test', type: 'decision', text: 'next item\nin weights?', col: 1, row: 3},
-    {id: 'take', type: 'process', text: 'weight = next item', col: 1, row: 4},
-    {id: 'tot', type: 'process', text: 'total = total + weight', col: 1, row: 5},
-    {id: 'cnt', type: 'process', text: 'count = count + 1', col: 1, row: 6},
-    {id: 'hq', type: 'decision', text: 'weight > heaviest?', col: 1, row: 7},
-    {id: 'hset', type: 'process', text: 'heaviest = weight', col: 0, row: 8}
-  ].concat(REPORT_NODES('OUTPUT count, total,\nheaviest')), edges: [
-    {from: 'start', to: 'list'}, {from: 'list', to: 'init'}, {from: 'init', to: 'test'},
-    {from: 'test', to: 'take', label: 'Yes'}, {from: 'test', to: 'rep', label: 'No', side: 'right'},
-    {from: 'take', to: 'tot'}, {from: 'tot', to: 'cnt'}, {from: 'cnt', to: 'hq'},
-    {from: 'hq', to: 'hset', label: 'Yes', side: 'left'},
-    Object.assign(loopBack('hq', 1, 7, 8.75, 39), {label: 'No'}), loopBack('hset', 0, 8, 8.75, 26)
-  ].concat(REPORT_EDGES)}, GEO);
-}
-function chartIndex() {
-  const lt = wrap('weights = ' + pyList(M.w), 34) + '\n' + wrap('fragile = ' + pyStrList(M.f), 34);
-  return Object.assign({rows: 10, nodes: [
-    {id: 'start', type: 'terminal', text: 'START', col: 1, row: 0},
-    {id: 'list', type: 'process', text: lt, col: 1, row: 1, w: widthFor(lt)},
-    {id: 'init', type: 'process', text: 'total = 0  fragile_count = 0\nheaviest = 0  i = 0', col: 1, row: 2, w: 248},
-    {id: 'test', type: 'decision', text: 'i < len(weights)?', col: 1, row: 3},
-    {id: 'tot', type: 'process', text: 'total = total + weights[i]', col: 1, row: 4, w: 222},
-    {id: 'fq', type: 'decision', text: 'fragile[i] == "yes"?', col: 1, row: 5},
-    {id: 'fc', type: 'process', text: 'fragile_count =\nfragile_count + 1', col: 0, row: 6},
-    {id: 'hq', type: 'decision', text: 'weights[i] > heaviest?', col: 1, row: 7},
-    {id: 'hset', type: 'process', text: 'heaviest = weights[i]', col: 0, row: 8},
-    {id: 'inc', type: 'process', text: 'i = i + 1', col: 1, row: 9}
-  ].concat(REPORT_NODES('OUTPUT len(weights), total,\nfragile_count, heaviest')), edges: [
-    {from: 'start', to: 'list'}, {from: 'list', to: 'init'}, {from: 'init', to: 'test'},
-    {from: 'test', to: 'tot', label: 'Yes'}, {from: 'test', to: 'rep', label: 'No', side: 'right'},
-    {from: 'tot', to: 'fq'}, {from: 'fq', to: 'fc', label: 'Yes', side: 'left'}, {from: 'fq', to: 'hq', label: 'No'}, {from: 'fc', to: 'hq'},
-    {from: 'hq', to: 'hset', label: 'Yes', side: 'left'}, {from: 'hq', to: 'inc', label: 'No'}, {from: 'hset', to: 'inc'},
-    loopBack('inc', 1, 9, 9.6, 26)
-  ].concat(REPORT_EDGES)}, GEO);
-}
-
-// ------------------------------------------------------- the programs ----
-const PROGRAMS = {
-  while: () => ['CAPACITY = 1200', 'total = 0', 'count = 0', 'heaviest = 0', 'weights = []', 'weight = int(input("Weight in lb (-1 to stop): "))', 'while weight != -1:', '    weights.append(weight)',
-    '    total = total + weight', '    count = count + 1', '    if weight > heaviest:', '        heaviest = weight', '    weight = int(input("Weight in lb (-1 to stop): "))',
-    'print(f"{count} packages, {total} lb, heaviest {heaviest} lb")', 'if total > CAPACITY:', '    print("WARNING: over capacity")'],
-  for: () => ['CAPACITY = 1200', 'weights = ' + pyList(M.w), 'total = 0', 'count = 0', 'heaviest = 0', 'for weight in weights:', '    total = total + weight', '    count = count + 1',
-    '    if weight > heaviest:', '        heaviest = weight', 'print(f"{count} packages, {total} lb, heaviest {heaviest} lb")', 'if total > CAPACITY:', '    print("WARNING: over capacity")'],
-  index: () => ['CAPACITY = 1200', 'weights = ' + pyList(M.w), 'fragile = ' + pyStrList(M.f), 'total = 0', 'fragile_count = 0', 'heaviest = 0', 'for i in range(len(weights)):',
-    '    total = total + weights[i]', '    if fragile[i] == "yes":', '        fragile_count = fragile_count + 1', '    if weights[i] > heaviest:', '        heaviest = weights[i]',
-    'print(f"{len(weights)} packages, {total} lb, {fragile_count} fragile, heaviest {heaviest} lb")', 'if total > CAPACITY:', '    print("WARNING: over capacity")']
+const Q = s => '"' + s + '"';
+const fix = v => v.toFixed(2);
+const pyFloat = v => { const n = Number(v.toFixed(10)); return Number.isInteger(n) ? n.toFixed(1) : String(n); };  // what Python shows for the float
+const TF = b => b ? 'True' : 'False';
+const CHECKS = {
+  weight: {label: 'weight above 50 goes to FREIGHT', diamonds: [
+    {id: 'd_weight', text: 'weight > 50?', lane: 'FREIGHT', pid: 'p_freight', py: 'weight > 50', cond: s => s.weight > 50,
+      explain: s => pyFloat(s.weight) + ' > 50 is ' + TF(s.weight > 50) + (s.weight === 50 ? ' (exactly 50 is not above 50)' : '') + '.'}]},
+  fragile: {label: 'fragile goes to the FRAGILE shelf', diamonds: [
+    {id: 'd_fragile', text: 'fragile == "yes"?', lane: 'FRAGILE', pid: 'p_fragile', py: 'fragile == "yes"', cond: s => s.fragile === 'yes',
+      explain: s => Q(s.fragile) + ' == "yes" is ' + TF(s.fragile === 'yes') + '.'}]},
+  city: {label: 'city picks the zone lane (A, B, or C)', diamonds: [
+    {id: 'd_doral', text: 'city == "Doral"?', lane: 'A', pid: 'p_a', py: 'city == "Doral"', cond: s => s.city === 'Doral',
+      explain: s => Q(s.city) + ' == "Doral" is ' + TF(s.city === 'Doral') + '.'},
+    {id: 'd_b', text: 'Hialeah or\nMiami Gardens?', lane: 'B', pid: 'p_b', py: 'city == "Hialeah" or city == "Miami Gardens"', cond: s => s.city === 'Hialeah' || s.city === 'Miami Gardens',
+      explain: s => { const a = s.city === 'Hialeah', b = s.city === 'Miami Gardens'; return Q(s.city) + ' == "Hialeah" is ' + TF(a) + ' and ' + Q(s.city) + ' == "Miami Gardens" is ' + TF(b) + ', so ' + TF(a) + ' or ' + TF(b) + ' is ' + TF(a || b) + '.'; }},
+    {id: 'd_c', text: 'Kendall or\nHomestead?', lane: 'C', pid: 'p_c', py: 'city == "Kendall" or city == "Homestead"', cond: s => s.city === 'Kendall' || s.city === 'Homestead',
+      explain: s => { const a = s.city === 'Kendall', b = s.city === 'Homestead'; return Q(s.city) + ' == "Kendall" is ' + TF(a) + ' and ' + Q(s.city) + ' == "Homestead" is ' + TF(b) + ', so ' + TF(a) + ' or ' + TF(b) + ' is ' + TF(a || b) + '.'; }}]}
 };
-const CODE_TITLES = {while: 'The same algorithm in Python: manifest.py (while version)', for: 'The same algorithm in Python: manifest_for.py (for version)', index: 'The same algorithm in Python: manifest_index.py (index version)'};
-const VHINT = {while: 'A while loop with a sentinel: it reads weights until -1 arrives. This is the version assignment 3.1 builds in Flowgorithm.',
-  for: 'A for loop over the list: no sentinel and no INPUT inside the loop. It stops by itself after the last item.',
-  index: 'A for loop with an index: for i in range(len(weights)). The index i lets the loop read weights[i] and fragile[i] together. This is the second loop of assignment 3.2.'};
+const DISPATCH = ['weight', 'fragile', 'city'], COPILOT = ['fragile', 'weight', 'city'];
+let order = DISPATCH.slice();
+const diamonds = ord => (ord || order).flatMap(k => CHECKS[k].diamonds);
+const laneFor = (s, ord) => { const d = diamonds(ord).find(x => x.cond(s)); return d ? d.lane : 'ASK DISPATCH'; };
+const dispatchWhy = s => s.weight > 50 ? pyFloat(s.weight) + ' is above 50, so FREIGHT comes first no matter what else is true' : s.fragile === 'yes' ? 'it is not above 50 and it is fragile' : 'it is not above 50, not fragile, and the city sets the zone';
 
-// --------------------------------------------- click-to-explain notes ----
-const INFO = {
-  while: {
-    start: '<b>START.</b> Every flowchart begins here. Python has no symbol for it: the program starts at line 1.',
-    init: '<b>PROCESS.</b> The starting values. A counter (count) and an accumulator (total) start at 0. heaviest starts at 0 so the first real weight beats it. weights starts as an empty list []. Python: lines 2 to 5.',
-    in1: '<b>INPUT.</b> The first read happens before the loop, so the test has a value to check (a priming read). Python: line 6. int() turns the typed text into a whole number.',
-    test: '<b>DECISION.</b> The loop condition. While it is True the token enters the body; the first time it is False the token leaves by the No arrow. -1 is the sentinel: a value that means "no more packages" and is never processed. Python: line 7, while weight != -1:.',
-    app: '<b>PROCESS.</b> weights.append(weight) adds the value to the end of the list. The list remembers every package for later. Python: line 8.',
-    tot: '<b>PROCESS.</b> The accumulator: total = total + weight adds this package to the running total. Python: line 9.',
-    cnt: '<b>PROCESS.</b> The counter: count = count + 1 adds one per pass, whatever the weight is. Python: line 10.',
-    hq: '<b>DECISION.</b> The maximum-so-far pattern: is this weight bigger than the biggest seen so far? Python: line 11, if weight > heaviest:.',
-    hset: '<b>PROCESS.</b> Runs only when the test above is True. heaviest = weight remembers the new maximum. Python: line 12.',
-    in2: '<b>INPUT.</b> The read inside the loop. Without it weight never changes, the condition stays True, and the loop never ends (an infinite loop). Python: line 13.',
-    rep: '<b>OUTPUT.</b> The report prints once, after the loop. Python: line 14, an f-string.',
-    capq: '<b>DECISION.</b> The capacity check happens after the loop, not inside it: the loop reads every package first. Python: line 15.',
-    warn: '<b>OUTPUT.</b> Printed only when total > 1200. Exactly 1,200 lb is not above the capacity. Python: line 16.',
-    end: '<b>END.</b> The program stops.'
-  },
-  for: {
-    start: '<b>START.</b> Every flowchart begins here.',
-    list: '<b>PROCESS.</b> The list is written in the program this time, so there is no INPUT. Python: line 2.',
-    init: '<b>PROCESS.</b> The counter, the accumulator, and the maximum-so-far start at 0. Python: lines 3 to 5.',
-    test: '<b>DECISION.</b> A for loop asks "is there a next item?" before every pass and takes it. No sentinel, no condition to write. Python: line 6, for weight in weights:.',
-    take: '<b>PROCESS.</b> The next item of the list goes into weight. In Python this is part of line 6: the for line does the taking.',
-    tot: '<b>PROCESS.</b> The accumulator adds this weight to the running total. Python: line 7.',
-    cnt: '<b>PROCESS.</b> The counter adds one per pass. Python: line 8. (len(weights) would give the same number without a counter.)',
-    hq: '<b>DECISION.</b> The maximum-so-far test. Python: line 9.',
-    hset: '<b>PROCESS.</b> Remembers the new maximum. Python: line 10.',
-    rep: '<b>OUTPUT.</b> The report prints once, after the loop. Python: line 11.',
-    capq: '<b>DECISION.</b> The capacity check after the loop. Python: line 12.',
-    warn: '<b>OUTPUT.</b> Printed only when total > 1200. Python: line 13.',
-    end: '<b>END.</b> The program stops.'
-  },
-  index: {
-    start: '<b>START.</b> Every flowchart begins here.',
-    list: '<b>PROCESS.</b> Two lists that describe the same packages: weights[i] and fragile[i] belong to package number i + 1. Python: lines 2 and 3.',
-    init: '<b>PROCESS.</b> The accumulator, the fragile counter, and the maximum-so-far start at 0. The index i starts at 0 because list positions start at 0. Python: lines 4 to 7 (range starts i at 0).',
-    test: '<b>DECISION.</b> Is i still a valid position? len(weights) is the number of items, so the last valid index is len(weights) - 1. Python: line 7, for i in range(len(weights)): does this test for you.',
-    tot: '<b>PROCESS.</b> weights[i] reads the item at position i. The accumulator adds it. Python: line 8.',
-    fq: '<b>DECISION.</b> fragile[i] is the answer for the same package. Comparing a string with == is exact: "yes" matches, "Yes" does not. Python: line 9.',
-    fc: '<b>PROCESS.</b> A second counter, which only counts the fragile packages. Python: line 10.',
-    hq: '<b>DECISION.</b> The maximum-so-far test with weights[i]. Python: line 11.',
-    hset: '<b>PROCESS.</b> Remembers the new maximum. Python: line 12.',
-    inc: '<b>PROCESS.</b> i = i + 1 moves to the next position. In Python, range does this for you at the end of every pass. Forgetting it in a while loop gives an infinite loop.',
-    rep: '<b>OUTPUT.</b> The report uses len(weights) as the package count. Python: line 13.',
-    capq: '<b>DECISION.</b> The capacity check after the loop. Python: line 14.',
-    warn: '<b>OUTPUT.</b> Printed only when total > 1200. Python: line 15.',
-    end: '<b>END.</b> The program stops.'
-  }
-};
-
-// ------------------------------------------- the steps, generated from the manifest ----
-// each step: {phase, node, line, edges, label, color, text, after}; `after` is the whole memory after the step (so step back and reset just redraw it)
-const snap = o => JSON.parse(JSON.stringify(o));
-function baseState() { return {weight: null, total: null, count: null, heaviest: null, fc: null, i: null, weights: [], rows: [], con: [], done: [], active: null, capOver: null, pass: 0, hsetRuns: 0}; }
-function genWhile() {
-  const st = baseState(), steps = [], W = M.w, n = W.length, seq = W.concat([-1]);
-  const add = (o) => { st.done = st.active ? st.done.concat([st.active]) : st.done; st.active = o.node; steps.push(Object.assign({after: snap(st)}, o)); };
-  add({phase: 'p1', node: 'start', line: 0, text: 'START. The program begins with empty memory. The ' + M.name + ' has ' + (n ? n + ' weight' + (n > 1 ? 's: ' : ': ') + W.join(', ') + ', and then -1' : 'no packages: the dispatcher types -1 right away') + '. The -1 is the sentinel, a value that means "no more packages".'});
-  st.total = 0; st.count = 0; st.heaviest = 0; st.rows.push({p: 0, weight: '', test: '', total: 0, count: 0, heaviest: 0});
-  add({phase: 'p1', node: 'init', line: [2, 5], edges: ['start>init'], label: 'go', color: GOLD, text: 'PROCESS: the starting values. total = 0, count = 0, heaviest = 0, and weights = [] (an empty list). A counter and an accumulator always start at 0 before the loop. Row 0 of the trace table holds these values.'});
-  st.weight = seq[0];
-  add({phase: 'p2', node: 'in1', line: 6, edges: ['init>in1'], label: '?', color: SKY, text: 'INPUT weight: the dispatcher types ' + seq[0] + '. It goes in the box weight. This read happens before the loop so the test has a value to check.'});
-  let k = 0;
-  while (true) {
-    const w = seq[k], prevRead = k === 0 ? 'in1' : 'in2';
-    if (w !== -1) {
-      st.pass++; st.rows.push({p: st.pass, weight: w, test: 'True', total: '', count: '', heaviest: ''});
-      add({phase: 'p3', node: 'test', line: 7, edges: [prevRead + '>test'], label: String(w), color: SKY, text: 'Is weight != -1? weight is ' + w + ', so ' + w + ' != -1 is True. The token takes the Yes arrow into the loop body. Pass ' + st.pass + ' begins: row ' + st.pass + ' appears in the trace table.' + (k ? ' (The token came up the loop-back arrow on the left.)' : '')});
-      st.weights.push(w);
-      add({phase: 'p3', node: 'app', line: 8, edges: ['test>app'], label: String(w), color: SKY, text: 'weights.append(' + w + '): the list grows to ' + pyList(st.weights) + '. The new item sits at index ' + (st.weights.length - 1) + '.'});
-      const t0 = st.total; st.total += w; st.rows[st.rows.length - 1].total = st.total;
-      add({phase: 'p3', node: 'tot', line: 9, edges: ['app>tot'], label: String(w), color: SKY, text: 'total = total + weight: ' + t0 + ' + ' + w + ' = ' + st.total + '. The accumulator grows by this weight.' + (st.total > CAP ? ' The total is now above the 1,200 lb capacity: the bar turns coral, but the loop goes on.' : '')});
-      st.count++; st.rows[st.rows.length - 1].count = st.count;
-      add({phase: 'p3', node: 'cnt', line: 10, edges: ['tot>cnt'], label: String(w), color: SKY, text: 'count = count + 1: ' + (st.count - 1) + ' + 1 = ' + st.count + '. The counter adds one per pass, whatever the weight is.'});
-      const bigger = w > st.heaviest;
-      if (bigger) {
-        add({phase: 'p3', node: 'hq', line: 11, edges: ['cnt>hq'], label: String(w), color: SKY, text: 'Is weight > heaviest? ' + w + ' > ' + st.heaviest + ' is True. The token takes the Yes arrow to the left.'});
-        const h0 = st.heaviest; st.heaviest = w; st.hsetRuns++; st.rows[st.rows.length - 1].heaviest = st.heaviest;
-        add({phase: 'p3', node: 'hset', line: 12, edges: ['hq>hset'], label: String(w), color: SKY, text: 'heaviest = weight: the heaviest so far changes from ' + h0 + ' to ' + w + '. This symbol has now run ' + st.hsetRuns + ' time' + (st.hsetRuns > 1 ? 's' : '') + '.'});
-      } else {
-        st.rows[st.rows.length - 1].heaviest = st.heaviest;
-        add({phase: 'p3', node: 'hq', line: 11, edges: ['cnt>hq'], label: String(w), color: SKY, text: 'Is weight > heaviest? ' + w + ' > ' + st.heaviest + ' is False, so heaviest = weight is skipped and heaviest stays ' + st.heaviest + '. The token takes the No arrow straight down.'});
-      }
-      k++; st.weight = seq[k];
-      add({phase: 'p2', node: 'in2', line: 13, edges: [bigger ? 'hset>in2' : 'hq>in2'], label: String(w), color: SKY, text: 'INPUT weight: the dispatcher types ' + seq[k] + '. ' + (seq[k] === -1 ? 'That is the sentinel. ' : '') + 'The box weight now holds ' + seq[k] + '. Next, the loop-back arrow carries the token up the left lane to the test.'});
-    } else {
-      st.rows.push({p: 'exit', weight: -1, test: 'False', total: st.total, count: st.count, heaviest: st.heaviest});
-      add({phase: 'p4', node: 'test', line: 7, edges: [prevRead + '>test'], label: '-1', color: CORAL, text: 'Is weight != -1? weight is -1, so -1 != -1 is False. The loop ends after ' + st.pass + ' pass' + (st.pass === 1 ? '' : 'es') + '. The token takes the No arrow to the report. Notice the exit row: -1 was read and tested, never added or counted.'});
-      break;
-    }
-  }
-  const line = st.count + ' packages, ' + st.total + ' lb, heaviest ' + st.heaviest + ' lb';
-  st.con.push(line);
-  add({phase: 'p4', node: 'rep', line: 14, edges: ['test>rep'], label: '-1', color: CORAL, text: 'OUTPUT: the screen shows "' + line + '". The report prints once, after the loop.'});
-  st.capOver = st.total > CAP;
-  add({phase: 'p4', node: 'capq', line: 15, edges: ['rep>capq'], label: String(st.total), color: st.capOver ? CORAL : ICE, text: 'Is total > 1200? ' + st.total + ' > 1200 is ' + (st.capOver ? 'True: the van is over its capacity by ' + (st.total - CAP) + ' lb. The token takes the Yes arrow.' : 'False: the load fits' + (st.total === CAP ? ' (exactly 1,200 is not above 1,200)' : '') + '. The token takes the No arrow to END.')});
-  if (st.capOver) { st.con.push('WARNING: over capacity'); add({phase: 'p4', node: 'warn', line: 16, edges: ['capq>warn'], label: String(st.total), color: CORAL, text: 'OUTPUT: the screen shows "WARNING: over capacity". The loop read every package first; the warning comes after.'}); }
-  add({phase: 'p4', node: 'end', line: 0, edges: [st.capOver ? 'warn>end' : 'capq>end'], label: 'done', color: GREEN, text: 'END. ' + st.pass + ' pass' + (st.pass === 1 ? '' : 'es') + ', ' + (steps.length + 1) + ' steps. heaviest = weight ran ' + st.hsetRuns + ' time' + (st.hsetRuns === 1 ? '' : 's') + '. Press Step back to review, or try the For version and the Index version.'});
-  return steps;
+// ---- the Python beside the chart (lines 8 to 17 follow the order of the checks) ----
+function program() {
+  const L = ['weight = float(input("Weight in pounds: "))', 'miles = float(input("Miles: "))', 'city = input("City: ")', 'fragile = input("Fragile (yes/no): ")',
+    'price = 4.50 + 0.80 * weight + 0.25 * miles', 'if fragile == "yes":', '    price = price + 3.00'];
+  diamonds().forEach((d, i) => { L.push((i ? 'elif ' : 'if ') + d.py + ':'); L.push('    lane = "' + d.lane + '"'); });
+  L.push('else:', '    lane = "ASK DISPATCH"', 'print(f"Lane: {lane}")', 'print(f"Price: ${price:.2f}")');
+  return L;
 }
-function genFor() {
-  const st = baseState(), steps = [], W = M.w, n = W.length;
-  const add = (o) => { st.done = st.active ? st.done.concat([st.active]) : st.done; st.active = o.node; steps.push(Object.assign({after: snap(st)}, o)); };
-  add({phase: 'p1', node: 'start', line: 0, text: 'START. In the for version the list is already in the program: ' + pyList(W) + (n ? '' : ' (an empty list)') + '. There is no sentinel and no INPUT.'});
-  st.weights = W.slice();
-  add({phase: 'p1', node: 'list', line: 2, edges: ['start>list'], label: 'go', color: GOLD, text: 'PROCESS: weights = ' + pyList(W) + '. The list has ' + n + ' item' + (n === 1 ? '' : 's') + (n ? ', at index 0 to ' + (n - 1) + '.' : '. With no items the loop body will never run.')});
-  st.total = 0; st.count = 0; st.heaviest = 0; st.rows.push({p: 0, weight: '', test: '', total: 0, count: 0, heaviest: 0});
-  add({phase: 'p1', node: 'init', line: [3, 5], edges: ['list>init'], label: 'go', color: GOLD, text: 'PROCESS: total = 0, count = 0, heaviest = 0. Row 0 of the trace table holds these values.'});
-  let lastBigger = false;
-  for (let k = 0; k <= n; k++) {
-    const from = k === 0 ? 'init>test' : (lastBigger ? 'hset>test' : 'hq>test');
-    if (k < n) {
-      const w = W[k]; st.pass++; st.rows.push({p: st.pass, weight: w, test: 'True', total: '', count: '', heaviest: ''});
-      add({phase: 'p3', node: 'test', line: 6, edges: [from], label: 'item ' + (k + 1), color: SKY, text: 'Is there a next item in weights? Yes: item ' + (k + 1) + ' of ' + n + ' is ' + w + ' (index ' + k + '). Pass ' + st.pass + ' begins.' + (k ? ' (The token came up the loop-back arrow.)' : '')});
-      st.weight = w;
-      add({phase: 'p3', node: 'take', line: 6, edges: ['test>take'], label: String(w), color: SKY, text: 'weight = ' + w + '. The for line does this for you: it takes the next item and puts it in weight.'});
-      const t0 = st.total; st.total += w; st.rows[st.rows.length - 1].total = st.total;
-      add({phase: 'p3', node: 'tot', line: 7, edges: ['take>tot'], label: String(w), color: SKY, text: 'total = total + weight: ' + t0 + ' + ' + w + ' = ' + st.total + '.' + (st.total > CAP ? ' Above the 1,200 lb capacity: the bar turns coral, but the loop goes on.' : '')});
-      st.count++; st.rows[st.rows.length - 1].count = st.count;
-      add({phase: 'p3', node: 'cnt', line: 8, edges: ['tot>cnt'], label: String(w), color: SKY, text: 'count = count + 1: ' + (st.count - 1) + ' + 1 = ' + st.count + '.'});
-      lastBigger = w > st.heaviest;
-      if (lastBigger) {
-        add({phase: 'p3', node: 'hq', line: 9, edges: ['cnt>hq'], label: String(w), color: SKY, text: 'Is weight > heaviest? ' + w + ' > ' + st.heaviest + ' is True. The token takes the Yes arrow to the left.'});
-        const h0 = st.heaviest; st.heaviest = w; st.hsetRuns++; st.rows[st.rows.length - 1].heaviest = w;
-        add({phase: 'p3', node: 'hset', line: 10, edges: ['hq>hset'], label: String(w), color: SKY, text: 'heaviest = weight: ' + h0 + ' becomes ' + w + '. Then the loop-back arrow carries the token up the lane to the "next item?" test.'});
-      } else {
-        st.rows[st.rows.length - 1].heaviest = st.heaviest;
-        add({phase: 'p3', node: 'hq', line: 9, edges: ['cnt>hq'], label: String(w), color: SKY, text: 'Is weight > heaviest? ' + w + ' > ' + st.heaviest + ' is False: heaviest stays ' + st.heaviest + '. The No arrow is the loop-back: the token goes up the lane to the "next item?" test.'});
-      }
-    } else {
-      st.rows.push({p: 'exit', weight: '', test: 'False', total: st.total, count: st.count, heaviest: st.heaviest});
-      add({phase: 'p4', node: 'test', line: 6, edges: [from], label: 'none', color: CORAL, text: 'Is there a next item? No: all ' + n + ' item' + (n === 1 ? '' : 's') + ' ' + (n === 1 ? 'has' : 'have') + ' been used. The for loop ends by itself after ' + st.pass + ' pass' + (st.pass === 1 ? '' : 'es') + ', with no sentinel. The token takes the No arrow to the report.'});
-    }
-  }
-  const line = st.count + ' packages, ' + st.total + ' lb, heaviest ' + st.heaviest + ' lb';
-  st.con.push(line);
-  add({phase: 'p4', node: 'rep', line: 11, edges: ['test>rep'], label: 'none', color: CORAL, text: 'OUTPUT: the screen shows "' + line + '".'});
-  st.capOver = st.total > CAP;
-  add({phase: 'p4', node: 'capq', line: 12, edges: ['rep>capq'], label: String(st.total), color: st.capOver ? CORAL : ICE, text: 'Is total > 1200? ' + st.total + ' > 1200 is ' + (st.capOver ? 'True: over by ' + (st.total - CAP) + ' lb. The token takes the Yes arrow.' : 'False: the load fits. The token takes the No arrow to END.')});
-  if (st.capOver) { st.con.push('WARNING: over capacity'); add({phase: 'p4', node: 'warn', line: 13, edges: ['capq>warn'], label: String(st.total), color: CORAL, text: 'OUTPUT: the screen shows "WARNING: over capacity".'}); }
-  add({phase: 'p4', node: 'end', line: 0, edges: [st.capOver ? 'warn>end' : 'capq>end'], label: 'done', color: GREEN, text: 'END. Same answer as the while version, in ' + (steps.length + 1) + ' steps: the for loop needs no sentinel and no read inside the body.'});
-  return steps;
-}
-function genIndex() {
-  const st = baseState(), steps = [], W = M.w, F = M.f, n = W.length;
-  const add = (o) => { st.done = st.active ? st.done.concat([st.active]) : st.done; st.active = o.node; steps.push(Object.assign({after: snap(st)}, o)); };
-  add({phase: 'p1', node: 'start', line: 0, text: 'START. The index version keeps two lists that describe the same packages: weights and fragile. Position i in both lists is the same package.'});
-  st.weights = W.slice();
-  add({phase: 'p1', node: 'list', line: [2, 3], edges: ['start>list'], label: 'go', color: GOLD, text: 'PROCESS: weights = ' + pyList(W) + ' and fragile = ' + pyStrList(F) + '. len(weights) is ' + n + ', so the valid indexes are 0 to ' + (n - 1) + '.'});
-  st.i = 0; st.total = 0; st.fc = 0; st.heaviest = 0; st.rows.push({p: 0, i: '', wi: '', fi: '', test: '', total: 0, fc: 0, heaviest: 0});
-  add({phase: 'p1', node: 'init', line: [4, 7], edges: ['list>init'], label: 'go', color: GOLD, text: 'PROCESS: total = 0, fragile_count = 0, heaviest = 0, and i = 0. In Python, range(len(weights)) starts i at 0 for you: range(' + n + ') gives ' + (n ? Array.from({length: n}, (_, j) => j).join(', ') : 'no numbers at all') + '.'});
-  for (let k = 0; k <= n; k++) {
-    const from = k === 0 ? 'init>test' : 'inc>test';
-    if (k < n) {
-      const w = W[k], f = F[k]; st.pass++; st.rows.push({p: st.pass, i: k, wi: w, fi: f, test: 'True', total: '', fc: '', heaviest: ''});
-      add({phase: 'p3', node: 'test', line: 7, edges: [from], label: 'i = ' + k, color: SKY, text: 'Is i < len(weights)? ' + k + ' < ' + n + ' is True: index ' + k + ' is a valid position. weights[' + k + '] is ' + w + ' and fragile[' + k + '] is "' + f + '": the same package. Pass ' + st.pass + ' begins.'});
-      const t0 = st.total; st.total += w; st.rows[st.rows.length - 1].total = st.total;
-      add({phase: 'p3', node: 'tot', line: 8, edges: ['test>tot'], label: 'weights[' + k + '] = ' + w, color: SKY, text: 'total = total + weights[' + k + ']: ' + t0 + ' + ' + w + ' = ' + st.total + '.' + (st.total > CAP ? ' Above the 1,200 lb capacity: the bar turns coral.' : '')});
-      if (f === 'yes') {
-        add({phase: 'p3', node: 'fq', line: 9, edges: ['tot>fq'], label: '"' + f + '"', color: SKY, text: 'Is fragile[' + k + '] == "yes"? "yes" == "yes" is True. The token takes the Yes arrow to the left.'});
-        st.fc++; st.rows[st.rows.length - 1].fc = st.fc;
-        add({phase: 'p3', node: 'fc', line: 10, edges: ['fq>fc'], label: '"' + f + '"', color: SKY, text: 'fragile_count = fragile_count + 1: ' + (st.fc - 1) + ' + 1 = ' + st.fc + '.'});
-      } else {
-        st.rows[st.rows.length - 1].fc = st.fc;
-        add({phase: 'p3', node: 'fq', line: 9, edges: ['tot>fq'], label: '"' + f + '"', color: SKY, text: 'Is fragile[' + k + '] == "yes"? "' + f + '" == "yes" is False: fragile_count stays ' + st.fc + '. The token takes the No arrow straight down.'});
-      }
-      const bigger = w > st.heaviest;
-      if (bigger) {
-        add({phase: 'p3', node: 'hq', line: 11, edges: [f === 'yes' ? 'fc>hq' : 'fq>hq'], label: String(w), color: SKY, text: 'Is weights[' + k + '] > heaviest? ' + w + ' > ' + st.heaviest + ' is True. The token takes the Yes arrow to the left.'});
-        const h0 = st.heaviest; st.heaviest = w; st.hsetRuns++; st.rows[st.rows.length - 1].heaviest = w;
-        add({phase: 'p3', node: 'hset', line: 12, edges: ['hq>hset'], label: String(w), color: SKY, text: 'heaviest = weights[' + k + ']: ' + h0 + ' becomes ' + w + '.'});
-      } else {
-        st.rows[st.rows.length - 1].heaviest = st.heaviest;
-        add({phase: 'p3', node: 'hq', line: 11, edges: [f === 'yes' ? 'fc>hq' : 'fq>hq'], label: String(w), color: SKY, text: 'Is weights[' + k + '] > heaviest? ' + w + ' > ' + st.heaviest + ' is False: heaviest stays ' + st.heaviest + '. The token takes the No arrow.'});
-      }
-      st.i = k + 1;
-      add({phase: 'p3', node: 'inc', line: 7, edges: [bigger ? 'hset>inc' : 'hq>inc'], label: 'i = ' + (k + 1), color: SKY, text: 'i = i + 1: ' + k + ' + 1 = ' + (k + 1) + '. range does this for you at the end of every pass. The loop-back arrow carries the token up the lane to the test.'});
-    } else {
-      st.rows.push({p: 'exit', i: n, wi: '', fi: '', test: 'False', total: st.total, fc: st.fc, heaviest: st.heaviest});
-      add({phase: 'p4', node: 'test', line: 7, edges: [from], label: 'i = ' + n, color: CORAL, text: 'Is i < len(weights)? ' + n + ' < ' + n + ' is False. There is no weights[' + n + ']: the last valid index was ' + (n - 1) + ' = len(weights) - 1. The loop ends after ' + st.pass + ' pass' + (st.pass === 1 ? '' : 'es') + '.'});
-    }
-  }
-  const line = n + ' packages, ' + st.total + ' lb, ' + st.fc + ' fragile, heaviest ' + st.heaviest + ' lb';
-  st.con.push(line);
-  add({phase: 'p4', node: 'rep', line: 13, edges: ['test>rep'], label: 'i = ' + n, color: CORAL, text: 'OUTPUT: the screen shows "' + line + '". len(weights) gives the package count, so no counter was needed.'});
-  st.capOver = st.total > CAP;
-  add({phase: 'p4', node: 'capq', line: 14, edges: ['rep>capq'], label: String(st.total), color: st.capOver ? CORAL : ICE, text: 'Is total > 1200? ' + st.total + ' > 1200 is ' + (st.capOver ? 'True: over by ' + (st.total - CAP) + ' lb. The token takes the Yes arrow.' : 'False: the load fits. The token takes the No arrow to END.')});
-  if (st.capOver) { st.con.push('WARNING: over capacity'); add({phase: 'p4', node: 'warn', line: 15, edges: ['capq>warn'], label: String(st.total), color: CORAL, text: 'OUTPUT: the screen shows "WARNING: over capacity".'}); }
-  add({phase: 'p4', node: 'end', line: 0, edges: [st.capOver ? 'warn>end' : 'capq>end'], label: 'done', color: GREEN, text: 'END. ' + (steps.length + 1) + ' steps. This is the pattern for the second loop of assignment 3.2: one index, two lists, one package per pass.'});
-  return steps;
-}
-const GEN = {while: genWhile, for: genFor, index: genIndex};
-const CHART = {while: chartWhile, for: chartFor, index: chartIndex};
-const COLS = {
-  while: [['pass', 'p'], ['weight', 'weight'], ['weight != -1', 'test'], ['total', 'total'], ['count', 'count'], ['heaviest', 'heaviest']],
-  for: [['pass', 'p'], ['weight', 'weight'], ['next item?', 'test'], ['total', 'total'], ['count', 'count'], ['heaviest', 'heaviest']],
-  index: [['pass', 'p'], ['i', 'i'], ['weights[i]', 'wi'], ['fragile[i]', 'fi'], ['i < len', 'test'], ['total', 'total'], ['fragile_count', 'fc'], ['heaviest', 'heaviest']]
-};
-const MEMVARS = {
-  while: [{name: 'weight', label: 'the weight just read'}, {name: 'total', label: 'accumulator, lb'}, {name: 'count', label: 'counter, packages'}, {name: 'heaviest', label: 'maximum so far, lb'}],
-  for: [{name: 'weight', label: 'the current item'}, {name: 'total', label: 'accumulator, lb'}, {name: 'count', label: 'counter, packages'}, {name: 'heaviest', label: 'maximum so far, lb'}],
-  index: [{name: 'i', label: 'the index (position)'}, {name: 'total', label: 'accumulator, lb'}, {name: 'fragile_count', label: 'counter, fragile only'}, {name: 'heaviest', label: 'maximum so far, lb'}]
-};
-
-// --------------------------------------------------------- rendering ----
-let fk = null, MEM = null, STEPS = [];
-const CON = FlowKit.console($('#screen'));
 function renderCode(active) {
-  const prog = PROGRAMS[VER](), lo = Array.isArray(active) ? active[0] : active, hi = Array.isArray(active) ? active[1] : active;
-  $('#code').innerHTML = prog.map((l, i) => '<span class="ln' + (i + 1 >= lo && i + 1 <= hi && lo > 0 ? ' on' : '') + '"><span style="color:var(--silk-dim);display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' +
-    (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
-}
-function buildChart() {
-  const stage = $('#stage');
-  stage.querySelectorAll('svg.flow, .fk-zoom').forEach(e => e.remove());
-  fk = FlowKit(stage, CHART[VER]());
-  fk.onPick(id => { $('#info').innerHTML = INFO[VER][id] || ''; if (fk.nodes[id]) fk.flash(id, '#38B0E0'); setTimeout(() => { const r = fk.nodes[id]; if (r && r.state !== 'active' && r.state !== 'error') fk.highlight(id, r.state); }, 600); });
-  MEM = FlowKit.memory($('#memory'), MEMVARS[VER]);
-  $('#listFwrap').hidden = VER !== 'index'; $('#ownFwrap').hidden = VER !== 'index';
-  $('#listName').textContent = VER === 'index' ? 'weights (the list; the lit box is weights[i])' : 'weights (the list, with the index of each item)';
-  $('#codeTitle').textContent = CODE_TITLES[VER]; $('#vhint').textContent = VHINT[VER];
-}
-function drawLists(s, popIdx) {
-  const host = $('#listW');
-  if (!s.weights.length) { host.innerHTML = '<span class="empty">[] (empty list)</span>'; }
-  else host.innerHTML = s.weights.map((w, i) => '<div class="b' + (VER === 'index' && s.i === i ? ' on' : '') + '"><div class="v">' + w + '</div><div class="i">[' + i + ']</div></div>').join('');
-  if (VER === 'index') { const fh = $('#listF'); fh.innerHTML = M.f.map((f, i) => '<div class="b' + (s.i === i ? ' on' : '') + '"><div class="v" style="font-size:12px;line-height:19px">' + f + '</div><div class="i">[' + i + ']</div></div>').join('') || '<span class="empty">[] (empty list)</span>'; }
-  if (popIdx != null && hasGSAP) { const b = host.children[popIdx]; if (b && b.classList.contains('b')) { const rest = getComputedStyle(b).borderColor; gsap.fromTo(b, {scale: 1.3, borderColor: '#E0B840'}, {scale: 1, borderColor: rest, duration: .5}); } }
-}
-function drawCap(st) {
-  const s = {total: st.total || 0};
-  const pct = Math.min(100, s.total / CAP * 100), f = $('#capFill'); f.style.width = pct + '%';
-  f.className = s.total > CAP ? 'over' : s.total >= CAP - 100 ? 'near' : '';
-  $('#capVal').textContent = 'total ' + fmt(s.total) + ' lb';
-  const m = $('#capMsg'); m.className = 'msg' + (s.total > CAP ? ' over' : '');
-  m.textContent = st.total === null ? 'The bar turns gold within 100 lb of the capacity and red above it.' : s.total > CAP ? 'Over capacity by ' + fmt(s.total - CAP) + ' lb.' : s.total === CAP ? 'Exactly at capacity: 1,200 > 1,200 is False, so no warning.' : s.total >= CAP - 100 ? fmt(CAP - s.total) + ' lb to spare: close to the limit.' : fmt(CAP - s.total) + ' lb to spare.';
-}
-function drawTable(s, prev) {
-  const cols = COLS[VER], pr = prev ? prev.rows : [];
-  $('#trace').innerHTML = '<tr>' + cols.map(c => '<th>' + esc(c[0]) + '</th>').join('') + '</tr>' + s.rows.map((r, ri) => '<tr' + (ri === s.rows.length - 1 && ri > 0 && s.active !== 'end' ? ' class="cur"' : '') + '>' + cols.map(c => {
-    const v = r[c[1]], was = pr[ri] ? pr[ri][c[1]] : undefined, changed = prev && String(v) !== String(was === undefined ? '' : was) && v !== '';
-    return '<td class="' + (changed ? 'new ' : '') + (v === 'True' ? 't' : v === 'False' ? 'f' : '') + '">' + (v === '' || v === undefined ? '' : esc(c[1] === 'fi' && v !== '' ? '"' + v + '"' : v)) + '</td>'; }).join('') + '</tr>').join('');
-}
-function drawMemory(s, prev) {
-  const names = MEMVARS[VER].map(v => v.name), key = {fragile_count: 'fc'};
-  names.forEach(n => { const v = s[key[n] || n]; const was = prev ? prev[key[n] || n] : undefined; MEM.set(n, v === null ? undefined : v, {pop: !!prev && v !== was}); });
-}
-function applyState(s, prev) {   // draw everything from the state; prev (the state before) decides what pops
-  drawMemory(s, prev); drawLists(s, prev && s.weights.length > prev.weights.length ? s.weights.length - 1 : null); drawCap(s); drawTable(s, prev);
-  if (!prev || prev.con.length !== s.con.length) { CON.clear(); s.con.forEach(l => CON.print(l)); }
-}
-function restoreView() {
-  fk.clear(); applyState(S, null);
-  S.done.forEach(id => fk.highlight(id, 'done'));
-  if (S.active) fk.highlight(S.active, S.active === 'warn' ? 'error' : 'active');
-  if (S.active && $('#follow').checked) fk.focus(S.active); else if (!S.active) fk.fit();
+  const el = $('#code'); el.innerHTML = program().map((l, i) => '<span class="ln' + (i + 1 === active ? ' on' : '') + '"><span style="color:var(--silk-dim);display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' +
+    (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : l.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]))) + '</span>').join('');
 }
 
-// ------------------------------------------------------ step engine ----
-const fresh = () => Object.assign(baseState(), {phase: null, step: 0});
-let S = fresh(), hist = [], tl = null, running = false, timer = null, speed = 1;
+// ---- the living flowchart: inputs across the top, the surcharge decision, then the lane chain left to right with Yes branches down ----
+const COLW = 220, NW = 170, DW = 180;
+const HALF = {decision: DW / 2, io: NW / 2 - 8, process: NW / 2, terminal: NW / 2};
+const INFO = {
+  start: '<b>START.</b> A terminal symbol (rounded). Every flowchart begins here with empty memory. In Python there is no line for it: the program simply starts at line 1.',
+  in_w: '<b>INPUT weight.</b> A parallelogram reads one value from the user and stores it in the box weight. Python line 1: <code>weight = float(input("Weight in pounds: "))</code>. input() gives text; float() turns it into a number.',
+  in_m: '<b>INPUT miles.</b> Reads the distance and stores it in the box miles. Python line 2.',
+  in_c: '<b>INPUT city.</b> Reads the city as text and stores it in the box city. Python line 3. Text stays text: no float() here.',
+  in_f: '<b>INPUT fragile.</b> Reads yes or no as text and stores it in the box fragile. Python line 4.',
+  p_price: '<b>PROCESS price.</b> A rectangle computes something. Here it is the price label formula: 4.50 plus 0.80 per pound plus 0.25 per mile. Python line 5.',
+  d_sur: '<b>DECISION fragile == "yes"?</b> A diamond asks one yes or no question. Two equal signs compare; one equal sign would assign. Yes adds the surcharge, No skips it. Python line 6: <code>if fragile == "yes":</code>. This if has no else, because when the package is not fragile nothing needs to happen.',
+  p_sur: '<b>PROCESS price = price + 3.00.</b> Runs only on the Yes branch of the surcharge decision. Python line 7 (indented under the if).',
+  d_weight: '<b>DECISION weight &gt; 50?</b> True sends the token down the Yes arrow to lane = "FREIGHT". False sends it right to the next diamond. The boundary matters: 50 &gt; 50 is False.',
+  d_fragile: '<b>DECISION fragile == "yes"?</b> The second time the program looks at fragile, now to pick a lane. In Python this is an <code>if</code> or an <code>elif</code> depending on its place in the chain.',
+  d_doral: '<b>DECISION city == "Doral"?</b> Compares two strings letter by letter. "Doral" matches; "doral" does not.',
+  d_b: '<b>DECISION city == "Hialeah" or city == "Miami Gardens"?</b> The boolean operator <code>or</code> is True when either comparison is True. Write each comparison in full: <code>city == "Hialeah" or "Miami Gardens"</code> is a classic mistake that is always True.',
+  d_c: '<b>DECISION city == "Kendall" or city == "Homestead"?</b> Same shape as the lane B diamond: two comparisons joined with <code>or</code>.',
+  p_freight: '<b>PROCESS lane = "FREIGHT".</b> A partner truck takes packages above 50 lb. Runs only when its diamond answers True.',
+  p_fragile: '<b>PROCESS lane = "FRAGILE".</b> The fragile shelf. Runs only when its diamond answers True and every diamond before it answered False.',
+  p_a: '<b>PROCESS lane = "A".</b> Zone A is Doral, local deliveries.',
+  p_b: '<b>PROCESS lane = "B".</b> Zone B is Hialeah and Miami Gardens.',
+  p_c: '<b>PROCESS lane = "C".</b> Zone C is Kendall and Homestead.',
+  p_ask: '<b>PROCESS lane = "ASK DISPATCH".</b> The else branch: it runs when every diamond in the chain answered False. An if, elif, else chain always ends here when nothing matched, so lane always gets a value. Python lines 18 and 19.',
+  out_lane: '<b>OUTPUT lane.</b> A parallelogram shows a value on the screen. Python line 20: <code>print(f"Lane: {lane}")</code>.',
+  out_price: '<b>OUTPUT price.</b> Python line 21: <code>print(f"Price: ${price:.2f}")</code>. The <code>:.2f</code> prints two decimals, so 16.1 appears as 16.10.',
+  end: '<b>END.</b> The program stops. Every path through the chart must reach END.'
+};
+let fk = null;
+function buildFlow() {
+  const stage = $('#stage'); stage.querySelectorAll('.flow, .fk-zoom').forEach(e => e.remove());
+  const D = diamonds();
+  const nodes = [
+    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0},
+    {id: 'in_w', type: 'io', text: 'INPUT weight', col: 1, row: 0},
+    {id: 'in_m', type: 'io', text: 'INPUT miles', col: 2, row: 0},
+    {id: 'in_c', type: 'io', text: 'INPUT city', col: 3, row: 0},
+    {id: 'in_f', type: 'io', text: 'INPUT fragile', col: 4, row: 0},
+    {id: 'p_price', type: 'process', text: 'price = 4.50\n+ 0.80 * weight\n+ 0.25 * miles', col: 5, row: 0},
+    {id: 'd_sur', type: 'decision', text: 'fragile == "yes"?', col: 6, row: 0, w: DW},
+    {id: 'p_sur', type: 'process', text: 'price = price + 3.00', col: 7, row: 1}
+  ];
+  D.forEach((d, i) => { nodes.push({id: d.id, type: 'decision', text: d.text, col: i, row: 2, w: DW}); nodes.push({id: d.pid, type: 'process', text: 'lane = "' + d.lane + '"', col: i, row: 3}); });
+  nodes.push({id: 'p_ask', type: 'process', text: 'lane =\n"ASK DISPATCH"', col: 5, row: 2},
+    {id: 'out_lane', type: 'io', text: 'OUTPUT\n"Lane: " & lane', col: 2, row: 4},
+    {id: 'out_price', type: 'io', text: 'OUTPUT\n"Price: $" & price', col: 3, row: 4},
+    {id: 'end', type: 'terminal', text: 'END', col: 4, row: 4});
+  const P = {}; nodes.forEach(n => { P[n.id] = n; });
+  const hz = (a, b, extra) => Object.assign({from: a, to: b, side: 'right', points: [[P[a].col + HALF[P[a].type] / COLW, P[a].row], [P[b].col - HALF[P[b].type] / COLW, P[b].row]]}, extra || {});
+  const edges = [hz('start', 'in_w'), hz('in_w', 'in_m'), hz('in_m', 'in_c'), hz('in_c', 'in_f'), hz('in_f', 'p_price'), hz('p_price', 'd_sur'),
+    {from: 'd_sur', to: 'p_sur', side: 'right', label: 'Yes'},
+    {from: 'd_sur', to: D[0].id, label: 'No', points: [[6, 0.42], [6, 1.5], [0, 1.5], [0, 2 - 0.417]]},
+    {from: 'p_sur', to: D[0].id, points: [[7, 1.28], [7, 1.5], [0, 1.5], [0, 2 - 0.417]]}];
+  D.forEach((d, i) => {
+    edges.push({from: d.id, to: d.pid, label: 'Yes'});
+    edges.push(hz(d.id, i < D.length - 1 ? D[i + 1].id : 'p_ask', {label: 'No'}));
+    edges.push({from: d.pid, to: 'out_lane', points: [[i, 3.28], [i, 3.6], [2, 3.6], [2, 3.72]]});
+  });
+  edges.push({from: 'p_ask', to: 'out_lane', points: [[5, 2.28], [5, 3.6], [2, 3.6], [2, 3.72]]}, hz('out_lane', 'out_price'), hz('out_price', 'end'));
+  fk = FlowKit(stage, {cols: 8, rows: 5, colW: COLW, nodeW: NW, nodes: nodes, edges: edges});
+  fk.onPick(id => { $('#info').innerHTML = INFO[id] || ''; });
+}
+const paint = (keys, color) => keys.forEach(k => { const e = fk.edges[k]; if (e) { e.path.setAttribute('stroke', color); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); } });
+const MEM = FlowKit.memory($('#memory'), [{name: 'weight', label: 'real, from input'}, {name: 'miles', label: 'real, from input'}, {name: 'city', label: 'string, from input'}, {name: 'fragile', label: 'string, yes or no'}, {name: 'price', label: 'real, computed'}, {name: 'lane', label: 'string, decided'}]);
+const CON = FlowKit.console($('#screen'));
+
+// ---- the explanation: one step per symbol the token visits; the plan depends on the package and the order of the checks ----
+const readInputs = () => ({weight: parseFloat($('#inW').value) || 0, miles: parseFloat($('#inM').value) || 0, city: $('#inC').value.trim(), fragile: $('#inF').value});
+const fresh = () => Object.assign(readInputs(), {step: 0, phase: null, mem: {}, lines: [], dec: {}});
+const SKY = '#38B0E0', GREEN = '#6FD49B', PERI = '#A9B4FF', CORAL = '#F0786A', ICE = '#9FE7FF';
+function plan(S) {
+  const D = diamonds(), steps = [], w = S.weight, m = S.miles, fr = S.fragile === 'yes';
+  const price0 = 4.5 + 0.8 * w + 0.25 * m, price = price0 + (fr ? 3 : 0);
+  steps.push({phase: 'start', node: 'start', line: 0, text: 'START. Memory is empty: the six boxes have no values yet. The token is about to carry each input into the chart.'});
+  steps.push({phase: 'input', node: 'in_w', line: 1, path: ['start>in_w'], label: '?', color: SKY, mem: {weight: pyFloat(w)}, text: 'INPUT weight: the user types ' + w + '. input() gives the text "' + w + '" and float() turns it into the number ' + pyFloat(w) + ', stored in the box weight.'});
+  steps.push({phase: 'input', node: 'in_m', line: 2, path: ['in_w>in_m'], label: pyFloat(w), color: SKY, mem: {miles: pyFloat(m)}, text: 'INPUT miles: the user types ' + m + '. The number ' + pyFloat(m) + ' goes into the box miles.'});
+  steps.push({phase: 'input', node: 'in_c', line: 3, path: ['in_m>in_c'], label: pyFloat(m), color: SKY, mem: {city: Q(S.city)}, text: 'INPUT city: the user types ' + S.city + '. It stays text (a string) in the box city, capital letters included.'});
+  steps.push({phase: 'input', node: 'in_f', line: 4, path: ['in_c>in_f'], label: S.city, color: SKY, mem: {fragile: Q(S.fragile)}, text: 'INPUT fragile: the user types ' + S.fragile + '. The string "' + S.fragile + '" goes into the box fragile.'});
+  steps.push({phase: 'price', node: 'p_price', line: 5, path: ['in_f>p_price'], label: S.fragile, color: SKY, mem: {price: pyFloat(price0)}, text: 'PROCESS price = 4.50 + 0.80 * ' + pyFloat(w) + ' + 0.25 * ' + pyFloat(m) + '. The parts: 0.80 * ' + pyFloat(w) + ' = ' + fix(0.8 * w) + ', 0.25 * ' + pyFloat(m) + ' = ' + fix(0.25 * m) + ', plus the base 4.50. Total ' + fix(price0) + ', stored in the box price.'});
+  steps.push({phase: 'decide', node: 'd_sur', line: 6, path: ['p_price>d_sur'], label: pyFloat(price0), color: SKY, dec: {id: 'd_sur', cond: 'fragile == "yes"', explain: Q(S.fragile) + ' == "yes" is ' + TF(fr) + '.', result: fr},
+    text: 'DECISION fragile == "yes"? Python compares ' + Q(S.fragile) + ' == "yes": ' + TF(fr) + '. ' + (fr ? 'The token takes the Yes arrow to add the surcharge.' : 'The token takes the No arrow: the price stays ' + fix(price0) + '.')});
+  let from = 'd_sur';
+  if (fr) { steps.push({phase: 'price', node: 'p_sur', line: 7, path: ['d_sur>p_sur'], label: 'True', color: GREEN, mem: {price: pyFloat(price)}, text: 'PROCESS price = price + 3.00 = ' + fix(price0) + ' + 3.00 = ' + fix(price) + '. The fragile surcharge. The box price changes; the token now heads for the lane chain.'}); from = 'p_sur'; }
+  let lane = null, laneNode = null, firedAt = -1;
+  for (let i = 0; i < D.length; i++) {
+    const d = D[i], r = d.cond(S), lab = i === 0 ? (fr ? pyFloat(price) : 'False') : 'False';
+    steps.push({phase: 'decide', node: d.id, line: 8 + 2 * i, path: [from + '>' + d.id], label: lab, color: i === 0 && fr ? SKY : PERI, long: i === 0, dec: {id: d.id, cond: d.py, explain: d.explain(S), result: r},
+      text: 'DECISION ' + (i + 1) + ' of ' + D.length + ': ' + d.text.replace('\n', ' ') + ' ' + d.explain(S) + (r ? ' True: the token takes the Yes arrow down to lane = "' + d.lane + '". The diamonds to the right will never be asked for this package.' : ' False: the token takes the No arrow to the next diamond.')});
+    if (r) { lane = d.lane; laneNode = d.pid; firedAt = i; steps.push({phase: 'lane', node: d.pid, line: 9 + 2 * i, path: [d.id + '>' + d.pid], label: 'True', color: GREEN, mem: {lane: Q(lane)}, text: 'PROCESS lane = "' + lane + '". The box lane gets its value.'}); break; }
+    from = d.id;
+  }
+  if (!lane) {
+    lane = 'ASK DISPATCH'; laneNode = 'p_ask';
+    const known = ['Doral', 'Hialeah', 'Miami Gardens', 'Kendall', 'Homestead'].find(c => c.toLowerCase() === S.city.toLowerCase() && c !== S.city);
+    steps.push({phase: 'lane', node: 'p_ask', line: 19, path: [D[D.length - 1].id + '>p_ask'], label: 'False', color: PERI, mem: {lane: Q(lane)}, text: 'Every diamond answered False, so the else branch runs: lane = "ASK DISPATCH".' + (known ? ' Note: ' + Q(S.city) + ' is not ' + Q(known) + '. Python compares letter by letter, capital letters included.' : ' Dispatch will decide by hand where ' + S.city + ' goes.')});
+  }
+  const expected = laneFor(S, DISPATCH), laneStep = steps[steps.length - 1];
+  if (lane !== expected) {
+    const missed = diamonds(DISPATCH).find(d => d.cond(S));
+    laneStep.err = true;
+    laneStep.text += ' Dispatch expected ' + expected + ': ' + dispatchWhy(S) + '. The diamond "' + missed.text.replace('\n', ' ') + '" was never reached, because Python stops at the first True condition and in this order it came too late.';
+  } else if (firedAt >= 0 && firedAt < D.length - 1 && order[0] !== 'city') laneStep.text += ' Dispatch agrees: ' + dispatchWhy(S) + '.';
+  const unreached = D.slice(firedAt >= 0 ? firedAt + 1 : D.length);
+  steps.push({phase: 'output', node: 'out_lane', line: 20, path: [laneNode + '>out_lane'], label: lane, color: ICE, long: true, print: ['Lane: ' + lane], text: 'OUTPUT: the screen prints Lane: ' + lane + '.' + (unreached.length ? ' ' + unreached.length + ' diamond' + (unreached.length > 1 ? 's were' : ' was') + ' never asked: ' + unreached.map(d => '"' + d.text.replace('\n', ' ') + '"').join(', ') + '.' : '')});
+  steps.push({phase: 'output', node: 'out_price', line: 21, path: ['out_lane>out_price'], label: '$' + fix(price), color: ICE, print: ['Price: $' + fix(price)], text: 'OUTPUT: the screen prints Price: $' + fix(price) + '. The box holds ' + pyFloat(price) + '; the f-string :.2f prints exactly two decimals.'});
+  steps.push({phase: 'output', node: 'end', line: 0, path: ['out_price>end'], label: 'done', color: GREEN, text: 'END. Package ' + (S.t || 'with these values') + ' goes to lane ' + lane + ' at $' + fix(price) + '.' + (lane !== expected ? ' That lane is wrong for dispatch: this is the branch a test plan must catch.' : ' Pick another package, or change the order of the checks, and run again.')});
+  return steps;
+}
+let S = fresh(), STEPS = plan(S), hist = [], tl = null, running = false, timer = null, speed = 1, follow = true;
 const SPEEDS = [0.25, 0.5, 1, 2, 4];
 function setPhase(p) { document.querySelectorAll('.phases li').forEach(li => li.classList.toggle('on', li.dataset.p === p)); const li = document.querySelector('.phases li[data-p="' + p + '"]'); $('#phaseTag').textContent = li ? li.textContent : 'Ready'; $('#phaseTag').style.setProperty('--pc', li ? getComputedStyle(li).getPropertyValue('--c') : 'var(--silk-dim)'); }
-function animStep(t, s, m) {
-  const before = snap(s);
-  t.call(() => { if (s.active) fk.highlight(s.active, 'done'); });
-  if (m.edges) { const f = fk.token(m.edges, m.label, m.color); if (f) t.add(f); }
-  t.call(() => { fk.highlight(m.node, m.node === 'warn' ? 'error' : 'active'); if ($('#follow').checked) fk.focus(m.node); applyState(m.after, before); });
+function decBox(d) {
+  if (!d) { $('#decBox').innerHTML = 'No diamond reached yet. Each diamond asks one comparison; Python answers True or False.'; return; }
+  $('#decBox').innerHTML = 'Diamond <code>' + d.cond.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + '</code><br>' + d.explain.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + ' <span class="pill ' + (d.result ? 't' : 'f') + '">' + TF(d.result) + '</span> ' + (d.result ? 'Yes arrow' : 'No arrow');
+}
+function decTable() {
+  const all = [{id: 'd_sur', py: 'fragile == "yes"  (surcharge)'}].concat(diamonds());
+  $('#decTable').innerHTML = '<tr><th>Diamond</th><th>Result</th></tr>' + all.map(d => { const r = S.dec[d.id]; const done = S.step >= STEPS.length;
+    return '<tr><td>' + d.py.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + '</td><td>' + (r ? '<span class="pill ' + (r.result ? 't' : 'f') + '">' + TF(r.result) + '</span>' : done ? '<span class="pill x">never reached</span>' : '<span class="pill">not yet</span>') + '</td></tr>'; }).join('');
+}
+function restoreView() {   // after step back, reset, or a chart rebuild: redraw memory, screen, decisions, and highlights from the state
+  fk.clear(); MEM.reset(); CON.clear();
+  let last = null;
+  for (let i = 0; i < S.step; i++) { const m = STEPS[i]; if (m.mem) Object.keys(m.mem).forEach(k => MEM.set(k, m.mem[k], {pop: false})); if (m.print) m.print.forEach(l => CON.print(l)); if (m.path) paint(m.path, '#E0B840'); if (m.dec) last = m.dec; fk.highlight(m.node, i === S.step - 1 ? (m.err ? 'error' : 'active') : 'done'); }
+  decBox(last); decTable();
+  if (follow && S.step > 0) fk.focus(STEPS[S.step - 1].node); else fk.fit();
+}
+function render() { $('#hudStep').textContent = S.step; $('#ctx').textContent = 'Step ' + S.step + ' of ' + STEPS.length; $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = S.step >= STEPS.length; $('#btnRun').textContent = running ? 'Pause' : 'Run';
+  renderCode(S.step > 0 && S.step <= STEPS.length ? STEPS[S.step - 1].line : 0); decTable();
+  const copilot = order.join() === COPILOT.join(), is5 = S.weight === 60 && S.fragile === 'yes';
+  guide(S.step === 0 ? (copilot && !is5 ? 4 : 2) : S.step < STEPS.length ? 3 : (copilot ? 5 : 4),
+    S.step === 0 ? (copilot && !is5 ? 'Copilot\'s order is on. Pick package <b>PP-2026-0005</b> and press <b>Run</b>.' : 'Press <b>Step</b> to start, or <b>Run</b> to play every step.')
+    : S.step < STEPS.length ? 'Read the explanation, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + STEPS.length + '.'
+    : copilot ? 'You saw the unreached diamond. Scroll to <b>Try it</b> and run the Python, or press <b>Dispatch order</b> to go back.' : 'Done. Press <b>Copilot\'s order</b> and run PP-2026-0005, or pick another package.'); }
+function finish(m) { tl = null; if (m.mem) Object.assign(S.mem, m.mem); if (m.print) S.lines.push.apply(S.lines, m.print); if (m.dec) S.dec[m.dec.id] = m.dec; S.step++; render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed); } }
+function animate(t, m) {
+  t.call(() => { if (S.step > 0) fk.highlight(STEPS[S.step - 1].node, 'done'); if (follow) { if (m.long) fk.fit(); else fk.focus(m.node); } });
+  if (m.path) { const f = fk.token(m.path, m.label, m.color); if (f) { f.timeScale(Math.max(1, f.duration() / 2.2)); t.add(f); } }
+  t.call(() => { fk.highlight(m.node, m.err ? 'error' : 'active'); if (m.path) paint(m.path, '#E0B840'); if (follow && m.long) fk.focus(m.node); if (m.mem) Object.keys(m.mem).forEach(k => MEM.set(k, m.mem[k])); if (m.print) m.print.forEach(l => CON.print(l)); if (m.dec) decBox(m.dec); });
   t.to({}, {duration: .35});
 }
-function render() {
-  $('#hudStep').textContent = S.step; $('#hudTotal').textContent = STEPS.length; $('#hudPass').textContent = S.pass; $('#ctx').textContent = 'Step ' + S.step + ' of ' + STEPS.length;
-  $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = S.step >= STEPS.length; $('#btnRun').textContent = running ? 'Pause' : 'Run';
-  renderCode(S.step > 0 && S.step <= STEPS.length ? STEPS[S.step - 1].line : 0);
-  guide(S.step === 0 ? 2 : S.step < STEPS.length ? 2 : VER === 'while' ? 3 : 4,
-    S.step === 0 ? 'Press <b>Step</b> to start the ' + M.name + ' (' + (VER === 'while' ? 'while' : VER === 'for' ? 'for' : 'index') + ' version), or <b>Run</b> to play every step.'
-    : S.step < STEPS.length ? 'Read the explanation, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + STEPS.length + ' (pass ' + S.pass + ').'
-    : VER === 'while' ? 'Done. Press <b>Step back</b> to review, press <b>For version</b> to see the same job with a for loop, or try the <b>Overload manifest</b>.'
-    : 'Done. Scroll down to <b>Check Copilot\'s explanation</b>, or to <b>Try it</b> to run your own version.');
-}
-function finish(m) { tl = null; Object.assign(S, snap(m.after)); S.step++; render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed); } }
 function stepFwd(animated) {
   if (tl) { tl.progress(1); return; }
   if (S.step >= STEPS.length) return;
-  hist.push(snap(S));
+  hist.push(JSON.parse(JSON.stringify(S)));
   const m = STEPS[S.step]; S.phase = m.phase; setPhase(m.phase); $('#narration').textContent = m.text; renderCode(m.line);
-  if (animated !== false && hasGSAP) { tl = gsap.timeline({onComplete: () => finish(m)}); animStep(tl, S, m); tl.timeScale(speed); }
-  else { const t = {call: f => f(), add: () => {}, to: () => {}}; animStep(t, S, m); finish(m); }
+  if (animated !== false && hasGSAP) { tl = gsap.timeline({onComplete: () => finish(m)}); animate(tl, m); tl.timeScale(speed); }
+  else { animate({call: f => f(), add: () => {}, to: () => {}}, m); finish(m); }
 }
-function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); setPhase(S.phase); restoreView(); $('#narration').textContent = 'Stepped back to step ' + S.step + '. Press Step to watch the next step again.'; render(); }
+function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); setPhase(S.phase); restoreView(); $('#narration').textContent = 'Stepped back. Press Step to watch that step again.'; render(); }
 function run() { if (S.step >= STEPS.length) return; running = true; render(); stepFwd(); }
 function stop() { running = false; clearTimeout(timer); render(); }
-function reset(msg) { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); hist = []; setPhase(null); restoreView(); $('#narration').textContent = msg || 'Press Step to start, or Run to play every step.'; render(); }
-function rebuild(msg) { stop(); if (tl) { tl.kill(); tl = null; } buildChart(); STEPS = GEN[VER](); reset(msg); }
+function reset(msg) { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); const p = PK.find(x => x.w === S.weight && x.m === S.miles && x.city === S.city && x.f === S.fragile); if (p) S.t = p.t; STEPS = plan(S); hist = []; setPhase(null); restoreView(); $('#narration').textContent = msg || 'Press Step to start, or Run to play every step.'; render(); }
+
+// ---- package picker ----
+const sel = $('#pkg'); sel.innerHTML = PK.map((p, i) => '<option value="' + i + '">' + p.t + ' · ' + p.city + ' · ' + p.w + ' lb · ' + p.m + ' mi · ' + (p.f === 'yes' ? 'fragile' : 'not fragile') + '</option>').join('') + '<option value="custom">Type your own values</option>';
+function loadPkg(i) { const p = PK[i]; if (!p) return; $('#inW').value = p.w; $('#inM').value = p.m; $('#inC').value = p.city; $('#inF').value = p.f; }
+sel.addEventListener('change', () => { loadPkg(+sel.value); reset(sel.value === 'custom' ? 'Type your own values, then press Step.' : 'Package ' + PK[sel.value].t + ' loaded. Press Step to start.'); });
+['#inW', '#inM', '#inC', '#inF'].forEach(s => $(s).addEventListener('input', () => { const v = readInputs(); const i = PK.findIndex(p => p.w === v.weight && p.m === v.miles && p.city === v.city && p.f === v.fragile); sel.value = i >= 0 ? String(i) : 'custom'; reset('Values changed. Press Step to start.'); }));
+
+// ---- order of the checks: a draggable list with up and down buttons; the chart and the Python redraw ----
+function setOrder(o, msg) { order = o.slice(); renderOrder(); buildFlow(); reset(msg || 'Order changed: the chart and the Python redrew. Press Step to start.');
+  const copilot = order.join() === COPILOT.join(), dispatch = order.join() === DISPATCH.join();
+  $('#orderNote').textContent = dispatch ? 'Dispatch order: the rule Dante gave. Weight first, because a freight truck takes anything above 50 lb no matter what else is true.' : copilot ? 'Copilot\'s order: fragile before weight. Run PP-2026-0005 (60 lb, fragile) and watch where it lands.' : order[0] === 'city' ? 'City first: a package from a known city gets its zone lane before anyone looks at the weight or the fragile answer. Run PP-2026-0003 (55 lb) and see it land in B.' : 'Your own order. Run every reference package and see which ones change lane.';
+  $('#btnDispatch').setAttribute('aria-pressed', dispatch); $('#btnCopilot').setAttribute('aria-pressed', copilot); }
+function renderOrder() {
+  const ul = $('#orderList');
+  ul.innerHTML = order.map((k, i) => '<li data-k="' + k + '"><span class="grip" aria-hidden="true">::</span><span class="n">' + (i + 1) + '</span><span class="t">' + CHECKS[k].label + '</span><span class="ud"><button type="button" data-up="' + i + '" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button><button type="button" data-down="' + i + '" aria-label="Move down"' + (i === order.length - 1 ? ' disabled' : '') + '>&#9660;</button></span></li>').join('');
+  if (hasGSAP && window.Draggable) Draggable.create(ul.querySelectorAll('li'), {type: 'y', bounds: ul, zIndexBoost: false,
+    onPress() { this.target.classList.add('dragging'); },
+    onRelease() { const me = this.target; me.classList.remove('dragging'); const items = Array.from(ul.children); const cy = me.getBoundingClientRect().top + me.offsetHeight / 2;
+      const others = items.filter(x => x !== me); const idx = others.filter(x => x.getBoundingClientRect().top + x.offsetHeight / 4 < cy).length;
+      gsap.set(me, {y: 0}); const o = others.map(x => x.dataset.k); o.splice(idx, 0, me.dataset.k); if (o.join() !== order.join()) setOrder(o); else renderOrder(); }});
+}
+$('#orderList').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const o = order.slice(); if (b.dataset.up != null) { const i = +b.dataset.up; [o[i - 1], o[i]] = [o[i], o[i - 1]]; } else { const i = +b.dataset.down; [o[i], o[i + 1]] = [o[i + 1], o[i]]; } setOrder(o); });
+$('#btnDispatch').addEventListener('click', () => setOrder(DISPATCH, 'Dispatch order: weight, fragile, city. Press Step to start.'));
+$('#btnCopilot').addEventListener('click', () => { setOrder(COPILOT, 'Copilot\'s order: fragile, weight, city. Pick PP-2026-0005 and press Run.'); });
+$('#btnFollow').addEventListener('click', () => { follow = true; $('#btnFollow').classList.add('on'); $('#btnFollow').setAttribute('aria-pressed', 'true'); $('#btnWhole').classList.remove('on'); if (S.step > 0) fk.focus(STEPS[S.step - 1].node); });
+$('#btnWhole').addEventListener('click', () => { follow = false; $('#btnFollow').classList.remove('on'); $('#btnFollow').setAttribute('aria-pressed', 'false'); $('#btnWhole').classList.add('on'); fk.fitAll(); });
 
 $('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
 $('#btnRun').addEventListener('click', () => running ? stop() : run());
 $('#btnBack').addEventListener('click', back);
 $('#btnReset').addEventListener('click', () => reset());
 $('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
-$('#follow').addEventListener('change', e => { if (e.target.checked && S.active) fk.focus(S.active); else if (!e.target.checked) fk.fitAll(); });
 document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
   if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click(); });
 
-// ------------------------------------------------- manifest pickers ----
-function setPicks(key) { $('#pickVan').setAttribute('aria-pressed', key === 'van'); $('#pickOver').setAttribute('aria-pressed', key === 'over'); }
-$('#pickVan').addEventListener('click', () => { M = MANIFESTS.van; setPicks('van'); $('#mhint').className = 'mhint'; $('#mhint').textContent = 'VAN-1: 12, 3, 20, 50, 45, then -1. Expected: 5 packages, 130 lb, heaviest 50 lb.'; rebuild('VAN-1 manifest loaded. Press Step to start.'); guide(2, 'Press <b>Step</b> to start the VAN-1 manifest.'); });
-$('#pickOver').addEventListener('click', () => { M = MANIFESTS.over; setPicks('over'); $('#mhint').className = 'mhint'; $('#mhint').textContent = 'Overload: 400, 350, 300, 200, then -1. Expected: 4 packages, 1250 lb, heaviest 400 lb, and the warning.'; rebuild('Overload manifest loaded. Press Step to start and watch the capacity bar.'); guide(2, 'Press <b>Step</b> to start the Overload manifest.'); });
-$('#btnOwn').addEventListener('click', () => {
-  const raw = $('#ownW').value.trim(), hint = $('#mhint');
-  const parts = raw === '' ? [] : raw.split(/[,\s;]+/).filter(Boolean);
-  const w = [];
-  for (const p of parts) { if (!/^\d+$/.test(p)) { hint.className = 'mhint bad'; hint.textContent = '"' + p + '" is not a whole number. Type weights like 600, 600 (no letters, no decimals).'; return; } const v = +p; if (v < 1 || v > 2000) { hint.className = 'mhint bad'; hint.textContent = 'Each weight must be from 1 to 2000 lb (' + v + ' is out of range). Zero and negative numbers are not packages, and -1 is reserved as the sentinel.'; return; } w.push(v); }
-  if (w.length > 6) { hint.className = 'mhint bad'; hint.textContent = 'Up to 6 weights here, so the chart stays readable. You typed ' + w.length + '.'; return; }
-  const fparts = $('#ownF').value.trim() === '' ? [] : $('#ownF').value.trim().toLowerCase().split(/[,\s;]+/).filter(Boolean);
-  const f = w.map((_, i) => fparts[i] === 'yes' ? 'yes' : 'no');
-  if (VER === 'index' && fparts.some(x => x !== 'yes' && x !== 'no')) { hint.className = 'mhint bad'; hint.textContent = 'Fragile answers must be yes or no, separated by commas (one per weight).'; return; }
-  M = {key: 'own', name: w.length ? 'your manifest' : 'empty manifest', w: w, f: f}; setPicks('own');
-  hint.className = 'mhint'; hint.textContent = w.length ? 'Your manifest: ' + w.join(', ') + ', then -1.' + (VER === 'index' ? ' Fragile: ' + f.join(', ') + '.' : '') : 'Empty manifest: the dispatcher types -1 first. Watch how many passes run.';
-  rebuild((w.length ? 'Your manifest is loaded.' : 'Empty manifest loaded.') + ' Press Step to start.'); guide(2, 'Press <b>Step</b> to start your manifest.');
-});
-document.querySelectorAll('.versions .btn').forEach(b => b.addEventListener('click', () => {
-  VER = b.dataset.v; document.querySelectorAll('.versions .btn').forEach(x => x.setAttribute('aria-pressed', x === b));
-  rebuild((VER === 'while' ? 'While version' : VER === 'for' ? 'For version' : 'Index version') + ' loaded for the ' + M.name + '. Press Step to start.');
-  guide(2, 'Press <b>Step</b> to run the ' + (VER === 'while' ? 'while' : VER === 'for' ? 'for' : 'index') + ' version of the ' + M.name + '.');
-}));
+// ---- Try it: the same chain inside lane(weight, fragile, city), with package 0003 as the inputs and three tests ----
+const SANDBOX = ['# sorter.py: lane and price for one Palmetto Parcel package', 'def lane(weight, fragile, city):', '    if weight > 50:', '        return "FREIGHT"', '    elif fragile:', '        return "FRAGILE"',
+  '    elif city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "ASK DISPATCH"', '',
+  'weight = float(input("Weight in pounds: "))', 'miles = float(input("Miles: "))', 'city = input("City: ")', 'fragile = input("Fragile (yes/no): ") == "yes"', 'price = 4.50 + 0.80 * weight + 0.25 * miles', 'if fragile:', '    price = price + 3.00',
+  'print(f"Lane: {lane(weight, fragile, city)}")', 'print(f"Price: ${price:.2f}")'].join('\n');
+PySandbox($('#sandbox'), {code: SANDBOX, inputs: '55\n14\nMiami Gardens\nno', tests: [
+  {expr: 'lane(55, False, "Miami Gardens")', expect: "'FREIGHT'"}, {expr: 'lane(60, True, "Miami Gardens")', expect: "'FREIGHT'"}, {expr: 'lane(50, False, "Hialeah")', expect: "'B'"}]});
 
-// ------------------------------------------- the Copilot sentence checker ----
-const SENTS = [
-  {s: 'The loop keeps running while the weight that was just read is not -1.', v: true, why: 'True. Every row of the trace table with True in the weight != -1 column is a pass that ran; the exit row shows the first False.'},
-  {s: 'count starts at 1, so that the first package is counted.', v: false, why: 'False. VAN-1 row 0 shows count 0 before the loop, and row 1 shows count 1 after the first package. Starting at 1 would report 6 packages.'},
-  {s: 'total adds up every weight read before the sentinel.', v: true, why: 'True. VAN-1 rows 1 to 5: 12, 15, 35, 85, 130. The exit row keeps 130: the -1 is never added.'},
-  {s: 'The loop stops as soon as total goes above 1,200.', v: false, why: 'False. Overload row 4 shows total 1,250, and the loop still read the next weight (-1) and tested it on the exit row. The capacity check comes after the loop.'},
-  {s: 'heaviest changes only on a pass where the weight read is bigger than the heaviest so far.', v: true, why: 'True. VAN-1 rows 1, 3, and 4 change heaviest (12, 20, 50); rows 2 and 5 keep it.'},
-  {s: 'For the VAN-1 manifest the loop body runs 6 times, once per value typed, including the -1.', v: false, why: 'False. VAN-1 has 5 passes (rows 1 to 5). The exit row shows -1 was read and tested, and the body never ran for it.'}
-];
-let ans = SENTS.map(() => null);
-$('#sents').innerHTML = SENTS.map((x, i) => '<li><div class="s">' + (i + 1) + '. ' + esc(x.s) + '</div><div class="tf"><button type="button" data-i="' + i + '" data-v="1" aria-pressed="false">True</button><button type="button" data-i="' + i + '" data-v="0" aria-pressed="false">False</button></div><div class="why"></div></li>').join('');
-$('#sents').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const i = +b.dataset.i; ans[i] = b.dataset.v === '1'; b.parentNode.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); guide(4, ans.every(a => a !== null) ? 'All six marked. Press <b>Check sentences</b>.' : 'Mark every sentence True or False, then press <b>Check sentences</b>.'); });
-$('#btnSents').addEventListener('click', () => {
-  if (ans.some(a => a === null)) { $('#sentScore').textContent = 'Mark every sentence first.'; guide(4, 'Mark every sentence True or False, then press <b>Check sentences</b>.'); return; }
-  let right = 0;
-  document.querySelectorAll('#sents li').forEach((li, i) => { const ok = ans[i] === SENTS[i].v; right += ok; li.className = ok ? 'ok' : 'bad'; li.querySelector('.why').textContent = (ok ? 'Right. ' : 'Not right: you marked it ' + (ans[i] ? 'True' : 'False') + '. ') + SENTS[i].why; });
-  $('#sentScore').innerHTML = '<span class="big">' + right + '</span> of 6 right.' + (right === 6 ? ' Every verdict cites a row: that is proof, not opinion.' : ' Read the row cited under each sentence and try again.');
-  guide(5, right === 6 ? 'Scroll down to <b>Try it</b> and run the Python.' : 'Fix the wrong marks using the rows cited, press <b>Check sentences</b> again, then scroll to <b>Try it</b>.');
-});
-
-// ------------------------------------------------------ the sandbox ----
-const SANDBOX_CODE = ['CAPACITY = 1200', '', '# a helper for the two tests below (functions are week 4; leave it as it is)', 'def manifest_total(weights):', '    total = 0', '    for w in weights:', '        total = total + w', '    return total', '',
-  'total = 0', 'count = 0', 'heaviest = 0', 'weights = []', 'weight = int(input("Weight in lb (-1 to stop): "))', 'while weight != -1:', '    weights.append(weight)', '    total = total + weight', '    count = count + 1', '    if weight > heaviest:', '        heaviest = weight',
-  '    weight = int(input("Weight in lb (-1 to stop): "))', 'print(f"{count} packages, {total} lb, heaviest {heaviest} lb")', 'if total > CAPACITY:', '    print("WARNING: over capacity")'].join('\n');
-PySandbox($('#sandbox'), {code: SANDBOX_CODE, inputs: '12\n3\n20\n50\n45\n-1', tests: [{expr: 'manifest_total([12, 3, 20, 50, 45])', expect: '130'}, {expr: 'manifest_total([])', expect: '0'}]});
-
-window.__loopRunner = {busy: () => !!tl || running, state: () => S, steps: () => STEPS};
-buildChart(); STEPS = GEN[VER](); reset();
+loadPkg(0); sel.value = '0';
+setOrder(DISPATCH, 'Package PP-2026-0001 loaded. Press Step to start, or Run to play every step.');
 })();
 </script>
 </body>

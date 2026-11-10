@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Decision diamonds</title>
-<meta name="description" content="COP1411 Week 2 interactive: Watch the Palmetto Parcel sorter decide a package&#x27;s lane one diamond at a time, then change the order of the checks and see why Copilot&#x27;s version sends a 60 lb fragile box to the wrong place.">
+<title>Cover every branch</title>
+<meta name="description" content="COP1411 Week 1 interactive: Light every arrow of the sorter with the fewest packages, predict lanes and prices, and find the one package that exposes the bug in Copilot&#x27;s order.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
@@ -13,6 +13,7 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Flip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <!-- Remove the library tags this page does not use. Pyodide loads lazily from the PySandbox kit on the first Run. -->
 <style>
   /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
@@ -366,159 +367,84 @@
   }
   /* ===== end of theme ===== */
 
-  /* page-specific CSS below (flowchart explorer). The stage holds the living flowchart; the HUD rows stay above and below it. */
-  .stage.flowstage{background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
-  .stage .flow{position:absolute;left:0;right:0;top:52px;height:calc(100% - 100px);width:100%}
-  @media(max-width:700px){.stage .flow{top:48px;height:calc(100% - 96px)}}
+  /* page-specific CSS below (flowchart challenge) */
+  .flowcard{position:relative;width:100%;aspect-ratio:16/9;min-height:240px;border-radius:6px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%)}
+  @media(max-width:640px){.flowcard{aspect-ratio:4/3}}
+  .flowcard .flow{position:absolute;inset:0;width:100%;height:100%}
   .code{margin:0;padding:12px 14px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:var(--silk);overflow:auto;white-space:pre}
   .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
   .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}
-  .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:10px}
-  .field{display:flex;flex-direction:column;gap:4px;font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim)}
-  .field input,.field select{width:100%;text-transform:none;letter-spacing:0}
-  .hint{margin:8px 0 0;font-size:13px;color:var(--silk-dim)}
-  .hint code{font-family:var(--font-mono);color:var(--out)}
-  .order{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px;position:relative}
-  .order li{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);cursor:grab;touch-action:none;user-select:none}
-  .order li.dragging{border-color:var(--cbt-gold);box-shadow:0 6px 18px rgba(26,29,46,.3);z-index:2}
-  .order li .grip{color:var(--silk-dim);font:700 15px var(--font-mono);letter-spacing:-3px}
-  .order li .t{flex:1;font-size:14px}
-  .order li .n{font:700 12px var(--font-mono);color:var(--addr);width:1.4em}
-  .order li .ud{display:flex;gap:4px}
-  .order li .ud button{width:30px;height:28px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--silk);cursor:pointer;font-size:12px}
-  .order li .ud button:disabled{opacity:.35;cursor:default}
-  .dec{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:11px 13px;font-size:14px;line-height:1.5}
-  .dec code{font-family:var(--font-mono);font-size:13px;color:var(--out)}
-  .pill{display:inline-block;padding:1px 10px;border-radius:999px;font:700 12px var(--font-mono);border:1px solid var(--line);color:var(--silk-dim);vertical-align:1px}
-  .pill.t{background:rgba(111,212,155,.18);color:var(--ok);border-color:var(--ok)}
-  .pill.f{background:rgba(169,180,255,.16);color:var(--oper);border-color:var(--oper)}
-  .pill.x{background:rgba(240,120,106,.16);color:var(--bad);border-color:var(--bad)}
-  .hud .views button.on{color:var(--cbt-gold)}
-  html[data-theme=light] .hud .views button.on{color:#FFFFFF}
-  html[data-theme=light] .pill.t{background:var(--ok-soft)}html[data-theme=light] .pill.f{background:rgba(91,102,201,.10)}html[data-theme=light] .pill.x{background:var(--bad-soft)}
+  .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-top:10px}
+  .pcard{text-align:left;padding:9px 11px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);cursor:pointer;display:grid;gap:2px;font-family:var(--font-body)}
+  .pcard b{font:700 12.5px var(--font-mono);color:var(--addr)}
+  .pcard span{font-size:12.5px;color:var(--silk-dim)}
+  .pcard:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .pcard.used{border-color:var(--ok);background:var(--ok-soft,rgba(111,212,155,.10))}
+  .pcard.used b::after{content:" \2713";color:var(--ok)}
+  .pcard.dud{border-color:var(--warn);background:var(--warn-soft,rgba(224,184,64,.08))}
+  .pcard.hit{border-color:var(--bad);background:var(--bad-soft,rgba(240,120,106,.12))}
+  .pcard:disabled{cursor:default;opacity:.85}
+  .covbar{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .covbar b{color:var(--silk);font-weight:700}
+  .covbar .lit{color:var(--ok)}
+  .plog{margin:8px 0 0;padding:0;list-style:none;font-size:13px;color:var(--silk-dim);display:grid;gap:3px;max-height:140px;overflow:auto}
+  .plog li b{color:var(--silk);font-weight:600}
+  .plog li.none{color:var(--warn)}
+  .code.small{font-size:12.5px;margin:8px 0}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
-    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 2 · Interactive A</div>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 1 · Interactive B</div>
   </div>
 </header>
 
-<div class="app">
-  <header class="lab-head">
-    <p class="eyebrow">COP1411 · Week 2 · Explorer</p>
-    <h1>Decision diamonds</h1>
-    <p class="lede">Watch the Palmetto Parcel sorter decide a package's lane one diamond at a time, then change the order of the checks and see why Copilot's version sends a 60 lb fragile box to the wrong place.</p>
-  </header>
-  <section class="stage flowstage" id="stage" aria-label="Flowchart of the package sorter. Press Step to move the data token through the symbols; use the zoom buttons or scroll to zoom, drag to move.">
-    <div class="hud hud-top">
-      <ol class="phases" aria-label="Phase">
-        <li data-p="start" style="--c:var(--cbt-gold)">Start</li>
-        <li data-p="input" style="--c:var(--cbt-sky)">Input</li>
-        <li data-p="price" style="--c:var(--alu)">Price</li>
-        <li data-p="decide" style="--c:var(--oper)">Decide</li>
-        <li data-p="lane" style="--c:var(--cbt-gold)">Lane</li>
-        <li data-p="output" style="--c:var(--out)">Output</li>
-      </ol>
-      <div class="ticks">step <b id="hudStep">0</b></div>
-    </div>
-    <div class="hud hud-bottom">
-      <div class="legend" aria-label="Colors">
-        <span style="--c:var(--cbt-gold)"><i></i>the symbol running now</span>
-        <span style="--c:var(--cbt-sky)"><i></i>the data token</span>
-        <span style="--c:var(--alu)"><i></i>True, the Yes arrow</span>
-        <span style="--c:var(--oper)"><i></i>False, the No arrow</span>
-        <span style="--c:var(--ctrl)"><i></i>a lane dispatch did not expect</span>
-      </div>
-      <div class="views" aria-label="View"><button type="button" id="btnFollow" class="on" aria-pressed="true">Follow the token</button><button type="button" id="btnWhole">Whole chart</button></div>
-    </div>
+<main class="wrap">
+  <section class="hero split reveal" style="--i:0">
+    <div><span class="eyebrow">COP1411 · Week 1 · Challenge</span><h1>Cover every branch</h1><p class="lede">Light every arrow of the sorter with the fewest packages, predict lanes and prices, and find the one package that exposes the bug in Copilot's order.</p></div>
+    <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Partial</b><span>credit where fair</span></div><div><b>9</b><span>packages on the shelf</span></div></div>
   </section>
-
-  <section class="guide" aria-labelledby="guideTitle">
-    <h2 id="guideTitle">How to use this lab</h2>
+  <aside class="card reveal" style="--i:1" data-ref="FLOWCHART">
+    <h2>Watch it on the flowchart</h2>
+    <div class="flowcard" id="stage"></div>
+    <div class="caption" id="cap" style="margin-top:12px"><div class="t" id="capT">Ready</div><p id="capB" style="margin:0">In a coverage round, every arrow the token travels turns green. In a question round, press Play the explanation after you check your answer.</p></div>
+    <div class="stepper"><button class="btn" id="btnPlay" type="button" disabled>Play the explanation</button><span class="score" style="margin-left:auto"><span class="big" id="score">0</span><span>points so far</span></span></div>
+  </aside>
+  <section class="guide reveal" style="--i:2;padding:18px 0 16px" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How this challenge works</h2>
     <ol class="steps" id="howSteps">
-      <li data-h="1">Pick a <b>Reference package</b> below, or type your own weight, miles, city, and fragile answer.</li>
-      <li data-h="2">Press <b>Step</b>. The token leaves START and carries each value into the chart. At every diamond, read the comparison and its True or False in the Decisions box.</li>
-      <li data-h="3">Press <b>Step back</b> to see a decision again, or <b>Run</b> to play every step. Click any symbol for a plain-language note.</li>
-      <li data-h="4">Press <b>Copilot's order</b>, pick package PP-2026-0005, and run again: the token lands on FRAGILE and the narration names the diamond that was never reached. Drag the checks into any order you like and run again.</li>
-      <li data-h="5">Scroll down to <b>Try it</b>, change the code, and press <b>Run</b> there to run real Python with three tests.</li>
+      <li data-h="1">Read the round below. In a coverage round, <b>click package cards</b> on the shelf one at a time and watch the token light arrows green on the chart above. In a question round, <b>pick one answer</b>.</li>
+      <li data-h="2">Press <b>Check coverage</b> (or <b>Check</b>). You see your points and why: a dark arrow scores zero, and every extra package costs 2 points.</li>
+      <li data-h="3">Press <b>Play the explanation</b> to watch the best set of packages, or the right path, on the flowchart above.</li>
+      <li data-h="4">Press <b>Next round</b>. After round 10, review your results and press <b>Try again</b> if you want a better score.</li>
     </ol>
     <div>
-      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Pick a package below, then press <b>Step</b>.</span></div>
-      <ul class="tips"><li>Keyboard: Space steps, B steps back, R runs or pauses. Over the flowchart: + and - zoom, drag to move, FIT shows everything. Follow the token keeps the running symbol in view.</li></ul>
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Read round 1 below and click a package card.</span></div>
+      <ul class="tips"><li>The nine packages are the eight from the reference table plus PP-2026-0009. Rounds come in a fixed order; answer choices are shuffled. Over the flowchart: + and - zoom, drag to move, FIT shows everything.</li></ul>
     </div>
   </section>
-
-  <aside class="panel">
-    <section class="narr" aria-live="polite">
-      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 14</span></div>
-      <p id="narration">Press Step to start, or Run to play every step.</p>
-    </section>
-    <div>
-      <div class="controls">
-        <button type="button" class="btn primary" id="btnRun">Run</button>
-        <button type="button" class="btn" id="btnStep">Step</button>
-        <button type="button" class="btn" id="btnBack">Step back</button>
-        <button type="button" class="btn" id="btnReset">Reset</button>
-      </div>
-      <div class="speed" style="margin-top:12px"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="4" step="1" value="2"><output id="speedOut">1×</output></div>
+  <section class="card reveal" style="--i:3" data-ref="ROUND">
+    <div class="progress" id="prog"></div>
+    <h2 id="qTitle">Round 1</h2>
+    <p id="qText" style="margin:0 0 6px"></p>
+    <div id="shelfWrap" hidden>
+      <div class="covbar" id="covbar"></div>
+      <div class="shelf" id="shelf" aria-label="Package shelf"></div>
+      <ul class="plog" id="plog" aria-live="polite"></ul>
     </div>
-    <section>
-      <h2>Package</h2>
-      <label class="field">Reference package<select id="pkg"></select></label>
-      <div class="fields">
-        <label class="field">Weight (lb)<input type="number" id="inW" min="0" step="1" value="12"></label>
-        <label class="field">Miles<input type="number" id="inM" min="0" step="1" value="8"></label>
-        <label class="field">City<input type="text" id="inC" value="Hialeah" list="cities" autocomplete="off"></label>
-        <label class="field">Fragile<select id="inF"><option value="no">no</option><option value="yes">yes</option></select></label>
-      </div>
-      <datalist id="cities"><option value="Doral"></option><option value="Hialeah"></option><option value="Miami Gardens"></option><option value="Kendall"></option><option value="Homestead"></option><option value="Fort Lauderdale"></option></datalist>
-      <p class="hint">Changing a value resets the run. Python compares the city letter by letter, so "doral" is not "Doral".</p>
-    </section>
-    <section>
-      <h2>Order of the checks</h2>
-      <p class="hint" style="margin-top:0">The sorter asks these checks in order and stops at the first True one. Drag a check up or down, or use the arrows: the chart and the Python redraw in the new order.</p>
-      <ul class="order" id="orderList" aria-label="Order of the checks"></ul>
-      <div class="stepper"><button type="button" class="btn" id="btnDispatch">Dispatch order</button><button type="button" class="btn" id="btnCopilot">Copilot's order</button></div>
-      <p class="hint" id="orderNote"></p>
-    </section>
-    <section>
-      <h2>Memory</h2>
-      <div id="memory"></div>
-    </section>
-    <section>
-      <h2>Decisions this run</h2>
-      <div class="dec" id="decBox">No diamond reached yet. Each diamond asks one comparison; Python answers True or False.</div>
-      <div class="scroll-x" style="margin-top:10px"><table class="data" id="decTable"></table></div>
-    </section>
-    <section>
-      <h2>Screen</h2>
-      <div id="screen"></div>
-    </section>
-    <section class="span-all">
-      <h2>The same algorithm in Python: sorter.py</h2>
-      <pre class="code" id="code"></pre>
-    </section>
-    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any symbol in the flowchart to learn what it does and which line of Python it becomes.</div>
-    <section class="span-all">
-      <h2>Try it: edit and run the Python</h2>
-      <p class="hint" style="margin:0 0 10px">The lane chain sits inside a small function called <code>lane</code> so the three tests can call it with different packages (functions get their own week later in the course). Try moving the fragile check above the weight check, or changing <code>&gt;</code> to <code>&gt;=</code>, and watch which test fails.</p>
-      <div id="sandbox"></div>
-    </section>
-    <section>
-      <h2>Things to notice</h2>
-      <ul class="notice">
-        <li>Python runs only the first True branch of an if, elif, else chain. In dispatch order, PP-2026-0005 answers True at weight &gt; 50 and the fragile diamond is never asked.</li>
-        <li>Exactly 50 is not above 50: the comparison 50 &gt; 50 is False, so PP-2026-0006 stays in a van (lane B). A sorter written with &gt;= would send it to FREIGHT.</li>
-        <li>The surcharge decision is separate from the lane chain and has no else, so the price never depends on the order of the lane checks.</li>
-        <li>Seven of the eight reference packages land in the same lane in both orders. Only a test plan with one package per lane, the boundary, and the fragile-and-heavy case shows the difference.</li>
-      </ul>
-    </section>
-    <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
-  </aside>
-</div>
+    <div class="opts" id="opts"></div>
+    <div class="stepper"><button class="btn primary" id="btnCheck" type="button">Check</button><button class="btn" id="btnNext" type="button" disabled>Next round</button></div>
+    <div id="fb"></div>
+  </section>
+  <section class="card reveal" style="--i:4;margin-top:14px" id="results" hidden data-ref="RESULTS">
+    <h2>Your results</h2>
+    <div class="scroll-x"><table class="data" id="resTable"></table></div>
+    <div class="stepper"><button class="btn primary" id="btnAgain" type="button">Try again</button></div>
+  </section>
+</main>
+<footer class="foot">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
 
 <script>
 (function () {
@@ -918,252 +844,236 @@ function PySandbox(host, opts) {
 // PYSANDBOX END
 
 
-/// ---- Palmetto Parcel: the reference packages and the sorter's checks ----
+/// ---- Palmetto Parcel: the nine packages on the shelf and the sorter's diamonds ----
 const PK = [
-  {t: 'PP-2026-0001', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 12, m: 8, f: 'no'},
-  {t: 'PP-2026-0002', who: 'Doral Dental Group', city: 'Doral', w: 3, m: 2, f: 'yes'},
-  {t: 'PP-2026-0003', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 55, m: 14, f: 'no'},
-  {t: 'PP-2026-0004', who: 'Kendall Office Supply', city: 'Kendall', w: 20, m: 19, f: 'no'},
-  {t: 'PP-2026-0005', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 60, m: 14, f: 'yes'},
-  {t: 'PP-2026-0006', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 50, m: 8, f: 'no'},
-  {t: 'PP-2026-0007', who: 'Casa Lopez Furniture', city: 'Homestead', w: 45, m: 30, f: 'yes'},
-  {t: 'PP-2026-0008', who: 'Blue Heron Clinic', city: 'Fort Lauderdale', w: 5, m: 25, f: 'no'}
+  {t: 'PP-2026-0001', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 12, m: 8, f: false},
+  {t: 'PP-2026-0002', who: 'Doral Dental Group', city: 'Doral', w: 3, m: 2, f: true},
+  {t: 'PP-2026-0003', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 55, m: 14, f: false},
+  {t: 'PP-2026-0004', who: 'Kendall Office Supply', city: 'Kendall', w: 20, m: 19, f: false},
+  {t: 'PP-2026-0005', who: 'Gardens Auto Parts', city: 'Miami Gardens', w: 60, m: 14, f: true},
+  {t: 'PP-2026-0006', who: 'Sabor Cubano Bakery', city: 'Hialeah', w: 50, m: 8, f: false},
+  {t: 'PP-2026-0007', who: 'Casa Lopez Furniture', city: 'Homestead', w: 45, m: 30, f: true},
+  {t: 'PP-2026-0008', who: 'Blue Heron Clinic', city: 'Fort Lauderdale', w: 5, m: 25, f: false},
+  {t: 'PP-2026-0009', who: 'Doral Dental Group', city: 'Doral', w: 10, m: 2, f: false}
 ];
-const Q = s => '"' + s + '"';
-const fix = v => v.toFixed(2);
-const pyFloat = v => { const n = Number(v.toFixed(10)); return Number.isInteger(n) ? n.toFixed(1) : String(n); };  // what Python shows for the float
+const price = p => 4.5 + 0.8 * p.w + 0.25 * p.m + (p.f ? 3 : 0);
+const short = p => p.t.slice(-4);
 const TF = b => b ? 'True' : 'False';
-const CHECKS = {
-  weight: {label: 'weight above 50 goes to FREIGHT', diamonds: [
-    {id: 'd_weight', text: 'weight > 50?', lane: 'FREIGHT', pid: 'p_freight', py: 'weight > 50', cond: s => s.weight > 50,
-      explain: s => pyFloat(s.weight) + ' > 50 is ' + TF(s.weight > 50) + (s.weight === 50 ? ' (exactly 50 is not above 50)' : '') + '.'}]},
-  fragile: {label: 'fragile goes to the FRAGILE shelf', diamonds: [
-    {id: 'd_fragile', text: 'fragile == "yes"?', lane: 'FRAGILE', pid: 'p_fragile', py: 'fragile == "yes"', cond: s => s.fragile === 'yes',
-      explain: s => Q(s.fragile) + ' == "yes" is ' + TF(s.fragile === 'yes') + '.'}]},
-  city: {label: 'city picks the zone lane (A, B, or C)', diamonds: [
-    {id: 'd_doral', text: 'city == "Doral"?', lane: 'A', pid: 'p_a', py: 'city == "Doral"', cond: s => s.city === 'Doral',
-      explain: s => Q(s.city) + ' == "Doral" is ' + TF(s.city === 'Doral') + '.'},
-    {id: 'd_b', text: 'Hialeah or\nMiami Gardens?', lane: 'B', pid: 'p_b', py: 'city == "Hialeah" or city == "Miami Gardens"', cond: s => s.city === 'Hialeah' || s.city === 'Miami Gardens',
-      explain: s => { const a = s.city === 'Hialeah', b = s.city === 'Miami Gardens'; return Q(s.city) + ' == "Hialeah" is ' + TF(a) + ' and ' + Q(s.city) + ' == "Miami Gardens" is ' + TF(b) + ', so ' + TF(a) + ' or ' + TF(b) + ' is ' + TF(a || b) + '.'; }},
-    {id: 'd_c', text: 'Kendall or\nHomestead?', lane: 'C', pid: 'p_c', py: 'city == "Kendall" or city == "Homestead"', cond: s => s.city === 'Kendall' || s.city === 'Homestead',
-      explain: s => { const a = s.city === 'Kendall', b = s.city === 'Homestead'; return Q(s.city) + ' == "Kendall" is ' + TF(a) + ' and ' + Q(s.city) + ' == "Homestead" is ' + TF(b) + ', so ' + TF(a) + ' or ' + TF(b) + ' is ' + TF(a || b) + '.'; }}]}
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const D = {
+  d_weight: {text: 'weight > 50?', lane: 'FREIGHT', pid: 'p_freight', cond: p => p.w > 50, say: p => p.w + ' > 50 is ' + TF(p.w > 50)},
+  d_fragile: {text: 'fragile == "yes"?', lane: 'FRAGILE', pid: 'p_fragile', cond: p => p.f, say: p => '"' + (p.f ? 'yes' : 'no') + '" == "yes" is ' + TF(p.f)},
+  d_doral: {text: 'city == "Doral"?', lane: 'A', pid: 'p_a', cond: p => p.city === 'Doral', say: p => '"' + p.city + '" == "Doral" is ' + TF(p.city === 'Doral')},
+  d_b: {text: 'Hialeah or\nMiami Gardens?', lane: 'B', pid: 'p_b', cond: p => p.city === 'Hialeah' || p.city === 'Miami Gardens', say: p => '"' + p.city + '" is Hialeah or Miami Gardens: ' + TF(p.city === 'Hialeah' || p.city === 'Miami Gardens')},
+  d_c: {text: 'Kendall or\nHomestead?', lane: 'C', pid: 'p_c', cond: p => p.city === 'Kendall' || p.city === 'Homestead', say: p => '"' + p.city + '" is Kendall or Homestead: ' + TF(p.city === 'Kendall' || p.city === 'Homestead')}
 };
-const DISPATCH = ['weight', 'fragile', 'city'], COPILOT = ['fragile', 'weight', 'city'];
-let order = DISPATCH.slice();
-const diamonds = ord => (ord || order).flatMap(k => CHECKS[k].diamonds);
-const laneFor = (s, ord) => { const d = diamonds(ord).find(x => x.cond(s)); return d ? d.lane : 'ASK DISPATCH'; };
-const dispatchWhy = s => s.weight > 50 ? pyFloat(s.weight) + ' is above 50, so FREIGHT comes first no matter what else is true' : s.fragile === 'yes' ? 'it is not above 50 and it is fragile' : 'it is not above 50, not fragile, and the city sets the zone';
+const DISPATCH = ['d_weight', 'd_fragile', 'd_doral', 'd_b', 'd_c'], COPILOT = ['d_fragile', 'd_weight', 'd_doral', 'd_b', 'd_c'], ZONE = ['d_doral', 'd_b', 'd_c'];
+const laneOf = (p, ids) => { const k = ids.find(id => D[id].cond(p)); return k ? D[k].lane : 'ASK DISPATCH'; };
 
-// ---- the Python beside the chart (lines 8 to 17 follow the order of the checks) ----
-function program() {
-  const L = ['weight = float(input("Weight in pounds: "))', 'miles = float(input("Miles: "))', 'city = input("City: ")', 'fragile = input("Fragile (yes/no): ")',
-    'price = 4.50 + 0.80 * weight + 0.25 * miles', 'if fragile == "yes":', '    price = price + 3.00'];
-  diamonds().forEach((d, i) => { L.push((i ? 'elif ' : 'if ') + d.py + ':'); L.push('    lane = "' + d.lane + '"'); });
-  L.push('else:', '    lane = "ASK DISPATCH"', 'print(f"Lane: {lane}")', 'print(f"Price: ${price:.2f}")');
-  return L;
-}
-function renderCode(active) {
-  const el = $('#code'); el.innerHTML = program().map((l, i) => '<span class="ln' + (i + 1 === active ? ' on' : '') + '"><span style="color:var(--silk-dim);display:inline-block;width:2ch;text-align:right;margin-right:10px">' + (i + 1) + '</span>' +
-    (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : l.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]))) + '</span>').join('');
-}
-
-// ---- the living flowchart: inputs across the top, the surcharge decision, then the lane chain left to right with Yes branches down ----
-const COLW = 220, NW = 170, DW = 180;
-const HALF = {decision: DW / 2, io: NW / 2 - 8, process: NW / 2, terminal: NW / 2};
-const INFO = {
-  start: '<b>START.</b> A terminal symbol (rounded). Every flowchart begins here with empty memory. In Python there is no line for it: the program simply starts at line 1.',
-  in_w: '<b>INPUT weight.</b> A parallelogram reads one value from the user and stores it in the box weight. Python line 1: <code>weight = float(input("Weight in pounds: "))</code>. input() gives text; float() turns it into a number.',
-  in_m: '<b>INPUT miles.</b> Reads the distance and stores it in the box miles. Python line 2.',
-  in_c: '<b>INPUT city.</b> Reads the city as text and stores it in the box city. Python line 3. Text stays text: no float() here.',
-  in_f: '<b>INPUT fragile.</b> Reads yes or no as text and stores it in the box fragile. Python line 4.',
-  p_price: '<b>PROCESS price.</b> A rectangle computes something. Here it is the week 1 formula: 4.50 plus 0.80 per pound plus 0.25 per mile. Python line 5.',
-  d_sur: '<b>DECISION fragile == "yes"?</b> A diamond asks one yes or no question. Two equal signs compare; one equal sign would assign. Yes adds the surcharge, No skips it. Python line 6: <code>if fragile == "yes":</code>. This if has no else, because when the package is not fragile nothing needs to happen.',
-  p_sur: '<b>PROCESS price = price + 3.00.</b> Runs only on the Yes branch of the surcharge decision. Python line 7 (indented under the if).',
-  d_weight: '<b>DECISION weight &gt; 50?</b> True sends the token down the Yes arrow to lane = "FREIGHT". False sends it right to the next diamond. The boundary matters: 50 &gt; 50 is False.',
-  d_fragile: '<b>DECISION fragile == "yes"?</b> The second time the program looks at fragile, now to pick a lane. In Python this is an <code>if</code> or an <code>elif</code> depending on its place in the chain.',
-  d_doral: '<b>DECISION city == "Doral"?</b> Compares two strings letter by letter. "Doral" matches; "doral" does not.',
-  d_b: '<b>DECISION city == "Hialeah" or city == "Miami Gardens"?</b> The boolean operator <code>or</code> is True when either comparison is True. Write each comparison in full: <code>city == "Hialeah" or "Miami Gardens"</code> is a classic mistake that is always True.',
-  d_c: '<b>DECISION city == "Kendall" or city == "Homestead"?</b> Same shape as the lane B diamond: two comparisons joined with <code>or</code>.',
-  p_freight: '<b>PROCESS lane = "FREIGHT".</b> A partner truck takes packages above 50 lb. Runs only when its diamond answers True.',
-  p_fragile: '<b>PROCESS lane = "FRAGILE".</b> The fragile shelf. Runs only when its diamond answers True and every diamond before it answered False.',
-  p_a: '<b>PROCESS lane = "A".</b> Zone A is Doral, local deliveries.',
-  p_b: '<b>PROCESS lane = "B".</b> Zone B is Hialeah and Miami Gardens.',
-  p_c: '<b>PROCESS lane = "C".</b> Zone C is Kendall and Homestead.',
-  p_ask: '<b>PROCESS lane = "ASK DISPATCH".</b> The else branch: it runs when every diamond in the chain answered False. An if, elif, else chain always ends here when nothing matched, so lane always gets a value. Python lines 18 and 19.',
-  out_lane: '<b>OUTPUT lane.</b> A parallelogram shows a value on the screen. Python line 20: <code>print(f"Lane: {lane}")</code>.',
-  out_price: '<b>OUTPUT price.</b> Python line 21: <code>print(f"Price: ${price:.2f}")</code>. The <code>:.2f</code> prints two decimals, so 16.1 appears as 16.10.',
-  end: '<b>END.</b> The program stops. Every path through the chart must reach END.'
-};
-let fk = null;
-function buildFlow() {
-  const stage = $('#stage'); stage.querySelectorAll('.flow, .fk-zoom').forEach(e => e.remove());
-  const D = diamonds();
-  const nodes = [
-    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0},
-    {id: 'in_w', type: 'io', text: 'INPUT weight', col: 1, row: 0},
-    {id: 'in_m', type: 'io', text: 'INPUT miles', col: 2, row: 0},
-    {id: 'in_c', type: 'io', text: 'INPUT city', col: 3, row: 0},
-    {id: 'in_f', type: 'io', text: 'INPUT fragile', col: 4, row: 0},
-    {id: 'p_price', type: 'process', text: 'price = 4.50\n+ 0.80 * weight\n+ 0.25 * miles', col: 5, row: 0},
-    {id: 'd_sur', type: 'decision', text: 'fragile == "yes"?', col: 6, row: 0, w: DW},
-    {id: 'p_sur', type: 'process', text: 'price = price + 3.00', col: 7, row: 1}
-  ];
-  D.forEach((d, i) => { nodes.push({id: d.id, type: 'decision', text: d.text, col: i, row: 2, w: DW}); nodes.push({id: d.pid, type: 'process', text: 'lane = "' + d.lane + '"', col: i, row: 3}); });
-  nodes.push({id: 'p_ask', type: 'process', text: 'lane =\n"ASK DISPATCH"', col: 5, row: 2},
-    {id: 'out_lane', type: 'io', text: 'OUTPUT\n"Lane: " & lane', col: 2, row: 4},
-    {id: 'out_price', type: 'io', text: 'OUTPUT\n"Price: $" & price', col: 3, row: 4},
-    {id: 'end', type: 'terminal', text: 'END', col: 4, row: 4});
-  const P = {}; nodes.forEach(n => { P[n.id] = n; });
+// ---- the charts: each returns {fk, run(p) -> {path, lane, desc}, names} ----
+const COLW = 230, NW = 170, DW = 180, HALF = {decision: DW / 2, io: NW / 2 - 8, process: NW / 2, terminal: NW / 2};
+const LIGHT = document.documentElement.getAttribute('data-theme') === 'light';
+const GREEN = LIGHT ? '#2E9E63' : '#6FD49B', GOLD = '#E0B840', SKY = '#38B0E0', CORAL = LIGHT ? '#D6473C' : '#F0786A';
+function make(stage, spec) {
+  stage.querySelectorAll('.flow, .fk-zoom').forEach(e => e.remove());
+  const P = {}; spec.nodes.forEach(n => { P[n.id] = n; });
   const hz = (a, b, extra) => Object.assign({from: a, to: b, side: 'right', points: [[P[a].col + HALF[P[a].type] / COLW, P[a].row], [P[b].col - HALF[P[b].type] / COLW, P[b].row]]}, extra || {});
-  const edges = [hz('start', 'in_w'), hz('in_w', 'in_m'), hz('in_m', 'in_c'), hz('in_c', 'in_f'), hz('in_f', 'p_price'), hz('p_price', 'd_sur'),
-    {from: 'd_sur', to: 'p_sur', side: 'right', label: 'Yes'},
-    {from: 'd_sur', to: D[0].id, label: 'No', points: [[6, 0.42], [6, 1.5], [0, 1.5], [0, 2 - 0.417]]},
-    {from: 'p_sur', to: D[0].id, points: [[7, 1.28], [7, 1.5], [0, 1.5], [0, 2 - 0.417]]}];
-  D.forEach((d, i) => {
-    edges.push({from: d.id, to: d.pid, label: 'Yes'});
-    edges.push(hz(d.id, i < D.length - 1 ? D[i + 1].id : 'p_ask', {label: 'No'}));
-    edges.push({from: d.pid, to: 'out_lane', points: [[i, 3.28], [i, 3.6], [2, 3.6], [2, 3.72]]});
-  });
-  edges.push({from: 'p_ask', to: 'out_lane', points: [[5, 2.28], [5, 3.6], [2, 3.6], [2, 3.72]]}, hz('out_lane', 'out_price'), hz('out_price', 'end'));
-  fk = FlowKit(stage, {cols: 8, rows: 5, colW: COLW, nodeW: NW, nodes: nodes, edges: edges});
-  fk.onPick(id => { $('#info').innerHTML = INFO[id] || ''; });
+  const edges = spec.edges.map(e => e.hz ? hz(e.hz[0], e.hz[1], e) : e);
+  const fk = FlowKit(stage, {cols: spec.cols, rows: spec.rows, colW: COLW, nodeW: NW, nodes: spec.nodes, edges: edges});
+  const mk = fk.el('marker', {id: 'fk-arrow-ok', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'}, fk.svg.querySelector('defs'));
+  fk.el('path', {d: 'M0,0 L10,5 L0,10 z', fill: GREEN}, mk);
+  const names = {}; edges.forEach(e => { names[e.from + '>' + e.to] = e.nm || ('the arrow from ' + P[e.from].text.replace('\n', ' ') + ' to ' + P[e.to].text.replace('\n', ' ')); });
+  return {fk: fk, names: names, all: Object.keys(fk.edges), run: p => spec.run(p),
+    paint(keys, color) { keys.forEach(k => { const e = fk.edges[k]; if (!e) return; e.path.setAttribute('stroke', color); e.path.setAttribute('marker-end', color === GREEN ? 'url(#fk-arrow-ok)' : color === GOLD ? 'url(#fk-arrow-hot)' : 'url(#fk-arrow)'); }); }};
 }
-const paint = (keys, color) => keys.forEach(k => { const e = fk.edges[k]; if (e) { e.path.setAttribute('stroke', color); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); } });
-const MEM = FlowKit.memory($('#memory'), [{name: 'weight', label: 'real, from input'}, {name: 'miles', label: 'real, from input'}, {name: 'city', label: 'string, from input'}, {name: 'fragile', label: 'string, yes or no'}, {name: 'price', label: 'real, computed'}, {name: 'lane', label: 'string, decided'}]);
-const CON = FlowKit.console($('#screen'));
+function chainSpec(ids) {
+  const n = ids.length, nodes = [{id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}], edges = [{from: 'start', to: ids[0], nm: 'the arrow from START'}];
+  ids.forEach((id, i) => { const d = D[id]; nodes.push({id: id, type: 'decision', text: d.text, col: i, row: 1, w: DW}, {id: d.pid, type: 'process', text: 'lane = "' + d.lane + '"', col: i, row: 2});
+    edges.push({from: id, to: d.pid, label: 'Yes', nm: 'the Yes arrow of ' + d.text.replace('\n', ' ')}, {hz: [id, i < n - 1 ? ids[i + 1] : 'p_ask'], label: 'No', nm: 'the No arrow of ' + d.text.replace('\n', ' ')},
+      {from: d.pid, to: 'out', points: [[i, 2.28], [i, 2.6], [Math.floor((n - 1) / 2), 2.6], [Math.floor((n - 1) / 2), 2.72]], nm: 'the arrow from lane = "' + d.lane + '" to OUTPUT'}); });
+  const oc = Math.floor((n - 1) / 2);
+  nodes.push({id: 'p_ask', type: 'process', text: 'lane =\n"ASK DISPATCH"', col: n, row: 1}, {id: 'out', type: 'io', text: 'OUTPUT lane', col: oc, row: 3}, {id: 'end', type: 'terminal', text: 'END', col: oc + 1, row: 3});
+  edges.push({from: 'p_ask', to: 'out', points: [[n, 1.28], [n, 2.6], [oc, 2.6], [oc, 2.72]], nm: 'the arrow from lane = "ASK DISPATCH" to OUTPUT'}, {hz: ['out', 'end'], nm: 'the arrow into END'});
+  return {cols: n + 1, rows: 4, nodes: nodes, edges: edges, run(p) {
+    const path = ['start>' + ids[0]], desc = []; let lane = null, from = ids[0];
+    for (let i = 0; i < n; i++) { const id = ids[i], d = D[id], r = d.cond(p); desc.push(d.say(p)); if (r) { lane = d.lane; path.push(id + '>' + d.pid, d.pid + '>out'); break; } const nx = i < n - 1 ? ids[i + 1] : 'p_ask'; path.push(id + '>' + nx); from = nx; }
+    if (!lane) { lane = 'ASK DISPATCH'; path.push('p_ask>out'); desc.push('every diamond False, so the else branch'); }
+    path.push('out>end'); return {path: path, lane: lane, desc: desc.join('; ') + ' → lane ' + lane, node: lane === 'ASK DISPATCH' ? 'p_ask' : D[ids.find(id => D[id].lane === lane)].pid}; }};
+}
+const SURCHARGE = {cols: 2, rows: 6, nodes: [
+    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}, {id: 'p_price', type: 'process', text: 'price = 4.50\n+ 0.80 * weight\n+ 0.25 * miles', col: 0, row: 1},
+    {id: 'd_sur', type: 'decision', text: 'fragile == "yes"?', col: 0, row: 2, w: DW}, {id: 'p_sur', type: 'process', text: 'price = price + 3.00', col: 1, row: 3},
+    {id: 'out', type: 'io', text: 'OUTPUT price', col: 0, row: 4}, {id: 'end', type: 'terminal', text: 'END', col: 0, row: 5}],
+  edges: [{from: 'start', to: 'p_price', nm: 'the arrow from START'}, {from: 'p_price', to: 'd_sur', nm: 'the arrow into the diamond'}, {from: 'd_sur', to: 'p_sur', side: 'right', label: 'Yes', nm: 'the Yes arrow (add the surcharge)'},
+    {from: 'd_sur', to: 'out', label: 'No', nm: 'the No arrow (no surcharge)'}, {from: 'p_sur', to: 'out', nm: 'the arrow from price = price + 3.00 to OUTPUT'}, {from: 'out', to: 'end', nm: 'the arrow into END'}],
+  run(p) { const path = ['start>p_price', 'p_price>d_sur']; if (p.f) path.push('d_sur>p_sur', 'p_sur>out'); else path.push('d_sur>out'); path.push('out>end');
+    return {path: path, lane: p.f ? 'surcharge' : 'no surcharge', desc: '"' + (p.f ? 'yes' : 'no') + '" == "yes" is ' + TF(p.f) + ' → price $' + price(p).toFixed(2), node: p.f ? 'p_sur' : 'out'}; }};
+const NESTED = {cols: 2, rows: 7, nodes: [
+    {id: 'start', type: 'terminal', text: 'START', col: 0, row: 0}, {id: 'd_weight', type: 'decision', text: 'weight > 50?', col: 0, row: 1, w: DW}, {id: 'p_freight', type: 'process', text: 'lane = "FREIGHT"', col: 1, row: 2},
+    {id: 'd_fragile', type: 'decision', text: 'fragile == "yes"?', col: 0, row: 3, w: DW}, {id: 'p_fragile', type: 'process', text: 'lane = "FRAGILE"', col: 1, row: 4}, {id: 'p_van', type: 'process', text: 'lane = "VAN"', col: 0, row: 4},
+    {id: 'out', type: 'io', text: 'OUTPUT lane', col: 0, row: 5}, {id: 'end', type: 'terminal', text: 'END', col: 0, row: 6}],
+  edges: [{from: 'start', to: 'd_weight', nm: 'the arrow from START'}, {from: 'd_weight', to: 'p_freight', side: 'right', label: 'Yes', nm: 'the Yes arrow of weight > 50?'}, {from: 'd_weight', to: 'd_fragile', label: 'No', nm: 'the No arrow of weight > 50?'},
+    {from: 'd_fragile', to: 'p_fragile', side: 'right', label: 'Yes', nm: 'the Yes arrow of fragile == "yes"?'}, {from: 'd_fragile', to: 'p_van', label: 'No', nm: 'the No arrow of fragile == "yes"?'},
+    {from: 'p_van', to: 'out', nm: 'the arrow from lane = "VAN" to OUTPUT'}, {from: 'p_fragile', to: 'out', points: [[1, 4.28], [1, 4.55], [0, 4.55], [0, 4.72]], nm: 'the arrow from lane = "FRAGILE" to OUTPUT'},
+    {from: 'p_freight', to: 'out', points: [[1, 2.28], [1, 2.55], [1.45, 2.55], [1.45, 4.55], [0, 4.55], [0, 4.72]], nm: 'the arrow from lane = "FREIGHT" to OUTPUT'}, {from: 'out', to: 'end', nm: 'the arrow into END'}],
+  run(p) { const path = ['start>d_weight'], desc = [D.d_weight.say(p)]; let lane, node;
+    if (p.w > 50) { lane = 'FREIGHT'; node = 'p_freight'; path.push('d_weight>p_freight', 'p_freight>out'); }
+    else { path.push('d_weight>d_fragile'); desc.push(D.d_fragile.say(p)); if (p.f) { lane = 'FRAGILE'; node = 'p_fragile'; path.push('d_fragile>p_fragile', 'p_fragile>out'); } else { lane = 'VAN'; node = 'p_van'; path.push('d_fragile>p_van', 'p_van>out'); } }
+    path.push('out>end'); return {path: path, lane: lane, desc: desc.join('; ') + ' → lane ' + lane, node: node}; }};
+const CHARTS = {sorter: () => chainSpec(DISPATCH), copilot: () => chainSpec(COPILOT), zone: () => chainSpec(ZONE), surcharge: () => SURCHARGE, nested: () => NESTED};
 
-// ---- the explanation: one step per symbol the token visits; the plan depends on the package and the order of the checks ----
-const readInputs = () => ({weight: parseFloat($('#inW').value) || 0, miles: parseFloat($('#inM').value) || 0, city: $('#inC').value.trim(), fragile: $('#inF').value});
-const fresh = () => Object.assign(readInputs(), {step: 0, phase: null, mem: {}, lines: [], dec: {}});
-const SKY = '#38B0E0', GREEN = '#6FD49B', PERI = '#A9B4FF', CORAL = '#F0786A', ICE = '#9FE7FF';
-function plan(S) {
-  const D = diamonds(), steps = [], w = S.weight, m = S.miles, fr = S.fragile === 'yes';
-  const price0 = 4.5 + 0.8 * w + 0.25 * m, price = price0 + (fr ? 3 : 0);
-  steps.push({phase: 'start', node: 'start', line: 0, text: 'START. Memory is empty: the six boxes have no values yet. The token is about to carry each input into the chart.'});
-  steps.push({phase: 'input', node: 'in_w', line: 1, path: ['start>in_w'], label: '?', color: SKY, mem: {weight: pyFloat(w)}, text: 'INPUT weight: the user types ' + w + '. input() gives the text "' + w + '" and float() turns it into the number ' + pyFloat(w) + ', stored in the box weight.'});
-  steps.push({phase: 'input', node: 'in_m', line: 2, path: ['in_w>in_m'], label: pyFloat(w), color: SKY, mem: {miles: pyFloat(m)}, text: 'INPUT miles: the user types ' + m + '. The number ' + pyFloat(m) + ' goes into the box miles.'});
-  steps.push({phase: 'input', node: 'in_c', line: 3, path: ['in_m>in_c'], label: pyFloat(m), color: SKY, mem: {city: Q(S.city)}, text: 'INPUT city: the user types ' + S.city + '. It stays text (a string) in the box city, capital letters included.'});
-  steps.push({phase: 'input', node: 'in_f', line: 4, path: ['in_c>in_f'], label: S.city, color: SKY, mem: {fragile: Q(S.fragile)}, text: 'INPUT fragile: the user types ' + S.fragile + '. The string "' + S.fragile + '" goes into the box fragile.'});
-  steps.push({phase: 'price', node: 'p_price', line: 5, path: ['in_f>p_price'], label: S.fragile, color: SKY, mem: {price: pyFloat(price0)}, text: 'PROCESS price = 4.50 + 0.80 * ' + pyFloat(w) + ' + 0.25 * ' + pyFloat(m) + '. The parts: 0.80 * ' + pyFloat(w) + ' = ' + fix(0.8 * w) + ', 0.25 * ' + pyFloat(m) + ' = ' + fix(0.25 * m) + ', plus the base 4.50. Total ' + fix(price0) + ', stored in the box price.'});
-  steps.push({phase: 'decide', node: 'd_sur', line: 6, path: ['p_price>d_sur'], label: pyFloat(price0), color: SKY, dec: {id: 'd_sur', cond: 'fragile == "yes"', explain: Q(S.fragile) + ' == "yes" is ' + TF(fr) + '.', result: fr},
-    text: 'DECISION fragile == "yes"? Python compares ' + Q(S.fragile) + ' == "yes": ' + TF(fr) + '. ' + (fr ? 'The token takes the Yes arrow to add the surcharge.' : 'The token takes the No arrow: the price stays ' + fix(price0) + '.')});
-  let from = 'd_sur';
-  if (fr) { steps.push({phase: 'price', node: 'p_sur', line: 7, path: ['d_sur>p_sur'], label: 'True', color: GREEN, mem: {price: pyFloat(price)}, text: 'PROCESS price = price + 3.00 = ' + fix(price0) + ' + 3.00 = ' + fix(price) + '. The fragile surcharge. The box price changes; the token now heads for the lane chain.'}); from = 'p_sur'; }
-  let lane = null, laneNode = null, firedAt = -1;
-  for (let i = 0; i < D.length; i++) {
-    const d = D[i], r = d.cond(S), lab = i === 0 ? (fr ? pyFloat(price) : 'False') : 'False';
-    steps.push({phase: 'decide', node: d.id, line: 8 + 2 * i, path: [from + '>' + d.id], label: lab, color: i === 0 && fr ? SKY : PERI, long: i === 0, dec: {id: d.id, cond: d.py, explain: d.explain(S), result: r},
-      text: 'DECISION ' + (i + 1) + ' of ' + D.length + ': ' + d.text.replace('\n', ' ') + ' ' + d.explain(S) + (r ? ' True: the token takes the Yes arrow down to lane = "' + d.lane + '". The diamonds to the right will never be asked for this package.' : ' False: the token takes the No arrow to the next diamond.')});
-    if (r) { lane = d.lane; laneNode = d.pid; firedAt = i; steps.push({phase: 'lane', node: d.pid, line: 9 + 2 * i, path: [d.id + '>' + d.pid], label: 'True', color: GREEN, mem: {lane: Q(lane)}, text: 'PROCESS lane = "' + lane + '". The box lane gets its value.'}); break; }
-    from = d.id;
+// ---- the ten rounds in a fixed order (answer choices shuffled); 10 points each ----
+const ROUNDS = [
+  {kind: 'cover', chart: 'sorter', min: 6, name: 'Cover the sorter (6 lanes)', q: 'Dante\'s sorter: five diamonds and six lanes. Click packages on the shelf until every arrow on the chart above is green, using as few packages as you can (the minimum is 6). Then press Check coverage.'},
+  {kind: 'cover', chart: 'surcharge', min: 2, name: 'Cover the surcharge decision', q: 'The surcharge decision on its own: fragile == "yes"? adds 3.00 on the Yes arrow and skips it on the No arrow. Light both branches with the fewest packages (the minimum is 2), then press Check coverage.'},
+  {kind: 'cover', chart: 'zone', min: 4, name: 'Cover the zone chart (4 lanes)', q: 'The zone chart on its own: no weight check and no fragile check, only the three city diamonds and the else. Light every arrow with the fewest packages (the minimum is 4), then press Check coverage.'},
+  {kind: 'cover', chart: 'nested', min: 3, name: 'Cover a nested decision (3 lanes)', q: 'A nested decision: the fragile diamond sits inside the No branch of the weight diamond, and a package that answers No twice goes to a VAN. Light every arrow with the fewest packages (the minimum is 3), then press Check coverage.'},
+  {kind: 'mc', chart: 'sorter', play: 3, name: 'Predict 0004', q: 'PP-2026-0004, Kendall Office Supply: 20 lb, 19 miles, not fragile. Dante\'s sorter (weight, fragile, then city) runs it. What does the screen show?', opts: [
+    ['Lane: C and Price: $25.25', 10, '20 > 50 is False, "no" == "yes" is False, Kendall is not Doral and not Hialeah or Miami Gardens, but it is Kendall or Homestead: lane C. Price 4.50 + 16.00 + 4.75 = 25.25 with no surcharge.'],
+    ['Lane: C and Price: $28.25', 4, 'The lane is right, but 28.25 adds a surcharge that 0004 does not have. It is not fragile, so the price is 4.50 + 16.00 + 4.75 = 25.25.'],
+    ['Lane: B and Price: $25.25', 0, 'The price is right, but Kendall is zone C: the Hialeah or Miami Gardens diamond answers False for Kendall and the token moves on to the next diamond.'],
+    ['Lane: ASK DISPATCH and Price: $25.25', 0, 'ASK DISPATCH is the else branch, reached only when every diamond answers False. The Kendall or Homestead diamond answers True first.']]},
+  {kind: 'mc', chart: 'sorter', play: 5, name: 'Predict 0006 (exactly 50 lb)', q: 'PP-2026-0006, Sabor Cubano Bakery in Hialeah: exactly 50 lb, 8 miles, not fragile. The first diamond asks weight > 50. What does the screen show?', opts: [
+    ['Lane: B and Price: $46.50', 10, '50 > 50 is False: exactly 50 is not above 50, so the package stays in a van. It is not fragile, and Hialeah is zone B. Price 4.50 + 40.00 + 2.00 = 46.50.'],
+    ['Lane: B and Price: $49.50', 4, 'Lane B is right. 49.50 adds the 3.00 surcharge, but 0006 is not fragile: the price is 46.50.'],
+    ['Lane: FREIGHT and Price: $46.50', 0, 'That is what a sorter written with >= 50 would do. The rule says above 50, and 50 > 50 is False, so the token takes the No arrow.'],
+    ['Lane: FRAGILE and Price: $46.50', 0, 'The fragile answer is "no", so the fragile diamond answers False. Hialeah sends the package to lane B.']]},
+  {kind: 'mc', chart: 'sorter', play: 6, name: 'Predict 0007', q: 'PP-2026-0007, Casa Lopez Furniture in Homestead: 45 lb, 30 miles, fragile. What does the screen show?', opts: [
+    ['Lane: FRAGILE and Price: $51.00', 10, '45 > 50 is False, then "yes" == "yes" is True: lane FRAGILE, and the city is never checked. Price 4.50 + 36.00 + 7.50 + 3.00 = 51.00, surcharge included.'],
+    ['Lane: FRAGILE and Price: $48.00', 4, 'The lane is right, but 48.00 forgets the surcharge: fragile adds 3.00, so the price is 51.00.'],
+    ['Lane: C and Price: $51.00', 0, 'Homestead is zone C, but the fragile diamond comes before the city diamonds and answers True first. The city is never checked for this package.'],
+    ['Lane: FREIGHT and Price: $51.00', 0, '45 > 50 is False: 45 lb is not above 50, so the FREIGHT branch is not taken.']]},
+  {kind: 'mc', chart: 'copilot', play: 4, name: 'Read Copilot\'s sorter with 0005', q: 'Copilot wrote its sorter with the fragile check first (the chart above: fragile, then weight, then city). PP-2026-0005: 60 lb, 14 miles, fragile, from Miami Gardens. What does Copilot\'s code print? Not what the rule wants: what the code does.', opts: [
+    ['Lane: FRAGILE and Price: $59.00', 10, 'The first diamond asks fragile == "yes": True, so lane = "FRAGILE" and the weight diamond is never reached. The price is right (4.50 + 48.00 + 3.50 + 3.00 = 59.00) because the surcharge if is separate from the chain.'],
+    ['Lane: FREIGHT and Price: $59.00', 4, 'That is the lane the rule wants, and the price is right. But the question asks what the code prints: with fragile checked first, Python stops at the first True condition and prints FRAGILE.'],
+    ['Lane: B and Price: $59.00', 0, 'Miami Gardens is zone B, but the chain never gets to the city diamonds: the fragile diamond answers True first.'],
+    ['An error, because two conditions are True', 0, 'An if, elif, else chain never complains when several conditions are True. It runs the first True branch and skips the rest, quietly. That silence is why a test plan matters.']]},
+  {kind: 'find', chart: 'copilot', name: 'Find the package that exposes the bug', q: 'Copilot\'s sorter checks fragile first. Exactly one package on the shelf lands on a different lane in Copilot\'s order than in Dante\'s order. Click the package that exposes the bug: 10 points on the first pick, 5 on the second, 0 after that.'},
+  {kind: 'mc', chart: 'sorter', play: 4, name: 'Pick the fix', q: 'Pick the fix for Copilot\'s sorter so that PP-2026-0005 goes to FREIGHT and every other package, including 0006 at exactly 50 lb, keeps its lane.', opts: [
+    ['Move the weight > 50 check above the fragile check, so the chain starts with if weight > 50', 10, 'Weight first makes the freight rule win for every package above 50 lb, fragile or not, and every other package keeps its lane. The chart above shows 0005 taking the Yes arrow at the first diamond.'],
+    ['Change the first line to if fragile == "yes" and weight <= 50', 6, 'This works: a heavy fragile box fails the first condition and reaches weight > 50. But it repeats the 50 lb limit in two places, so a future change to the limit must be made twice. Moving the weight check first is simpler.'],
+    ['Change weight > 50 to weight >= 50', 0, 'This changes the limit, not the order. 0005 still hits the fragile diamond first, and 0006 (exactly 50) now goes to FREIGHT: two packages wrong instead of one.'],
+    ['Delete the fragile check from the chain', 0, 'Then 0002 and 0007 lose their FRAGILE shelf and go to zone lanes. The fix must keep every rule and only change which one is asked first.']]}
+];
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+let r = 0, picked = null, total = 0, log = [], G = null, lit = new Set(), used = [], picks = 0, busy = false, queue = [], done = false, anim = null;
+function killAnim() { if (anim && anim.kill) anim.kill(); anim = null; }
+function mkTL(onDone) { killAnim(); anim = hasGSAP ? gsap.timeline({onComplete: () => { anim = null; onDone(); }}) : {call: f => f(), add: () => {}, to: () => {}, _fake: true, finish: onDone}; return anim; }
+function runTL(t) { if (t._fake) t.finish(); }
+
+// ---- the shelf and the token ----
+function renderShelf() {
+  $('#shelf').innerHTML = PK.map((p, i) => '<button type="button" class="pcard" data-i="' + i + '"><b>' + p.t + '</b><span>' + p.city + ' · ' + p.w + ' lb · ' + p.m + ' mi · ' + (p.f ? 'fragile' : 'not fragile') + '</span></button>').join('');
+  $('#plog').innerHTML = '';
+}
+function covbar() { const R = ROUNDS[r]; if (R.kind !== 'cover') { $('#covbar').innerHTML = 'Packages tried: <b>' + picks + '</b>'; return; }
+  $('#covbar').innerHTML = 'Arrows green: <b class="lit">' + lit.size + '</b> of <b>' + G.all.length + '</b> · Packages used: <b>' + used.length + '</b> · Minimum: <b>' + R.min + '</b>'; }
+function sendToken(p, after) {   // the token runs the package through the chart; the arrows it travels turn green when it arrives
+  const res = G.run(p); busy = true;
+  G.fk.clear(); G.paint(Array.from(lit), GREEN);
+  const t = mkTL(() => { G.paint(res.path, GREEN); res.path.forEach(k => lit.add(k)); G.fk.highlight(res.node, 'done'); busy = false; if (after) after(res); const nx = queue.shift(); if (nx) nx(); });
+  const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2.4)); t.add(f); } t.to({}, {duration: .1}); runTL(t);
+  return res;
+}
+$('#shelf').addEventListener('click', e => {
+  const b = e.target.closest('.pcard'); if (!b || b.disabled || done) return; const i = +b.dataset.i, p = PK[i], R = ROUNDS[r];
+  const go = () => {
+    if (R.kind === 'cover') {
+      b.disabled = true; b.classList.add('used');
+      const before = lit.size;
+      $('#capT').textContent = p.t; $('#capB').textContent = 'Running ' + p.t + ' through the chart...';
+      sendToken(p, res => { const added = lit.size - before; used.push({p: p, added: added}); covbar();
+        $('#capB').textContent = res.desc + '. ' + (added ? added + ' new arrow' + (added > 1 ? 's' : '') + ' turned green.' : 'No new arrow: this path was already green.');
+        const li = document.createElement('li'); li.className = added ? '' : 'none'; li.innerHTML = '<b>' + p.t + '</b>: ' + esc(res.desc) + (added ? ' (' + added + ' new)' : ' (nothing new)'); $('#plog').prepend(li);
+        guide(lit.size === G.all.length ? 2 : 1, lit.size === G.all.length ? 'Every arrow is green. Press <b>Check coverage</b>.' : 'Keep clicking packages until every arrow is green, then press <b>Check coverage</b>.'); });
+    } else if (R.kind === 'find') {
+      picks++; const wrong = laneOf(p, COPILOT) !== laneOf(p, DISPATCH); b.disabled = true; b.classList.add(wrong ? 'hit' : 'dud');
+      $('#capT').textContent = p.t; $('#capB').textContent = 'Running ' + p.t + ' through Copilot\'s chart...';
+      sendToken(p, res => { covbar();
+        const li = document.createElement('li'); li.className = wrong ? '' : 'none';
+        if (wrong) { G.fk.highlight(res.node, 'error'); li.innerHTML = '<b>' + p.t + '</b>: Copilot\'s order says ' + res.lane + ', Dante\'s order says ' + laneOf(p, DISPATCH) + '. This is the package that exposes the bug.';
+          $('#capB').textContent = res.desc + '. Dante\'s order says FREIGHT, because 60 > 50. The weight diamond was never reached.';
+          const pts = picks === 1 ? 10 : picks === 2 ? 5 : 0; settle(pts, 10, 'Found ' + p.t + ' on pick ' + picks, '<b>' + pts + ' of 10 points.</b> ' + p.t + ' is the only package where both of the first two conditions are True (60 lb and fragile). Whichever diamond comes first wins, so it is the only package that tells the two orders apart.' + (picks > 1 ? ' Each earlier pick had at most one True condition among the first two, so the order could not change its lane.' : '') + ' Round 10 asks for the fix.'); }
+        else { li.innerHTML = '<b>' + p.t + '</b>: lane ' + res.lane + ' in both orders. It cannot tell the two sorters apart.'; $('#capB').textContent = res.desc + '. Dante\'s order gives the same lane, so this package does not expose the bug. Try another.'; }
+        $('#plog').prepend(li); });
+    }
+  };
+  if (busy) queue.push(go); else go();
+});
+
+// ---- rounds ----
+function drawProgress() { $('#prog').innerHTML = ROUNDS.map((_, i) => { const l = log[i]; return '<i class="' + (l ? (l.pts === l.max ? 'ok' : l.pts > 0 ? 'part' : 'bad') : i === r ? 'now' : '') + '"></i>'; }).join(''); }
+function showRound() {
+  const R = ROUNDS[r]; picked = null; lit = new Set(); used = []; picks = 0; done = false; queue = []; killAnim(); busy = false;
+  G = make($('#stage'), CHARTS[R.chart]());
+  $('#qTitle').textContent = 'Round ' + (r + 1) + ' of ' + ROUNDS.length + ': ' + R.name; $('#qText').textContent = R.q; $('#fb').innerHTML = '';
+  $('#capT').textContent = 'Ready'; $('#capB').textContent = R.kind === 'cover' ? 'Click a package below. The token runs it through the chart and every arrow it travels turns green.' : R.kind === 'find' ? 'This is Copilot\'s order: fragile first. Click a package below to run it.' : 'Pick an answer and press Check, then press Play the explanation.';
+  $('#shelfWrap').hidden = R.kind === 'mc'; $('#opts').innerHTML = '';
+  if (R.kind === 'mc') { R._opts = shuffle(R.opts); $('#opts').innerHTML = R._opts.map((o, i) => '<button type="button" data-i="' + i + '">' + esc(o[0]) + '</button>').join(''); $('#btnCheck').textContent = 'Check'; $('#btnCheck').hidden = false; $('#btnCheck').disabled = false;
+    guide(1, 'Read round ' + (r + 1) + ' below and <b>pick one answer</b>.'); }
+  else { renderShelf(); covbar(); $('#btnCheck').textContent = 'Check coverage'; $('#btnCheck').hidden = R.kind === 'find'; $('#btnCheck').disabled = false;
+    guide(1, R.kind === 'cover' ? 'Click package cards below until every arrow on the chart is green, then press <b>Check coverage</b>.' : 'Click the one package that lands on a different lane in Copilot\'s order.'); }
+  $('#btnNext').disabled = true; $('#btnPlay').disabled = true; $('#btnNext').textContent = r === ROUNDS.length - 1 ? 'See results' : 'Next round'; drawProgress();
+}
+function settle(pts, max, answer, html) {
+  done = true; total += pts; log[r] = {q: ROUNDS[r].name, a: answer, pts: pts, max: max};
+  $('#fb').innerHTML = '<div class="feedback ' + (pts === max ? 'ok' : pts > 0 ? 'info' : 'bad') + '">' + html + '</div>';
+  $('#score').textContent = total; $('#btnCheck').disabled = true; $('#btnNext').disabled = false; $('#btnPlay').disabled = false; document.querySelectorAll('.pcard').forEach(b => { b.disabled = true; }); drawProgress();
+  guide(3, 'Press <b>Play the explanation</b> to see it on the flowchart, then <b>Next round</b>.');
+}
+$('#opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; picked = +b.dataset.i; document.querySelectorAll('#opts button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.style.borderColor = x === b ? 'var(--cbt-sky)' : ''; }); guide(2, 'Press <b>Check</b> to see your points.'); });
+$('#btnCheck').addEventListener('click', () => {
+  const R = ROUNDS[r]; if (done) return;
+  if (R.kind === 'mc') {
+    if (picked === null) { guide(1, 'Pick an answer first, then press <b>Check</b>.'); return; }
+    const o = R._opts[picked], max = 10, best = R._opts.find(x => x[1] === max);
+    document.querySelectorAll('#opts button').forEach((b, i) => { b.disabled = true; b.style.borderColor = ''; if (R._opts[i] === best) b.classList.add('right'); else if (i === picked) b.classList.add('wrong'); });
+    settle(o[1], max, o[0], '<b>' + o[1] + ' of ' + max + ' points.</b> ' + esc(o[2]) + (o === best ? '' : ' The best answer: ' + esc(best[0]) + '. ' + esc(best[2])));
+    return;
   }
-  if (!lane) {
-    lane = 'ASK DISPATCH'; laneNode = 'p_ask';
-    const known = ['Doral', 'Hialeah', 'Miami Gardens', 'Kendall', 'Homestead'].find(c => c.toLowerCase() === S.city.toLowerCase() && c !== S.city);
-    steps.push({phase: 'lane', node: 'p_ask', line: 19, path: [D[D.length - 1].id + '>p_ask'], label: 'False', color: PERI, mem: {lane: Q(lane)}, text: 'Every diamond answered False, so the else branch runs: lane = "ASK DISPATCH".' + (known ? ' Note: ' + Q(S.city) + ' is not ' + Q(known) + '. Python compares letter by letter, capital letters included.' : ' Dispatch will decide by hand where ' + S.city + ' goes.')});
+  if (busy) { queue.push(() => $('#btnCheck').click()); return; }
+  if (!used.length) { guide(1, 'Click at least one package first, then press <b>Check coverage</b>.'); return; }
+  const dark = G.all.filter(k => !lit.has(k));
+  if (dark.length) {
+    G.paint(dark, CORAL);
+    const tips = dark.slice(0, 3).map(k => { const p = PK.find(x => G.run(x).path.includes(k)); return esc(G.names[k]) + (p ? ' (' + p.t + ' would light it)' : ''); });
+    settle(0, 10, used.length + ' packages, ' + dark.length + ' arrow' + (dark.length > 1 ? 's' : '') + ' dark', '<b>0 of 10 points.</b> ' + dark.length + ' arrow' + (dark.length > 1 ? 's' : '') + ' stayed dark (now shown in coral): ' + tips.join('; ') + '. A test plan that leaves a branch untested can miss a bug on exactly that branch.');
+  } else {
+    const extra = used.length - R.min, pts = Math.max(0, 10 - 2 * extra), duds = used.filter(u => !u.added).map(u => u.p.t);
+    settle(pts, 10, used.length + ' packages, every arrow green', '<b>' + pts + ' of 10 points.</b> Every arrow is green' + (extra ? ', but you used ' + used.length + ' packages and ' + R.min + ' are enough: minus 2 per extra package.' : ' with ' + used.length + ' packages, the minimum. One package per branch is a complete test plan with nothing wasted.') + (duds.length ? ' Packages that added nothing new: ' + duds.join(', ') + '.' : ''));
   }
-  const expected = laneFor(S, DISPATCH), laneStep = steps[steps.length - 1];
-  if (lane !== expected) {
-    const missed = diamonds(DISPATCH).find(d => d.cond(S));
-    laneStep.err = true;
-    laneStep.text += ' Dispatch expected ' + expected + ': ' + dispatchWhy(S) + '. The diamond "' + missed.text.replace('\n', ' ') + '" was never reached, because Python stops at the first True condition and in this order it came too late.';
-  } else if (firedAt >= 0 && firedAt < D.length - 1 && order[0] !== 'city') laneStep.text += ' Dispatch agrees: ' + dispatchWhy(S) + '.';
-  const unreached = D.slice(firedAt >= 0 ? firedAt + 1 : D.length);
-  steps.push({phase: 'output', node: 'out_lane', line: 20, path: [laneNode + '>out_lane'], label: lane, color: ICE, long: true, print: ['Lane: ' + lane], text: 'OUTPUT: the screen prints Lane: ' + lane + '.' + (unreached.length ? ' ' + unreached.length + ' diamond' + (unreached.length > 1 ? 's were' : ' was') + ' never asked: ' + unreached.map(d => '"' + d.text.replace('\n', ' ') + '"').join(', ') + '.' : '')});
-  steps.push({phase: 'output', node: 'out_price', line: 21, path: ['out_lane>out_price'], label: '$' + fix(price), color: ICE, print: ['Price: $' + fix(price)], text: 'OUTPUT: the screen prints Price: $' + fix(price) + '. The box holds ' + pyFloat(price) + '; the f-string :.2f prints exactly two decimals.'});
-  steps.push({phase: 'output', node: 'end', line: 0, path: ['out_price>end'], label: 'done', color: GREEN, text: 'END. Package ' + (S.t || 'with these values') + ' goes to lane ' + lane + ' at $' + fix(price) + '.' + (lane !== expected ? ' That lane is wrong for dispatch: this is the branch a test plan must catch.' : ' Pick another package, or change the order of the checks, and run again.')});
-  return steps;
+});
+$('#btnPlay').addEventListener('click', () => {
+  const R = ROUNDS[r], l = log[r]; if (!l || busy) return;
+  G.fk.clear();
+  if (R.kind === 'cover') {   // the smallest set: pick the package that lights the most new arrows until every arrow is green
+    const left = new Set(G.all), set = [];
+    while (left.size) { let best = null, n = 0; PK.forEach(p => { const c = G.run(p).path.filter(k => left.has(k)).length; if (c > n) { n = c; best = p; } }); if (!best) break; set.push(best); G.run(best).path.forEach(k => left.delete(k)); }
+    $('#capT').textContent = 'A complete set'; $('#capB').textContent = set.map(p => p.t).join(', ') + ': ' + set.length + ' packages, one per branch. Watch each one light its own arrows.';
+    const seen = new Set(); busy = true;
+    const t = mkTL(() => { busy = false; $('#capB').textContent = set.map(p => short(p) + ' ' + G.run(p).lane).join(', ') + ': every arrow green with ' + set.length + ' packages.'; });
+    set.forEach(p => { const res = G.run(p); const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2)); t.add(f); } t.call(() => { G.paint(res.path, GREEN); res.path.forEach(k => seen.add(k)); G.fk.highlight(res.node, 'done'); }); t.to({}, {duration: .25}); });
+    runTL(t);
+  } else {
+    const p = PK[R.kind === 'find' ? 4 : R.play], res = G.run(p);
+    $('#capT').textContent = p.t + (R.chart === 'copilot' ? ' in Copilot\'s order' : ' in Dante\'s order'); $('#capB').textContent = res.desc + '. Price $' + price(p).toFixed(2) + '.';
+    lit = new Set(); busy = true;
+    const t = mkTL(() => { busy = false; G.paint(res.path, GREEN); G.fk.highlight(res.node, R.chart === 'copilot' && res.lane !== laneOf(p, DISPATCH) ? 'error' : 'done'); });
+    const f = G.fk.token(res.path, short(p), SKY); if (f) { f.timeScale(Math.max(1, f.duration() / 2.4)); t.add(f); } t.to({}, {duration: .1}); runTL(t);
+  }
+});
+$('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); } else finishAll(); });
+function finishAll() {
+  guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent: you can cover every branch and read a chain the way Python does.' : ' Press Try again to improve it; the rounds keep their order, so you can plan the minimum sets.'); $('#opts').innerHTML = ''; $('#shelfWrap').hidden = true; $('#btnCheck').disabled = true; $('#btnNext').disabled = true;
+  $('#resTable').innerHTML = '<tr><th>Round</th><th>What you did</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '. ' + esc(l.q) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
+  if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
+  drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
-let S = fresh(), STEPS = plan(S), hist = [], tl = null, running = false, timer = null, speed = 1, follow = true;
-const SPEEDS = [0.25, 0.5, 1, 2, 4];
-function setPhase(p) { document.querySelectorAll('.phases li').forEach(li => li.classList.toggle('on', li.dataset.p === p)); const li = document.querySelector('.phases li[data-p="' + p + '"]'); $('#phaseTag').textContent = li ? li.textContent : 'Ready'; $('#phaseTag').style.setProperty('--pc', li ? getComputedStyle(li).getPropertyValue('--c') : 'var(--silk-dim)'); }
-function decBox(d) {
-  if (!d) { $('#decBox').innerHTML = 'No diamond reached yet. Each diamond asks one comparison; Python answers True or False.'; return; }
-  $('#decBox').innerHTML = 'Diamond <code>' + d.cond.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + '</code><br>' + d.explain.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + ' <span class="pill ' + (d.result ? 't' : 'f') + '">' + TF(d.result) + '</span> ' + (d.result ? 'Yes arrow' : 'No arrow');
-}
-function decTable() {
-  const all = [{id: 'd_sur', py: 'fragile == "yes"  (surcharge)'}].concat(diamonds());
-  $('#decTable').innerHTML = '<tr><th>Diamond</th><th>Result</th></tr>' + all.map(d => { const r = S.dec[d.id]; const done = S.step >= STEPS.length;
-    return '<tr><td>' + d.py.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])) + '</td><td>' + (r ? '<span class="pill ' + (r.result ? 't' : 'f') + '">' + TF(r.result) + '</span>' : done ? '<span class="pill x">never reached</span>' : '<span class="pill">not yet</span>') + '</td></tr>'; }).join('');
-}
-function restoreView() {   // after step back, reset, or a chart rebuild: redraw memory, screen, decisions, and highlights from the state
-  fk.clear(); MEM.reset(); CON.clear();
-  let last = null;
-  for (let i = 0; i < S.step; i++) { const m = STEPS[i]; if (m.mem) Object.keys(m.mem).forEach(k => MEM.set(k, m.mem[k], {pop: false})); if (m.print) m.print.forEach(l => CON.print(l)); if (m.path) paint(m.path, '#E0B840'); if (m.dec) last = m.dec; fk.highlight(m.node, i === S.step - 1 ? (m.err ? 'error' : 'active') : 'done'); }
-  decBox(last); decTable();
-  if (follow && S.step > 0) fk.focus(STEPS[S.step - 1].node); else fk.fit();
-}
-function render() { $('#hudStep').textContent = S.step; $('#ctx').textContent = 'Step ' + S.step + ' of ' + STEPS.length; $('#btnBack').disabled = !hist.length; $('#btnStep').disabled = S.step >= STEPS.length; $('#btnRun').textContent = running ? 'Pause' : 'Run';
-  renderCode(S.step > 0 && S.step <= STEPS.length ? STEPS[S.step - 1].line : 0); decTable();
-  const copilot = order.join() === COPILOT.join(), is5 = S.weight === 60 && S.fragile === 'yes';
-  guide(S.step === 0 ? (copilot && !is5 ? 4 : 2) : S.step < STEPS.length ? 3 : (copilot ? 5 : 4),
-    S.step === 0 ? (copilot && !is5 ? 'Copilot\'s order is on. Pick package <b>PP-2026-0005</b> and press <b>Run</b>.' : 'Press <b>Step</b> to start, or <b>Run</b> to play every step.')
-    : S.step < STEPS.length ? 'Read the explanation, then press <b>Step</b> for step ' + (S.step + 1) + ' of ' + STEPS.length + '.'
-    : copilot ? 'You saw the unreached diamond. Scroll to <b>Try it</b> and run the Python, or press <b>Dispatch order</b> to go back.' : 'Done. Press <b>Copilot\'s order</b> and run PP-2026-0005, or pick another package.'); }
-function finish(m) { tl = null; if (m.mem) Object.assign(S.mem, m.mem); if (m.print) S.lines.push.apply(S.lines, m.print); if (m.dec) S.dec[m.dec.id] = m.dec; S.step++; render(); if (running) { if (S.step >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 350 / speed); } }
-function animate(t, m) {
-  t.call(() => { if (S.step > 0) fk.highlight(STEPS[S.step - 1].node, 'done'); if (follow) { if (m.long) fk.fit(); else fk.focus(m.node); } });
-  if (m.path) { const f = fk.token(m.path, m.label, m.color); if (f) { f.timeScale(Math.max(1, f.duration() / 2.2)); t.add(f); } }
-  t.call(() => { fk.highlight(m.node, m.err ? 'error' : 'active'); if (m.path) paint(m.path, '#E0B840'); if (follow && m.long) fk.focus(m.node); if (m.mem) Object.keys(m.mem).forEach(k => MEM.set(k, m.mem[k])); if (m.print) m.print.forEach(l => CON.print(l)); if (m.dec) decBox(m.dec); });
-  t.to({}, {duration: .35});
-}
-function stepFwd(animated) {
-  if (tl) { tl.progress(1); return; }
-  if (S.step >= STEPS.length) return;
-  hist.push(JSON.parse(JSON.stringify(S)));
-  const m = STEPS[S.step]; S.phase = m.phase; setPhase(m.phase); $('#narration').textContent = m.text; renderCode(m.line);
-  if (animated !== false && hasGSAP) { tl = gsap.timeline({onComplete: () => finish(m)}); animate(tl, m); tl.timeScale(speed); }
-  else { animate({call: f => f(), add: () => {}, to: () => {}}, m); finish(m); }
-}
-function back() { stop(); if (tl) { tl.kill(); tl = null; } if (!hist.length) return; S = hist.pop(); setPhase(S.phase); restoreView(); $('#narration').textContent = 'Stepped back. Press Step to watch that step again.'; render(); }
-function run() { if (S.step >= STEPS.length) return; running = true; render(); stepFwd(); }
-function stop() { running = false; clearTimeout(timer); render(); }
-function reset(msg) { stop(); if (tl) { tl.kill(); tl = null; } S = fresh(); const p = PK.find(x => x.w === S.weight && x.m === S.miles && x.city === S.city && x.f === S.fragile); if (p) S.t = p.t; STEPS = plan(S); hist = []; setPhase(null); restoreView(); $('#narration').textContent = msg || 'Press Step to start, or Run to play every step.'; render(); }
-
-// ---- package picker ----
-const sel = $('#pkg'); sel.innerHTML = PK.map((p, i) => '<option value="' + i + '">' + p.t + ' · ' + p.city + ' · ' + p.w + ' lb · ' + p.m + ' mi · ' + (p.f === 'yes' ? 'fragile' : 'not fragile') + '</option>').join('') + '<option value="custom">Type your own values</option>';
-function loadPkg(i) { const p = PK[i]; if (!p) return; $('#inW').value = p.w; $('#inM').value = p.m; $('#inC').value = p.city; $('#inF').value = p.f; }
-sel.addEventListener('change', () => { loadPkg(+sel.value); reset(sel.value === 'custom' ? 'Type your own values, then press Step.' : 'Package ' + PK[sel.value].t + ' loaded. Press Step to start.'); });
-['#inW', '#inM', '#inC', '#inF'].forEach(s => $(s).addEventListener('input', () => { const v = readInputs(); const i = PK.findIndex(p => p.w === v.weight && p.m === v.miles && p.city === v.city && p.f === v.fragile); sel.value = i >= 0 ? String(i) : 'custom'; reset('Values changed. Press Step to start.'); }));
-
-// ---- order of the checks: a draggable list with up and down buttons; the chart and the Python redraw ----
-function setOrder(o, msg) { order = o.slice(); renderOrder(); buildFlow(); reset(msg || 'Order changed: the chart and the Python redrew. Press Step to start.');
-  const copilot = order.join() === COPILOT.join(), dispatch = order.join() === DISPATCH.join();
-  $('#orderNote').textContent = dispatch ? 'Dispatch order: the rule Dante gave. Weight first, because a freight truck takes anything above 50 lb no matter what else is true.' : copilot ? 'Copilot\'s order: fragile before weight. Run PP-2026-0005 (60 lb, fragile) and watch where it lands.' : order[0] === 'city' ? 'City first: a package from a known city gets its zone lane before anyone looks at the weight or the fragile answer. Run PP-2026-0003 (55 lb) and see it land in B.' : 'Your own order. Run every reference package and see which ones change lane.';
-  $('#btnDispatch').setAttribute('aria-pressed', dispatch); $('#btnCopilot').setAttribute('aria-pressed', copilot); }
-function renderOrder() {
-  const ul = $('#orderList');
-  ul.innerHTML = order.map((k, i) => '<li data-k="' + k + '"><span class="grip" aria-hidden="true">::</span><span class="n">' + (i + 1) + '</span><span class="t">' + CHECKS[k].label + '</span><span class="ud"><button type="button" data-up="' + i + '" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button><button type="button" data-down="' + i + '" aria-label="Move down"' + (i === order.length - 1 ? ' disabled' : '') + '>&#9660;</button></span></li>').join('');
-  if (hasGSAP && window.Draggable) Draggable.create(ul.querySelectorAll('li'), {type: 'y', bounds: ul, zIndexBoost: false,
-    onPress() { this.target.classList.add('dragging'); },
-    onRelease() { const me = this.target; me.classList.remove('dragging'); const items = Array.from(ul.children); const cy = me.getBoundingClientRect().top + me.offsetHeight / 2;
-      const others = items.filter(x => x !== me); const idx = others.filter(x => x.getBoundingClientRect().top + x.offsetHeight / 4 < cy).length;
-      gsap.set(me, {y: 0}); const o = others.map(x => x.dataset.k); o.splice(idx, 0, me.dataset.k); if (o.join() !== order.join()) setOrder(o); else renderOrder(); }});
-}
-$('#orderList').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const o = order.slice(); if (b.dataset.up != null) { const i = +b.dataset.up; [o[i - 1], o[i]] = [o[i], o[i - 1]]; } else { const i = +b.dataset.down; [o[i], o[i + 1]] = [o[i + 1], o[i]]; } setOrder(o); });
-$('#btnDispatch').addEventListener('click', () => setOrder(DISPATCH, 'Dispatch order: weight, fragile, city. Press Step to start.'));
-$('#btnCopilot').addEventListener('click', () => { setOrder(COPILOT, 'Copilot\'s order: fragile, weight, city. Pick PP-2026-0005 and press Run.'); });
-$('#btnFollow').addEventListener('click', () => { follow = true; $('#btnFollow').classList.add('on'); $('#btnFollow').setAttribute('aria-pressed', 'true'); $('#btnWhole').classList.remove('on'); if (S.step > 0) fk.focus(STEPS[S.step - 1].node); });
-$('#btnWhole').addEventListener('click', () => { follow = false; $('#btnFollow').classList.remove('on'); $('#btnFollow').setAttribute('aria-pressed', 'false'); $('#btnWhole').classList.add('on'); fk.fitAll(); });
-
-$('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
-$('#btnRun').addEventListener('click', () => running ? stop() : run());
-$('#btnBack').addEventListener('click', back);
-$('#btnReset').addEventListener('click', () => reset());
-$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
-document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
-  if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click(); });
-
-// ---- Try it: the same chain inside lane(weight, fragile, city), with package 0003 as the inputs and three tests ----
-const SANDBOX = ['# sorter.py: lane and price for one Palmetto Parcel package', 'def lane(weight, fragile, city):', '    if weight > 50:', '        return "FREIGHT"', '    elif fragile:', '        return "FRAGILE"',
-  '    elif city == "Doral":', '        return "A"', '    elif city == "Hialeah" or city == "Miami Gardens":', '        return "B"', '    elif city == "Kendall" or city == "Homestead":', '        return "C"', '    else:', '        return "ASK DISPATCH"', '',
-  'weight = float(input("Weight in pounds: "))', 'miles = float(input("Miles: "))', 'city = input("City: ")', 'fragile = input("Fragile (yes/no): ") == "yes"', 'price = 4.50 + 0.80 * weight + 0.25 * miles', 'if fragile:', '    price = price + 3.00',
-  'print(f"Lane: {lane(weight, fragile, city)}")', 'print(f"Price: ${price:.2f}")'].join('\n');
-PySandbox($('#sandbox'), {code: SANDBOX, inputs: '55\n14\nMiami Gardens\nno', tests: [
-  {expr: 'lane(55, False, "Miami Gardens")', expect: "'FREIGHT'"}, {expr: 'lane(60, True, "Miami Gardens")', expect: "'FREIGHT'"}, {expr: 'lane(50, False, "Hialeah")', expect: "'B'"}]});
-
-loadPkg(0); sel.value = '0';
-setOrder(DISPATCH, 'Package PP-2026-0001 loaded. Press Step to start, or Run to play every step.');
+function start() { r = 0; total = 0; log = []; $('#score').textContent = 0; $('#results').hidden = true; $('#specRounds').textContent = ROUNDS.length; showRound(); }
+$('#btnAgain').addEventListener('click', start);
+window.__cover = {rounds: ROUNDS, pk: PK, lane: laneOf, charts: CHARTS, state: () => ({r: r, total: total, log: log, lit: lit.size, all: G.all.length, busy: busy})};
+start();
 })();
 </script>
 </body>

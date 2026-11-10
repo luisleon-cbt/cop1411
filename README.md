@@ -8,10 +8,10 @@ Live site: https://luisleon-cbt.github.io/cop1411/
 
 | Folder | Topic | Interactive A | Interactive B |
 |---|---|---|---|
-| week1 | What an algorithm is | flowchart-runner.html | build-the-flowchart.html |
-| week2 | Decisions | decision-diamonds.html | cover-every-branch.html |
-| week3 | Repetition | loop-runner.html | trace-race.html |
-| week4 | Decomposition and the final project | function-calls.html | bug-hunt.html |
+| week1 | Algorithms and decisions | flowchart-runner.html | cover-every-branch.html |
+| week2 | Loops and data structures | loop-runner.html | load-the-van.html |
+| week3 | Functions and efficient algorithms | function-calls.html | count-the-steps.html |
+| week4 | Recursion and the final project | recursion-runner.html | bug-hunt.html |
 
 ## Publishing
 

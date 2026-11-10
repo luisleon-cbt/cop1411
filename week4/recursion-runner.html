@@ -1,0 +1,1686 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recursion runner</title>
+<meta name="description" content="COP1411 Week 4 interactive: Watch a function call itself: every call pushes a frame on the call stack, the base case stops the chain, and the answers come back one frame at a time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<style>
+  /* ===== CBT "Shield bench" theme v1 (quality reference: templates/theme/reference/tiny-machine-lab.html). Paste as the first block of every page's <style>. ===== */
+  :root{
+    /* CBT brand */
+    --cbt-navy:#283068; --cbt-sky:#38B0E0; --cbt-gold:#E0B840; --cbt-gray:#989890; --cbt-navy-dark:#1B2150;
+    /* dark bench (navy board, gold traces) */
+    --board:#141a45; --board-deep:#0b0f2b; --panel:#10163b; --panel-2:#171f4f; --line:#2a3470; --line-2:#3a4690;
+    --silk:#eef1fa; --silk-dim:#aeb3c9; --copper:#E0B840;
+    /* signal colors: each course plan says what they mean; defaults below */
+    --addr:#E0B840; --data:#38B0E0; --ctrl:#F0786A; --alu:#6FD49B; --oper:#A9B4FF; --out:#9FE7FF; --led:#6FD49B;
+    --ok:#6FD49B; --bad:#F0786A; --warn:#E0B840; --neon:#39ff14;
+    --font-mono:"Red Hat Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-body:"Figtree","Helvetica Neue",Arial,sans-serif;
+    --font-display:"Archivo","Arial Black",Arial,sans-serif;
+    --mono:var(--font-mono); --sans:var(--font-body); --display:var(--font-display);
+    --r:6px; --lab:10px;
+    /* legacy names, mapped to the dark theme */
+    --ink:#eef1fa; --ink-2:#cdd2e6; --muted:#aeb3c9; --bg:#0b0f2b; --card:#10163b; --edge:#2a3470; --edge-2:#3a4690; --dim:#aeb3c9; --silk-2:#cdd2e6;
+    --code-bg:#070a22; --code-ink:#9FE7FF;
+    --net-blue:#38B0E0; --net-green:#6FD49B; --net-amber:#E0B840; --net-purple:#A9B4FF; --net-teal:#5fe0c8;
+    --ok-soft:rgba(111,212,155,.10); --bad-soft:rgba(240,120,106,.10); --warn-soft:rgba(224,184,64,.10);
+    --radius:6px; --shadow:none;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{background:var(--board-deep)}
+  [hidden]{display:none!important}
+  body{color:var(--silk);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:radial-gradient(1200px 600px at 30% -10%,#1d2a6e 0%,transparent 60%),var(--board-deep)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(135deg,rgba(224,184,64,.035) 0 2px,transparent 2px 26px);-webkit-mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%);mask:radial-gradient(900px 600px at 100% 100%,#000,transparent 70%)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--data)}
+  :focus-visible{outline:2px solid var(--addr);outline-offset:2px}
+  /* brand bar: white, CBT logo (shield and wordmark), navy rule with a gold underline like the shield */
+  .topbar{position:relative;z-index:5;background:#fff;border-bottom:4px solid var(--cbt-navy);box-shadow:0 3px 0 var(--cbt-gold)}
+  .topbar-inner{max-width:none;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand-logo{display:block;flex:none;height:40px}
+  .brand-logo img{height:40px;width:auto;display:block}
+  .crumb{font-size:13px;color:#5d6178;letter-spacing:.02em;border-left:1px solid #DADDEA;padding-left:16px}
+  .crumb b{color:var(--cbt-navy);font-weight:700}
+  .crumb a{color:var(--cbt-navy)}
+  /* page mode (challenges and pages with a scrolling layout) */
+  main,.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 16px 36px}
+  .hero{margin:0 0 20px}
+  .eyebrow{display:block;margin:0;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);background:none;padding:0}
+  h1{margin:6px 0 8px;font-family:var(--font-display);font-weight:800;font-stretch:118%;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;color:var(--silk)}
+  h1 .num{color:var(--cbt-gold)}
+  h2{margin:0 0 10px;font-family:var(--font-display);font-weight:700;font-stretch:110%;font-size:14px;letter-spacing:.02em;color:var(--silk)}
+  h2 small,h3 small{color:var(--silk-dim);font-weight:400}
+  h3{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--silk)}
+  .lede{margin:0;color:var(--silk-dim);font-size:15px;max-width:68ch}
+  .muted{color:var(--silk-dim)}
+  .spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .spec div{background:var(--panel);padding:9px 11px}
+  .spec b{display:block;font:600 15px var(--font-mono);color:var(--silk)}
+  .spec span{font-size:12px;color:var(--silk-dim)}
+  @media(min-width:960px){.hero.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:end}}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;color:var(--silk);
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .card[data-ref]::after{content:attr(data-ref);position:absolute;top:9px;right:12px;font:500 9.5px var(--font-mono);letter-spacing:.12em;color:rgba(174,179,201,.55)}
+  .grid{display:grid;gap:14px}
+  .grid>*{min-width:0}
+  @media(min-width:900px){.grid.two{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+  details,details.howto{border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+  details.howto{margin:0 0 16px}
+  summary{cursor:pointer;padding:10px 12px;font:500 12.5px var(--font-mono);color:var(--silk)}
+  details>*:not(summary){margin-left:12px;margin-right:12px}
+  details.howto ol,details.howto ul{margin:4px 12px 12px;padding-left:20px;color:var(--silk-dim)}
+  details.howto li{margin-bottom:5px}
+  details.howto li::marker{color:var(--copper)}
+  .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:5px;padding:9px 12px;font:500 12px var(--font-mono);color:var(--silk);cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+  .btn:hover:not(:disabled){border-color:var(--copper)}
+  .btn.primary,.btn.go{background:var(--copper);border-color:var(--copper);color:#1a1205;font-weight:600}
+  .btn.primary:hover:not(:disabled),.btn.go:hover:not(:disabled){background:#ecc85c}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data)}
+  .btn:disabled,.btn[disabled]{opacity:.4;cursor:not-allowed}
+  input[type=text],input[type=number],select,textarea{background:var(--board-deep);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 13.5px var(--font-mono);color:var(--silk);min-width:0}
+  input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--copper)}
+  .mono,code,kbd{font-family:var(--font-mono);font-size:.92em}
+  code{background:rgba(238,241,250,.07);padding:1px 5px;border-radius:3px}
+  .cli{background:var(--code-bg);color:var(--code-ink);font:500 12.5px/1.6 var(--font-mono);border-radius:5px;padding:12px 14px;overflow:auto;white-space:pre;border:1px solid var(--line)}
+  .pill{display:inline-block;font:500 10.5px var(--font-mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:var(--panel-2);color:var(--silk-dim);border:1px solid var(--line)}
+  .feedback{border-radius:5px;padding:11px 13px;margin-top:12px;font-size:14.5px;color:var(--silk)}
+  .feedback.ok{background:rgba(111,212,155,.08);border:1px solid rgba(111,212,155,.45)}
+  .feedback.bad{background:rgba(240,120,106,.08);border:1px solid rgba(240,120,106,.45)}
+  .feedback.info{background:rgba(56,176,224,.08);border:1px solid rgba(56,176,224,.45)}
+  .score{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:500 12px var(--font-mono);color:var(--silk-dim)}
+  .score .big{font:800 36px/1 var(--font-display);font-stretch:118%;color:var(--silk);font-variant-numeric:tabular-nums}
+  table,table.data{border-collapse:collapse;width:100%;font:500 12px var(--font-mono);font-variant-numeric:tabular-nums}
+  th,table.data th{font-weight:500;color:var(--silk-dim);text-align:left;font-size:10.5px;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  td,table.data td{padding:4px 8px;border-bottom:1px solid rgba(42,52,112,.55)}
+  .scroll-x,.memwrap{overflow-x:auto}
+  .memwrap{border:1px solid var(--line);border-radius:5px}
+  svg text{font-family:var(--font-mono)}
+  /* step-by-step explanation (page mode and app mode) */
+  .stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .caption,.narr{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 15px;color:var(--silk)}
+  .caption{margin-top:12px;min-height:4.4em}
+  .caption .t{font:500 11px var(--font-mono);letter-spacing:.1em;color:var(--cap,var(--copper));margin-bottom:6px;text-transform:uppercase}
+  .narr{display:flex;flex-direction:column;gap:8px}
+  .narr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:400 11px var(--font-mono);color:var(--silk-dim)}
+  .ptag{display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--silk)}
+  .ptag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--silk-dim));box-shadow:0 0 8px var(--pc,transparent)}
+  .narr p{margin:0;font-size:15.5px;line-height:1.55;min-height:4.6em}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .controls .btn{padding:10px 6px}
+  .speed{display:flex;align-items:center;gap:12px;font:400 11.5px var(--font-mono);color:var(--silk-dim)}
+  .speed input{flex:1;min-width:0}
+  .speed output{color:var(--silk);width:3.5em;text-align:right;font-variant-numeric:tabular-nums}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .rail{display:flex;gap:2px;margin:4px 0 12px;padding:4px;list-style:none;background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px}
+  .rail>div,.rail>li{flex:1;text-align:center;font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .rail>div small{display:block;font:400 9.5px var(--font-body);letter-spacing:.02em;text-transform:none;margin-top:2px;opacity:.85}
+  .rail>.on{background:var(--c,var(--copper));color:#1a1205}
+  .rail>.done{color:var(--c,var(--copper))}
+  /* live state */
+  .regs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .reg{border:1px solid var(--line);border-radius:5px;padding:9px 11px;transition:border-color .3s,background .3s;min-width:0}
+  .reg.kv{display:grid;grid-template-columns:1fr auto;gap:1px 8px;align-items:baseline}
+  .reg.on,.reg.flash{border-color:var(--hc,var(--copper));background:rgba(224,184,64,.08)}
+  .reg .rn{font:600 12px var(--font-mono)}
+  .reg .rv{font:600 17px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+  .reg .rf{font-size:11.5px;color:var(--silk-dim)}
+  .reg .rs{font:400 10.5px var(--font-mono);color:var(--silk-dim);text-align:right;font-variant-numeric:tabular-nums}
+  .reg.wide{grid-column:1/-1}
+  .reg .n{display:flex;justify-content:space-between;align-items:baseline;font:600 12px var(--font-mono);color:var(--silk)}
+  .reg .n b{font:600 17px var(--font-mono);font-variant-numeric:tabular-nums}
+  .bits{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--nb,8),1fr);gap:4px;margin-top:8px}
+  .bit{display:flex;flex-direction:column;align-items:center;gap:3px;font:400 9.5px var(--font-mono);color:var(--silk-dim)}
+  .bit i{width:100%;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);transition:background .25s,box-shadow .25s}
+  .bit.one i{background:var(--led);border-color:var(--led);box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .ledbits{display:flex;gap:4px;margin:6px 0 2px;flex-wrap:wrap}
+  .ledbits i{width:16px;height:16px;border-radius:2px;background:#1a2350;border:1px solid var(--line);font:600 9px/14px var(--font-mono);font-style:normal;color:#4a5490;text-align:center}
+  .ledbits i.on{background:var(--led);border-color:var(--led);color:#06220f;box-shadow:0 0 8px rgba(111,212,155,.55)}
+  .tape{display:flex;flex-wrap:wrap;gap:4px;min-height:34px;align-content:flex-start}
+  .tape span{font:600 13px var(--font-mono);color:var(--out);background:#0f1c44;border:1px solid #2a4a7a;border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .tape em{font-style:normal;font-size:12px;color:var(--silk-dim)}
+  .notice{margin:0;padding-left:18px;color:var(--silk-dim);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  .notice li::marker{color:var(--copper)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 10.5px var(--font-mono);color:var(--silk-dim);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  /* app mode: the 3D board fills the left, a control rail sits on the right (stacks under the board on phones) */
+  .app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,410px);height:calc(100vh - 55px);min-height:560px}
+  .stage{position:relative;min-width:0;min-height:320px;overflow:hidden;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);touch-action:none}
+  .stage .gl{position:absolute;inset:0;display:block;z-index:1}
+  .stage .labels{position:absolute!important;top:0;left:0;z-index:2}
+  .stage .flat{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .nogl{position:absolute;left:0;right:0;top:0;padding:7px 12px;text-align:center;color:var(--silk-dim);font-size:12px;z-index:4;background:rgba(11,15,43,.9);border-bottom:1px solid var(--line)}
+  .stage:has(.nogl:not([hidden])) .hud-top{top:44px}
+  .stage:has(.nogl:not([hidden])) .flat{top:34px;height:calc(100% - 34px)}
+  .hud{position:absolute;z-index:3;pointer-events:none;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hud button,.hud a{pointer-events:auto}
+  .hud-top{top:14px;left:16px;right:16px}
+  .hud-bottom{bottom:14px;left:16px;right:16px;justify-content:space-between;align-items:flex-end}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(11,15,43,.78);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px)}
+  .phases{list-style:none;margin:0;padding:4px;display:flex;gap:2px}
+  .phases li{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:4px;color:var(--silk-dim);transition:background .25s,color .25s}
+  .phases li.on{background:var(--c,var(--copper));color:#1a1205}
+  .ticks{font:400 11px var(--font-mono);color:var(--silk-dim);padding:9px 10px;font-variant-numeric:tabular-nums}
+  .ticks b{color:var(--silk);font-weight:600}
+  .hud .legend{padding:8px 12px}
+  .views{display:flex;gap:2px;padding:4px}
+  .views button{border:0;background:transparent;font:400 11px var(--font-mono);padding:6px 10px;border-radius:4px;color:var(--silk-dim);cursor:pointer}
+  .views button:hover{color:var(--silk)}
+  .views button.on{background:var(--panel-2);color:var(--silk)}
+  .credit{flex-basis:100%;margin:2px 0 0 2px;font:600 14px var(--font-mono);letter-spacing:.08em;color:var(--neon);text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.75),0 0 26px rgba(57,255,20,.45)}
+  .tag,.stage3d .label3d{pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--font-mono);line-height:1.1;text-align:center;color:var(--silk);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .tag .nm{font-size:calc(var(--lab) * .85);letter-spacing:.1em;color:var(--silk-dim)}
+  .tag .vl{font-size:calc(var(--lab) * 1.3);font-weight:600;font-variant-numeric:tabular-nums}
+  .tag .sb{font-size:calc(var(--lab) * .72);color:var(--silk-dim);letter-spacing:.04em}
+  .tag .sb:empty{display:none}
+  .tag.on .nm{color:var(--silk)}
+  .tag.on .vl{color:#fff6d8}
+  .cell .nm{font-size:calc(var(--lab) * .75)}
+  .cell .vl{font-size:calc(var(--lab) * 1.15)}
+  .zone{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * .82);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--silk-dim));opacity:.85;white-space:nowrap;text-align:center;line-height:1.3}
+  .lcd{pointer-events:none;font-family:var(--font-mono);font-weight:600;color:var(--out);font-size:calc(var(--lab) * 2);text-shadow:0 0 10px rgba(111,212,155,.8);font-variant-numeric:tabular-nums}
+  .pkt{pointer-events:none;font-family:var(--font-mono);font-size:calc(var(--lab) * 1.1);font-weight:700;color:#06120f;background:var(--c);padding:2px 6px;border-radius:3px;box-shadow:0 0 14px var(--c);white-space:nowrap}
+  .panel{min-width:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px;
+    background-image:radial-gradient(rgba(238,241,250,.035) 1px,transparent 1px);background-size:14px 14px}
+  .panel h1{font-size:26px;margin:4px 0 6px}
+  /* a Lab3D stage inside a card (page mode challenges) */
+  .card .stage{width:100%;aspect-ratio:16/10;min-height:0;border-radius:6px;border:1px solid var(--line)}
+  @media(max-width:640px){.card .stage{aspect-ratio:4/3}}
+  .progress{display:flex;gap:3px;margin:10px 0}
+  .progress i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+  .progress i.ok{background:var(--ok)}.progress i.part{background:var(--warn)}.progress i.bad{background:var(--bad)}.progress i.now{background:var(--cbt-sky)}
+  .opts{display:grid;gap:8px;margin-top:10px}
+  .opts button{text-align:left;padding:11px 13px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--silk);font:500 14.5px var(--font-body);cursor:pointer}
+  .opts button:hover:not(:disabled){border-color:var(--cbt-gold)}
+  .opts button.right{border-color:var(--ok);background:rgba(111,212,155,.10)}
+  .opts button.wrong{border-color:var(--bad);background:rgba(240,120,106,.10)}
+  /* the older make3D stage (page mode) */
+  .stage3d{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:6px;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 40% 38%,#1d2a6e 0%,var(--board-deep) 72%);border:1px solid var(--line)}
+  @media(max-width:640px){.stage3d{aspect-ratio:4/3}}
+  .stage3d canvas{position:absolute;inset:0;display:block;width:100%!important;height:100%!important}
+  .stage3d .fallback{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12px;color:var(--silk-dim);background:rgba(11,15,43,.85);text-align:center}
+  .stage3d .label3d{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600}
+  .stage3d .label3d.pkt{color:#06120f;text-shadow:none;background:var(--c,currentColor);padding:2px 6px;border-radius:3px}
+  footer.foot{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px;color:var(--silk-dim);font-size:12.5px;border-top:1px solid var(--line)}
+  footer.foot .byline,.byline{margin-top:4px;font:600 13px var(--font-mono)!important;letter-spacing:.08em;color:var(--neon)!important;text-shadow:0 0 4px var(--neon),0 0 12px rgba(57,255,20,.6)}
+  .reveal{animation:rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:860px){
+    .app .stage .zoomctl{top:50%;right:8px;transform:translateY(-50%);flex-direction:column;padding:3px}
+    .app .stage .zoomctl>button{width:30px!important;height:28px!important;font-size:16px}
+    .app .stage .zoomctl>button.fit{height:24px!important;font-size:9px}
+    .app .stage .zoomctl .pad{grid-template-columns:repeat(3,22px)!important;grid-template-rows:repeat(3,22px)!important;margin:2px 0;padding-top:3px}
+    .app .stage .zoomctl .pad button{width:22px!important;height:22px!important;font-size:10px}
+    .app .stage .zoomctl{align-items:center}
+    .app{grid-template-columns:1fr;height:auto}
+    .app .stage{height:62vh;min-height:360px}
+    .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  }
+  @media(max-width:520px){
+    .hud .legend{font-size:9.5px;gap:3px 10px}
+    .phases li{padding:5px 7px;font-size:10px}
+    .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---- stacked layout (v2, October 29 2026): the board uses the full width of the page, instructions and controls go below it ---- */
+  .app{display:block;height:auto;min-height:0}
+  .app>.lab-head{max-width:1240px;margin:0 auto;padding:18px 16px 14px}
+  .app>.lab-head h1{font-size:clamp(24px,3vw,32px);margin:4px 0 6px}
+  .app>.stage{width:100%;height:clamp(420px,70vh,860px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .panel{max-width:1240px;margin:0 auto;border-left:0;overflow:visible;background:none;display:block;columns:2 420px;column-gap:28px;padding:20px 16px 28px}
+  .panel>*{break-inside:avoid;margin:0 0 22px}
+  .panel>header,.panel>footer,.panel>.guide,.panel>.span-all{column-span:all}
+  /* how to use: numbered steps with the current one highlighted, plus a "do this now" line */
+  .guide{max-width:1240px;margin:0 auto;padding:18px 16px 4px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px 26px;align-items:start}
+  .guide h2{grid-column:1/-1;margin:0;font-size:18px}
+  .guide ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+  .guide ol.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--silk);font-size:15px;line-height:1.45}
+  .guide ol.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font-mono);background:var(--line);color:var(--silk)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:var(--panel-2)}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{content:"\2713";background:var(--ok);color:#06120f}
+  .guide ol.steps li b,.guide .now b{color:var(--cbt-gold);font-weight:600}
+  .guide .now{border-left:4px solid var(--cbt-sky);background:var(--panel-2);border-radius:6px;padding:14px 16px;font-size:16px;line-height:1.5;color:var(--silk)}
+  .guide .now .k{display:block;font:600 10.5px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cbt-sky);margin-bottom:4px}
+  .guide .tips{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--silk-dim);display:grid;gap:4px}
+  @media(max-width:860px){.guide{grid-template-columns:1fr}.panel{columns:1}}
+  /* page mode: board card on top across the full width, the round or task below */
+  .card .stage.wide{aspect-ratio:21/9;min-height:360px}
+  @media(max-width:860px){.card .stage.wide{aspect-ratio:4/3;min-height:0}}
+    /* ----- CBT light variant (course.yaml theme: light): CBT colors on white, the stage at 75 percent with the instructions at its right ----- */
+  :root{
+    --board:#F6F7FB; --board-deep:#FFFFFF; --panel:#FFFFFF; --panel-2:#EEF0F8; --line:#DADDEA; --line-2:#C5CAE0;
+    --silk:#1A1D2E; --silk-dim:#5d6178; --copper:#E0B840;
+    --addr:#B8921F; --data:#1F86B5; --ctrl:#D6473C; --alu:#2E9E63; --oper:#5B66C9; --out:#1F7FA8; --led:#2E9E63;
+    --ok:#2E9E63; --bad:#D6473C; --warn:#B8921F; --neon:#1B7F3B;
+    --ink:#1A1D2E; --ink-2:#3a3f5c; --muted:#5d6178; --bg:#FFFFFF; --card:#FFFFFF; --edge:#DADDEA; --edge-2:#C5CAE0; --dim:#5d6178; --silk-2:#3a3f5c;
+    --code-bg:#F4F5FA; --code-ink:#1A1D2E;
+    --net-blue:#1F86B5; --net-green:#2E9E63; --net-amber:#B8921F; --net-purple:#5B66C9; --net-teal:#1E9E8F;
+    --ok-soft:rgba(46,158,99,.10); --bad-soft:rgba(214,71,60,.10); --warn-soft:rgba(184,146,31,.12);
+    --shadow:0 1px 2px rgba(26,29,46,.06);
+    color-scheme:light;
+  }
+  html{background:#FFFFFF}
+  body{background:#FFFFFF;color:var(--silk)}
+  body::before{display:none}
+  a{color:var(--cbt-navy)}
+  h1,h2,h3{color:var(--cbt-navy)}
+  .eyebrow{color:var(--data)}
+  .lede,.muted{color:var(--silk-dim)}
+  .card{background:#FFFFFF;background-image:none;box-shadow:var(--shadow)}
+  .card[data-ref]::after{color:#9a9fbd}
+  .spec{background:var(--line)}
+  .spec div{background:#FFFFFF}
+  .btn{background:#FFFFFF;border-color:var(--line-2);color:var(--cbt-navy)}
+  .btn:hover:not(:disabled){border-color:var(--cbt-navy);background:var(--panel-2)}
+  .btn.primary,.btn.go{background:var(--cbt-gold);border-color:var(--cbt-gold);color:#1a1205}
+  .btn[aria-pressed="true"],.btn.on{border-color:var(--data);color:var(--data);background:#E6F5FB}
+  .feedback{color:var(--silk)}
+  .feedback.ok{background:var(--ok-soft);border-color:rgba(46,158,99,.5)}
+  .feedback.bad{background:var(--bad-soft);border-color:rgba(214,71,60,.5)}
+  .feedback.info{background:rgba(31,134,181,.08);border-color:rgba(31,134,181,.5)}
+  .score .big{color:var(--cbt-navy)}
+  th,table.data th{background:var(--panel-2);color:var(--silk-dim)}
+  td,table.data td{border-bottom:1px solid var(--line)}
+  .caption,.narr{background:var(--panel-2);border-color:var(--line);color:var(--silk)}
+  .caption .t{color:var(--cap,var(--addr))}
+  .reg.on,.reg.flash{background:var(--warn-soft)}
+  .notice li::marker{color:var(--addr)}
+  .legend{color:var(--silk-dim)}
+  .legend i{box-shadow:none}
+  .ptag{color:var(--silk)}
+  footer.foot .byline,.byline{color:var(--cbt-navy)!important;text-shadow:none;font-weight:700}
+  /* landing page cards */
+  html[data-theme="light"] .wk a.item{background:var(--panel-2);border-color:var(--line);color:var(--silk)}
+  html[data-theme="light"] .wk a.item:hover{background:#FBF4DD;border-color:var(--cbt-gold)}
+  html[data-theme="light"] .wk:not(.featured)::before{color:rgba(40,48,104,.07)}
+  html[data-theme="light"] .wk.featured{background:#FFFFFF;border-color:var(--cbt-gold);box-shadow:var(--shadow)}
+  html[data-theme="light"] .wk.featured p{color:var(--silk-dim)!important}
+  .credit{color:var(--cbt-navy)}
+  .foot{color:var(--silk-dim);border-top:1px solid var(--line)}
+  .topbar{box-shadow:0 3px 0 var(--cbt-gold)}
+  /* stage and HUD on a light board */
+  .stage,.stage.flowstage,.card .stage,.stage3d{background:#F3F5FB;border:1px solid var(--line)}
+  .hud .phases,.hud .ticks,.hud .legend,.hud .views{background:rgba(255,255,255,.94);border-color:var(--line);backdrop-filter:none}
+  .phases li{color:var(--silk-dim)}
+  .phases li.on{background:var(--c,var(--cbt-gold));color:#1a1205}
+  .hud .views button{color:var(--cbt-navy)}
+  .hud .views button.on{background:var(--cbt-navy);color:#FFFFFF}
+  .nogl{background:rgba(255,255,255,.9);color:var(--silk)}
+  .tag,.stage3d .label3d{color:var(--silk);text-shadow:none}
+  /* guide: the instructions */
+  .guide ol.steps li{background:#FFFFFF;border-color:var(--line);color:var(--silk)}
+  .guide ol.steps li::before{background:var(--panel-2);color:var(--cbt-navy)}
+  .guide ol.steps li.current{border-color:var(--cbt-gold);background:#FBF4DD}
+  .guide ol.steps li.current::before{background:var(--cbt-gold);color:var(--cbt-navy)}
+  .guide ol.steps li.done{color:var(--silk-dim)}
+  .guide ol.steps li.done::before{background:var(--ok);color:#FFFFFF}
+  .guide ol.steps li b,.guide .now b{color:#8a6a08}
+  .guide .now{background:#E6F5FB;border-left-color:var(--cbt-sky);color:var(--silk)}
+  .guide .now .k{color:var(--data)}
+  .guide .tips{color:var(--silk-dim)}
+  .panel{background:none}
+  /* page-level blocks that pages define after the theme (code panels, scenes): the html attribute wins over the page's own rule */
+  html[data-theme="light"] .code{background:#F4F5FA;border:1px solid var(--line);color:#1A1D2E}
+  html[data-theme="light"] .code .ln.on{background:#FBF4DD;box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  html[data-theme="light"] .token.keyword{color:#5B66C9}html[data-theme="light"] .token.string{color:#1F7FA8}html[data-theme="light"] .token.number{color:#B8921F}
+  html[data-theme="light"] .token.function{color:#2E9E63}html[data-theme="light"] .token.comment{color:#7c819e}html[data-theme="light"] .token.builtin{color:#9a5b00}html[data-theme="light"] .token.operator,html[data-theme="light"] .token.punctuation{color:#3a3f5c}
+  html[data-theme="light"] .flowcard,html[data-theme="light"] .scene,html[data-theme="light"] .stage.flowstage{background:#F3F5FB;border:1px solid var(--line)}
+  html[data-theme="light"] pre,html[data-theme="light"] code{color:var(--silk)}
+  /* side layout: the stage at the left (three quarters), the instructions at its right (one quarter), the panel below */
+  @media(min-width:960px){
+    .app{display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,1fr);gap:0 22px;max-width:1400px;margin:0 auto;padding:0 16px;height:auto;min-height:0}
+    .app>.lab-head{grid-column:1/-1;max-width:none;padding:18px 0 14px}
+    .app>.stage{grid-column:1;grid-row:2;width:100%;height:clamp(420px,70vh,860px);border:1px solid var(--line);border-radius:8px}
+    .app>.guide{grid-column:2;grid-row:2;max-width:none;padding:0;display:block;align-self:start;max-height:clamp(420px,70vh,860px);overflow:auto}
+    .app>.guide h2{margin:0 0 10px;font-size:16px}
+    .app>.guide ol.steps{gap:6px}
+    .app>.guide ol.steps li{font-size:13.5px;padding:7px 8px 7px 40px}
+    .app>.guide .now{margin-top:10px;font-size:14.5px;padding:12px 14px}
+    .app>.guide .tips{font-size:12.5px}
+    .panel{grid-column:1/-1;max-width:none;padding:22px 0 28px}
+    .wrap{display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,1fr);gap:0 22px;max-width:1400px}
+    .wrap>.hero{grid-column:1/-1}
+    .wrap>aside.card{grid-column:1;grid-row:2}
+    .wrap>section.guide{grid-column:2;grid-row:2;padding:0;display:block;align-self:start;max-height:85vh;overflow:auto}
+    .wrap>section.guide h2{margin:0 0 10px;font-size:16px}
+    .wrap>section.guide ol.steps li{font-size:13.5px;padding:7px 8px 7px 40px}
+    .wrap>section.guide .now{margin-top:10px;font-size:14.5px;padding:12px 14px}
+    .wrap>section.card,.wrap>#results,.wrap>section:not(.guide):not(.hero){grid-column:1/-1}
+  }
+  /* ===== end of theme ===== */
+
+  /* page-specific CSS (recursion explorer: the flowchart at the left of the stage, the picture and the call stack at its right) */
+  .stage.flowstage{touch-action:auto}
+  #chartbox{position:absolute;left:0;top:52px;bottom:50px;width:55%}
+  #chartbox .flow{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none}
+  #chartbox .fk-zoom{top:4px;right:4px}
+  .side{position:absolute;z-index:2;right:10px;top:56px;bottom:54px;width:calc(45% - 14px);display:flex;flex-direction:column;gap:8px;min-height:0}
+  .vizcard,.stackcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:0}
+  .vizcard{flex:0 0 auto}
+  .vizcard svg{display:block;width:100%;height:auto;margin:0 auto}
+  .vizkey{margin:4px 0 0;font-size:11.5px;line-height:1.35;color:var(--silk-dim)}
+  .stackcard{flex:1 1 0;display:flex;flex-direction:column;overflow:hidden}
+  .side h3{margin:0 0 4px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;font:700 13px var(--font-display);color:var(--cbt-navy)}
+  .side h3 small{font:400 10.5px var(--font-mono);color:var(--silk-dim)}
+  .depth{display:flex;align-items:center;gap:8px;font:500 11px var(--font-mono);color:var(--silk-dim);margin:0 0 6px}
+  .depth b{color:var(--silk);font-size:13px}
+  .depth .bar{flex:1;min-width:30px;height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden}
+  .depth .bar i{display:block;height:100%;width:0;background:var(--cbt-sky);border-radius:3px;transition:width .25s}
+  .depth.over .bar i{background:var(--ctrl)}.depth.over b{color:var(--ctrl)}
+  .frames{flex:1 1 0;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:5px;padding:1px}
+  .frames>:first-child{margin-top:auto}
+  .frames.over{overflow:hidden;-webkit-mask-image:linear-gradient(#000 80%,transparent);mask-image:linear-gradient(#000 80%,transparent)}
+  .frames.over>:first-child{margin-top:0}
+  .frame{flex:none;border:1.5px solid var(--line-2);border-radius:7px;padding:5px 8px;background:var(--panel);font-family:var(--font-mono);color:var(--silk)}
+  .frame .fh{display:flex;justify-content:space-between;gap:2px 8px;align-items:baseline;flex-wrap:wrap}
+  .frame .fh b{font-size:12.5px;font-weight:700}
+  .frame .fs{font-size:10.5px;color:var(--silk-dim)}
+  .frame .fv{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  .frame .fv span{font-size:11px;padding:1px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2)}
+  .frame .fv span i{font-style:normal;color:var(--silk-dim);margin-right:5px}
+  .frame .fv span.e{color:var(--silk-dim);border-style:dashed;background:none}
+  .frame.run{border-color:var(--cbt-gold);background:var(--warn-soft);box-shadow:0 0 0 2px rgba(224,184,64,.25)}
+  .frame.ret{border-color:var(--ok);background:var(--ok-soft)}
+  .frame.ret .fs{color:var(--ok);font-weight:700}
+  .frames.compact .frame.wait .fv{display:none}
+  .frame.main{border-style:dashed;background:var(--panel-2)}
+  .frame.boom{border-color:var(--ctrl);background:var(--bad-soft)}
+  .frame.boom b{color:var(--ctrl)}.frame.boom .fs{display:block;margin-top:2px;color:var(--silk)}
+  .code{margin:0;padding:12px 14px;background:#0b0f2b;border:1px solid var(--line);border-radius:8px;font:13px/1.55 var(--font-mono);color:#eef1fa;overflow:auto;white-space:pre}
+  .code .ln{display:block;padding:0 6px;border-radius:4px}.code .ln.on{background:rgba(224,184,64,.22);box-shadow:inset 3px 0 0 var(--cbt-gold)}
+  .code .ln .no{color:var(--silk-dim);display:inline-block;width:2ch;text-align:right;margin-right:10px}
+  .token.keyword{color:#A9B4FF}.token.string{color:#9FE7FF}.token.number{color:#E0B840}.token.function{color:#6FD49B}.token.comment{color:#8b93b8}.token.builtin{color:#F0C27A}.token.boolean{color:#E0B840}
+  .pick{display:grid;gap:10px}
+  .pick label{display:grid;gap:4px;font-size:12.5px;color:var(--silk-dim)}
+  .pick .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+  .pick select,.pick input{width:100%}
+  .pick .presets{display:flex;flex-wrap:wrap;gap:6px}
+  .pick .presets .btn{padding:6px 9px;font-size:11px}
+  .orders{width:100%;border-collapse:collapse;font:12.5px var(--font-mono)}
+  .orders caption{text-align:left;font:500 11px var(--font-mono);color:var(--silk-dim);padding-bottom:4px}
+  .orders th,.orders td{border:1px solid var(--line);padding:4px 8px;text-align:left}
+  .orders th{background:var(--panel-2);font-weight:600}
+  .cond{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:baseline;font:12.5px var(--font-mono);color:var(--silk-dim)}
+  .cond .k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+  .cond code{color:var(--silk)}.cond b.t{color:var(--alu)}.cond b.f{color:var(--ctrl)}
+  .hint{margin:0;font-size:12px;color:var(--silk-dim)}
+  .memhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .memhead small{font:400 11px var(--font-mono);color:var(--silk-dim)}
+  #memory.fk-mem{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  #memory .fk-box .v{font-size:15px;overflow-wrap:anywhere}
+  #screen{max-height:250px;overflow:auto}
+  #screen.err{color:#ffb3a9}
+  html[data-theme=light] .btn:disabled,html[data-theme=light] .btn[disabled]{opacity:1;background:var(--panel-2);border-color:var(--line);color:var(--silk-dim)}
+  html[data-theme=light] .pysb-bar button:disabled{opacity:1;background:var(--panel-2);border-color:var(--line);color:var(--silk-dim)}
+  /* the Do this now line stays in view while the steps above it scroll */
+  @media(min-width:960px){.app>.guide>.nowwrap{position:sticky;bottom:0;background:var(--bg);padding:6px 0 2px}.app>.guide .now{margin-top:4px}}
+  /* below 1100px the chart sits on top and the picture and the stack go under it, so the stage grows with its content */
+  @media(max-width:1099px){
+    .app>.stage.flowstage{height:auto;padding:50px 0 84px}
+    #chartbox{position:relative;top:auto;bottom:auto;width:100%;height:clamp(300px,50vh,440px)}
+    .side{position:static;width:auto;margin:8px 10px 0}
+    .stackcard{flex:none}
+    .frames{flex:none;max-height:340px}
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 4 · Interactive A</div>
+  </div>
+</header>
+
+<div class="app">
+  <header class="lab-head">
+    <p class="eyebrow">COP1411 · Week 4 · Explorer</p>
+    <h1>Recursion runner</h1>
+    <p class="lede">Watch a function call itself: every call pushes a frame on the call stack, the base case stops the chain, and the answers come back one frame at a time.</p>
+  </header>
+  <section class="stage flowstage" id="stage" aria-label="Flowchart of a recursive function with the call stack at its right. Press Step to move the data token through the symbols; use the zoom buttons or scroll to zoom, drag to move.">
+    <div class="hud hud-top">
+      <ol class="phases" aria-label="Phase">
+        <li data-p="call" style="--c:var(--cbt-sky)">Call</li>
+        <li data-p="base" style="--c:var(--alu)">Base case</li>
+        <li data-p="rec" style="--c:var(--oper)">Recursive case</li>
+        <li data-p="ret" style="--c:var(--cbt-gold)">Return</li>
+      </ol>
+      <div class="ticks">step <b id="hudStep">0</b></div>
+    </div>
+    <div id="chartbox"></div>
+    <div class="side" id="side">
+      <div class="vizcard" id="vizcard" hidden>
+        <h3 id="vizTitle">Picture</h3>
+        <div id="viz"></div>
+        <p class="vizkey" id="vizKey"></p>
+      </div>
+      <div class="stackcard">
+        <h3>Call stack <small id="stackNote">newest call on top</small></h3>
+        <div class="depth" id="depth"><span>depth <b id="depthN">0</b></span><span class="bar"><i id="depthBar"></i></span><span id="depthMax"></span></div>
+        <div class="frames" id="frames"></div>
+      </div>
+    </div>
+    <div class="hud hud-bottom">
+      <div class="legend" aria-label="Colors">
+        <span style="--c:var(--cbt-gold)"><i></i>running now</span>
+        <span style="--c:var(--cbt-sky)"><i></i>arguments going into a call</span>
+        <span style="--c:var(--alu)"><i></i>a value coming back, done</span>
+        <span style="--c:var(--ctrl)"><i></i>error or too heavy</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">How to use this lab</h2>
+    <ol class="steps" id="howSteps">
+      <li data-h="1">Under <b>Pick a function</b>, choose one of the six functions and its arguments.</li>
+      <li data-h="2">Press <b>Step</b>. Every call pushes a frame on the <b>Call stack</b>, at the right of the chart.</li>
+      <li data-h="3">Keep pressing <b>Step</b>, or press <b>Run</b>. After the base case the frames pop and each answer travels back. <b>Step back</b> shows a step again.</li>
+      <li data-h="4">With power or factorial, press <b>Remove the base case</b>, then <b>Run</b>. Read the error on the Screen.</li>
+      <li data-h="5">Try fib (a call tree), Tower of Hanoi (crates on pallets), and All subsets (every rush load).</li>
+      <li data-h="6">Scroll down to <b>Try it</b> and press <b>Run</b> there: six tests run on real Python.</li>
+    </ol>
+    <div class="nowwrap">
+      <div class="now" aria-live="polite"><span class="k">Do this now</span><span id="nowText">Press <b>Step</b> to start power(2, 3), or pick another function first.</span></div>
+    </div>
+    <ul class="tips"><li>Keyboard: Space steps, B steps back, R runs or pauses. Click any symbol to read what it does. Over the flowchart: scroll to zoom, drag to move, FIT shows everything.</li></ul>
+  </section>
+
+  <aside class="panel">
+    <section class="narr" aria-live="polite">
+      <div class="narr-head"><span class="ptag" id="phaseTag">Ready</span><span id="ctx">Step 0 of 0</span></div>
+      <p id="narration">Press Step to start, or Run to play every step.</p>
+      <div class="cond" id="cond" hidden></div>
+    </section>
+    <div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="btnRun">Run</button>
+        <button type="button" class="btn" id="btnStep">Step</button>
+        <button type="button" class="btn" id="btnBack">Step back</button>
+        <button type="button" class="btn" id="btnReset">Reset</button>
+      </div>
+      <div class="speed" style="margin-top:12px"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="4" step="1" value="2"><output id="speedOut">1×</output></div>
+    </div>
+    <section>
+      <h2>Pick a function and its arguments</h2>
+      <div class="pick">
+        <label>Function <select id="fnSel">
+          <option value="power">1. power(base, exp)</option>
+          <option value="factorial">2. factorial(n)</option>
+          <option value="fib">3. fib(n) with the call tree</option>
+          <option value="evenodd">4. is_even and is_odd (indirect recursion)</option>
+          <option value="hanoi">5. Tower of Hanoi</option>
+          <option value="subsets">6. All subsets of the rush orders (backtracking)</option>
+        </select></label>
+        <div id="args"></div>
+        <button type="button" class="btn" id="btnNoBase" aria-pressed="false">Remove the base case: off</button>
+        <p class="hint" id="pickHint">Any change here redraws the chart and resets the run.</p>
+      </div>
+    </section>
+    <section>
+      <div class="memhead"><h2>Live values</h2><small>a box pops when its value changes</small></div>
+      <div id="memory"></div>
+    </section>
+    <section>
+      <div class="memhead"><h2>Screen</h2><small>lines that start with return are the page's log of each finished call</small></div>
+      <div id="screen"></div>
+    </section>
+    <section class="span-all">
+      <div class="memhead"><h2 id="codeTitle">recursion.py: the part that runs now</h2><small>the lit line is executing</small></div>
+      <pre class="code" id="code"></pre>
+      <p class="hint" id="codeNote" hidden style="margin-top:8px">The lists names, weights, and fees hold the rush orders, and CAPACITY is 900. current is the load being built and best is the best load saved so far. total(fees, best) adds the fees of the best load, and copy_into(best, current) saves the current load as the new best. You get these short helpers in assignment 4.2.</p>
+    </section>
+    <div class="info" id="info" style="font-size:13.5px;color:var(--silk-dim)">Click any symbol in the flowchart to learn what it does.</div>
+    <section class="span-all">
+      <h2>Try it: edit and run the Python</h2>
+      <p class="hint" style="margin-bottom:8px">Four of the functions with six tests. Change a function, press Run, and watch the tests: a wrong return value turns its dot coral. Then break one on purpose: put a # in front of the two base case lines of factorial (the if line and the return 1 line), press Run, and read Python's real RecursionError.</p>
+      <div id="sandbox"></div>
+    </section>
+    <section>
+      <h2>Things to notice</h2>
+      <ul class="notice">
+        <li>Every call gets its own frame with its own boxes. Four calls to power mean four separate exp boxes, and none of them overwrites another.</li>
+        <li>The call stack works like the van from week 2: the last frame pushed is the first one popped.</li>
+        <li>A recursive function needs a base case, and every call must move toward it. Without one the stack grows until Python stops the program with RecursionError, which is Python's stack overflow.</li>
+        <li>fib repeats work: fib(6) makes 25 calls because it computes fib(2) five times. Tower of Hanoi needs 2 to the power n minus 1 moves, and n rush orders have 2 to the power n possible loads. Recursion makes these short to write, not cheap to run.</li>
+        <li>When the recursive call is the very last step of a function it is called tail recursion; Python gives it no special treatment, so it still uses one frame per call.</li>
+      </ul>
+    </section>
+    <footer style="font-size:12px;color:var(--silk-dim);border-top:1px solid var(--line);padding-top:12px">CBT Technology Institute · Flagler Campus · COP1411 Algorithmic Thinking<div class="byline">By Professor De Leon</div></footer>
+  </aside>
+</div>
+
+<script>
+(function () {
+"use strict";
+const hasGSAP = typeof window.gsap !== 'undefined';
+function guide(stepNo, nowHtml) {
+  document.querySelectorAll('#howSteps li').forEach(li => { const n = +li.dataset.h; li.classList.toggle('done', n < stepNo); li.classList.toggle('current', n === stepNo); });
+  if (nowHtml) document.getElementById('nowText').innerHTML = nowHtml;
+}
+const $ = s => document.querySelector(s);
+// FLOWKIT START
+// CBT FlowKit: a living flowchart in SVG. Standard symbols (terminal, input/output, process, decision, call, slot) drawn the way a
+// textbook draws them: saturated outlines, a small icon that says what the symbol does, bold text, Yes and No badges on the branches,
+// a symbol key under the chart; orthogonal arrows with loop-back routes, a data token that travels the arrows carrying the real value,
+// node highlighting, memory boxes and a console as HTML helpers, zoom (+, -, FIT), drag to pan, wheel to zoom. GSAP animates when present.
+//   const fk = FlowKit(stageEl, {nodes: [{id, type, text, col, row, w}], edges: [{from, to, label, side, via, points}], cols, rows, key});
+//   type: terminal | io | process | decision | call | slot      col and row are grid units (col 0 at the left, row 0 at the top)
+//   edges: same column downward = straight; a decision branch uses side: 'left' | 'right' (exit the diamond sideways);
+//   an upward edge (loop back) routes through the lane `via` (a column number, may be fractional) or explicit `points` [[col,row],...]
+//   key: true (default) draws the symbol key under the chart; key: false hides it; startFit: true opens with the whole chart in view instead of zoomed to START
+//   fk.highlight(id, 'active' | 'done' | 'error' | null) / fk.clear() / fk.setText(id, text) / fk.fill(slotId, spec) / fk.empty(slotId)
+//   fk.token(edgeOrEdges, label, color) -> GSAP timeline (null without GSAP; the token is placed at the end)  edges are "from>to" keys
+//   fk.flash(id, color) / fk.focus(id) / fk.fit() (the default view: whole chart when readable, else zoomed to START) / fk.fitAll() (whole chart, the FIT button) / fk.zoom(f) / fk.onPick(fn) / fk.nodes / fk.edges
+//   FlowKit.memory(hostEl, [{name, label}]) -> {set(name, value, {pop}), get(name), reset()}   boxes in memory with live values
+//   FlowKit.console(hostEl) -> {print(text), clear(), lines()}   the program's screen
+function FlowKit(stage, opts) {
+  'use strict';
+  const O = Object.assign({cols: 3, rows: 6, colW: 230, rowH: 96, nodeW: 180, nodeH: 54, pad: 40, key: true, nodes: [], edges: []}, opts || {});
+  const NS = 'http://www.w3.org/2000/svg';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  const C = light ? {ink: '#1A1D2E', line: '#3F4A8F', arrow: '#3F4A8F', active: '#E0B840', done: '#2E9E63', error: '#D6473C', label: '#1A1D2E', yes: '#2E9E63', no: '#D6473C', paper: '#FFFFFF', edge: '#C5CAE0', grid: '#E8EAF3', keyInk: '#3a3f5c',
+      fill: {terminal: '#FBEFC4', io: '#D9EEFA', process: '#FFFFFF', decision: '#E1E4FF', call: '#DCF4E6', slot: 'rgba(40,48,104,.05)'},
+      stroke: {terminal: '#B8921F', io: '#1F86B5', process: '#3F4A8F', decision: '#5B66C9', call: '#2E9E63', slot: '#8A90B8'}}
+    : {ink: '#1A1D2E', line: '#8a94d8', arrow: '#A9B4FF', active: '#E0B840', done: '#6FD49B', error: '#F0786A', label: '#eef1fa', yes: '#2E9E63', no: '#D6473C', paper: '#161c4d', edge: '#2a3270', grid: '#2a3270', keyInk: '#aeb3c9',
+      fill: {terminal: '#FBF0C8', io: '#DCEFFA', process: '#F7F8FC', decision: '#E1E4FF', call: '#DDF4E6', slot: 'rgba(238,240,248,.08)'},
+      stroke: {terminal: '#B8921F', io: '#1F86B5', process: '#4a5490', decision: '#5B66C9', call: '#2E9E63', slot: '#8A90B8'}};
+  const KEY_H = O.key ? 56 : 0;
+  const W = O.cols * O.colW + O.pad * 2, H = O.rows * O.rowH + O.pad * 2 + KEY_H;
+  const X = col => O.pad + col * O.colW + O.colW / 2, Y = row => O.pad + row * O.rowH + O.rowH / 2;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'flow'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Flowchart'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  stage.appendChild(svg);
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); (p || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const marker = (id, color) => { const m = el('marker', {id: id, viewBox: '0 0 10 10', refX: 8.5, refY: 5, markerWidth: 9, markerHeight: 9, orient: 'auto-start-reverse'}, defs); el('path', {d: 'M0,0 L10,5 L0,10 z', fill: color}, m); };
+  marker('fk-arrow', C.arrow); marker('fk-arrow-hot', C.active);
+  const glow = el('filter', {id: 'fk-glow', x: '-25%', y: '-25%', width: '150%', height: '150%'}, defs);
+  el('feGaussianBlur', {stdDeviation: 3.5, result: 'b'}, glow); const m = el('feMerge', {}, glow); el('feMergeNode', {in: 'b'}, m); el('feMergeNode', {in: 'SourceGraphic'}, m);
+  const shadow = el('filter', {id: 'fk-shadow', x: '-10%', y: '-10%', width: '120%', height: '140%'}, defs);
+  el('feDropShadow', {dx: 0, dy: 2, stdDeviation: 2, 'flood-color': '#1A1D2E', 'flood-opacity': light ? .18 : .5}, shadow);
+  el('rect', {x: 0, y: 0, width: W, height: H, rx: 14, fill: C.paper, stroke: C.edge, 'stroke-width': 1.5});
+  const grid = el('g', {opacity: light ? .7 : .25});
+  for (let c = 1; c < O.cols; c++) el('line', {x1: O.pad + c * O.colW, y1: 8, x2: O.pad + c * O.colW, y2: H - KEY_H - 8, stroke: C.grid, 'stroke-dasharray': '3 6'}, grid);
+  const L = {edges: el('g', {}), nodes: el('g', {}), tokens: el('g', {}), labels: el('g', {})};
+  const nodes = {}, edges = {};
+  let pick = null;
+
+  // ---- icons: small glyphs that say what a symbol does (drawn with strokes so they scale cleanly) ----
+  function icon(kind, x, y, color, g) {
+    const k = el('g', {transform: 'translate(' + x + ',' + y + ')', fill: 'none', stroke: color, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}, g);
+    if (kind === 'keyboard') { el('rect', {x: -9, y: -6, width: 18, height: 12, rx: 2}, k); el('path', {d: 'M-6,-2.5 h2 M-2,-2.5 h2 M2,-2.5 h2 M6,-2.5 h0.5 M-6,1 h2 M-2,1 h2 M2,1 h2 M-4,4 h8'}, k); }
+    else if (kind === 'screen') { el('rect', {x: -9, y: -7, width: 18, height: 12, rx: 2}, k); el('path', {d: 'M-4,8 h8 M0,5 v3 M-5,-3 h7 M-5,0 h5'}, k); }
+    else if (kind === 'process') { el('rect', {x: -8, y: -8, width: 16, height: 16, rx: 3}, k); el('path', {d: 'M-4,-2 h8 M-4,2 h8'}, k); }
+    else if (kind === 'decision') { const t = el('text', {x: 0, y: 5, 'text-anchor': 'middle', fill: color, stroke: 'none', 'font-size': 15, 'font-weight': 800, 'font-family': 'Archivo, Arial, sans-serif'}, k); t.textContent = '?'; }
+    else if (kind === 'call') { el('rect', {x: -8, y: -8, width: 16, height: 16, rx: 3}, k); const t = el('text', {x: 0, y: 4.5, 'text-anchor': 'middle', fill: color, stroke: 'none', 'font-size': 12, 'font-style': 'italic', 'font-weight': 700, 'font-family': 'Georgia, serif'}, k); t.textContent = 'f'; }
+    else if (kind === 'return') { el('path', {d: 'M7,-5 v4 a3,3 0 0 1 -3,3 h-9 M-2,-1 l-4,3 l4,3'}, k); }
+    else if (kind === 'start') { el('circle', {r: 8}, k); el('path', {d: 'M-2.5,-4 L4,0 L-2.5,4 z', fill: color, stroke: 'none'}, k); }
+    else if (kind === 'end') { el('circle', {r: 8}, k); el('rect', {x: -3.5, y: -3.5, width: 7, height: 7, rx: 1, fill: color, stroke: 'none'}, k); }
+    return k;
+  }
+  function iconFor(n) {
+    const t = String(n.text || '').trim().toUpperCase();
+    if (n.type === 'terminal') return /^END|^STOP|RETURN/.test(t) ? (t.startsWith('RETURN') ? 'return' : 'end') : 'start';
+    if (n.type === 'io') return /^OUTPUT|^PRINT|^DISPLAY|^SHOW|^RETURN/.test(t) ? 'screen' : 'keyboard';
+    if (n.type === 'process') return 'process';
+    if (n.type === 'decision') return 'decision';
+    if (n.type === 'call') return 'call';
+    return null;
+  }
+  function shape(n, g) {
+    const w = n.w || (n.type === 'decision' ? O.nodeW + 30 : O.nodeW), h = n.type === 'decision' ? O.nodeH + 28 : O.nodeH, cx = X(n.col), cy = Y(n.row);
+    const fill = C.fill[n.type] || C.fill.process, stroke = C.stroke[n.type] || C.stroke.process;
+    let s;
+    const common = {fill: fill, stroke: stroke, 'stroke-width': 2.5, filter: n.type === 'slot' ? '' : 'url(#fk-shadow)'};
+    if (n.type === 'terminal') s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: h / 2}, common), g);
+    else if (n.type === 'io') { const k = 18; s = el('polygon', Object.assign({points: [cx - w / 2 + k, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2 - k, cy + h / 2, cx - w / 2, cy + h / 2].join(' ')}, common), g); }
+    else if (n.type === 'decision') s = el('polygon', Object.assign({points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' ')}, common), g);
+    else if (n.type === 'call') { s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4}, common), g); el('line', {x1: cx - w / 2 + 9, y1: cy - h / 2, x2: cx - w / 2 + 9, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2.5}, g); el('line', {x1: cx + w / 2 - 9, y1: cy - h / 2, x2: cx + w / 2 - 9, y2: cy + h / 2, stroke: stroke, 'stroke-width': 2.5}, g); }
+    else if (n.type === 'slot') s = el('rect', {x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill: C.fill.slot, stroke: C.stroke.slot, 'stroke-width': 1.8, 'stroke-dasharray': '7 5'}, g);
+    else s = el('rect', Object.assign({x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 4}, common), g);
+    // the icon sits at the left edge of rectangles and parallelograms, and in the top corner of a diamond
+    const ic = iconFor(n);
+    let textX = cx, maxW = w - 16;
+    if (ic && n.type !== 'decision') {
+      const ix = n.type === 'io' ? cx - w / 2 + 26 : n.type === 'call' ? cx - w / 2 + 26 : cx - w / 2 + 20;
+      icon(ic, ix, cy, stroke, g); textX = cx + 12; maxW = w - 44;
+    } else if (ic) { icon(ic, cx, cy - h / 2 + 16, stroke, g); }
+    return {s: s, w: w, h: h, cx: cx, cy: cy, stroke: stroke, textX: textX, maxW: maxW};
+  }
+  function text(n, g, geo) {
+    const lines = String(n.text || '').split('\n'), fs = n.type === 'slot' ? 11.5 : lines.some(l => l.length > 26) ? 12 : 13, lh = fs + 3;
+    const t = el('text', {x: geo.textX, y: geo.cy + (lines.length === 1 ? fs * .36 : fs * .36 - (lines.length - 1) * lh / 2), 'text-anchor': 'middle', fill: n.type === 'slot' ? (light ? '#6b739a' : '#aeb3c9') : C.ink, 'font-size': fs, 'font-family': '"Red Hat Mono", Consolas, monospace', 'font-weight': 700}, g);
+    lines.forEach((l, i) => { const ts = el('tspan', {x: geo.textX, dy: i === 0 ? 0 : lh}, t); ts.textContent = l; });
+    return t;
+  }
+  function addNode(n) {
+    const g = el('g', {class: 'fk-node', 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': (n.type + ': ' + (n.text || n.id)).replace(/\n/g, ' '), style: 'cursor:pointer'}, L.nodes);
+    const geo = shape(n, g); const t = text(n, g, geo);
+    const rec = Object.assign({}, n, {g: g, geo: geo, t: t, state: null});
+    const fire = () => pick && pick(n.id);
+    g.addEventListener('click', fire); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    nodes[n.id] = rec; return rec;
+  }
+  function anchor(rec, where) { const g = rec.geo; return where === 'top' ? [g.cx, g.cy - g.h / 2] : where === 'bottom' ? [g.cx, g.cy + g.h / 2] : where === 'left' ? [g.cx - g.w / 2, g.cy] : [g.cx + g.w / 2, g.cy]; }
+  function route(e) {
+    const a = nodes[e.from], b = nodes[e.to]; if (!a || !b) throw new Error('FlowKit edge needs known nodes: ' + e.from + ' > ' + e.to);
+    if (e.points) return e.points.map(p => [X(p[0]), Y(p[1])]);
+    const pts = [];
+    if (b.row > a.row && !e.side) {
+      const s = anchor(a, 'bottom'), t = anchor(b, 'top'); pts.push(s);
+      if (Math.abs(s[0] - t[0]) > 1) { const my = (s[1] + t[1]) / 2; pts.push([s[0], my], [t[0], my]); }
+      pts.push(t); return pts;
+    }
+    if (e.side) {
+      const s = anchor(a, e.side), t = anchor(b, 'top'); pts.push(s);
+      if (b.row > a.row) { pts.push([t[0], s[1]]); pts.push(t); }
+      else { const lane = X(e.via != null ? e.via : (e.side === 'left' ? a.col - 0.5 : a.col + 0.5)); pts.push([lane, s[1]], [lane, t[1] - O.rowH * 0.45], [t[0], t[1] - O.rowH * 0.45], t); }
+      return pts;
+    }
+    const s = anchor(a, 'bottom'), t = anchor(b, 'top'), lane = X(e.via != null ? e.via : a.col - 0.5);
+    pts.push(s, [s[0], s[1] + O.rowH * 0.3], [lane, s[1] + O.rowH * 0.3], [lane, t[1] - O.rowH * 0.42], [t[0], t[1] - O.rowH * 0.42], t);
+    return pts;
+  }
+  function badge(label, x, y, side) {
+    const up = String(label).trim().toUpperCase(), col = /^(YES|TRUE|Y|T)$/.test(up) ? C.yes : /^(NO|FALSE|N|F)$/.test(up) ? C.no : C.line;
+    const w = Math.max(30, String(label).length * 7.5 + 12), g = el('g', {class: 'fk-badge'}, L.labels);
+    const bx = side === 'left' ? x - w - 4 : side === 'right' ? x + 4 : x + 6;
+    el('rect', {x: bx, y: y - 10, width: w, height: 20, rx: 10, fill: col, stroke: C.paper, 'stroke-width': 1.5}, g);
+    const t = el('text', {x: bx + w / 2, y: y + 4, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 11, 'font-weight': 800, 'font-family': 'Figtree, Arial, sans-serif', 'letter-spacing': '.04em'}, g); t.textContent = label;
+    return g;
+  }
+  function addEdge(e) {
+    const pts = route(e), d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+    const g = el('g', {class: 'fk-edge'}, L.edges);
+    const path = el('path', {d: d, fill: 'none', stroke: C.line, 'stroke-width': 2.6, 'marker-end': 'url(#fk-arrow)', 'stroke-linejoin': 'round'}, g);
+    let lab = null;
+    if (e.label) {
+      const p0 = pts[0], p1 = pts[1];
+      if (e.side) lab = badge(e.label, p0[0] + (p1[0] - p0[0]) * .22, p0[1], e.side);
+      else lab = badge(e.label, p0[0], p0[1] + Math.min(22, (p1[1] - p0[1]) * .45), 'down');
+    }
+    const key = e.from + '>' + e.to; edges[key] = Object.assign({}, e, {key: key, g: g, path: path, pts: pts, lab: lab}); return edges[key];
+  }
+  O.nodes.forEach(addNode); O.edges.forEach(addEdge);
+
+  // ---- the symbol key under the chart ----
+  if (O.key) {
+    const ky = H - KEY_H + 10, items = [['terminal', 'START / END'], ['io', 'INPUT / OUTPUT'], ['process', 'PROCESS (compute, store)'], ['decision', 'DECISION (Yes / No)'], ['call', 'CALL a function']];
+    const kg = el('g', {class: 'fk-key', opacity: .95});
+    el('line', {x1: 12, y1: H - KEY_H, x2: W - 12, y2: H - KEY_H, stroke: C.edge, 'stroke-width': 1}, kg);
+    let kx = 18;
+    items.forEach(it => {
+      const type = it[0], fill = C.fill[type], stroke = C.stroke[type], sx = kx, sy = ky + 8, sw = 34, sh = 18;
+      if (type === 'terminal') el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 9, fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'io') el('polygon', {points: [sx + 7, sy, sx + sw, sy, sx + sw - 7, sy + sh, sx, sy + sh].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'decision') el('polygon', {points: [sx + sw / 2, sy - 3, sx + sw + 2, sy + sh / 2, sx + sw / 2, sy + sh + 3, sx - 2, sy + sh / 2].join(' '), fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      else if (type === 'call') { el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 2, fill: fill, stroke: stroke, 'stroke-width': 2}, kg); el('line', {x1: sx + 5, y1: sy, x2: sx + 5, y2: sy + sh, stroke: stroke, 'stroke-width': 2}, kg); el('line', {x1: sx + sw - 5, y1: sy, x2: sx + sw - 5, y2: sy + sh, stroke: stroke, 'stroke-width': 2}, kg); }
+      else el('rect', {x: sx, y: sy, width: sw, height: sh, rx: 2, fill: fill, stroke: stroke, 'stroke-width': 2}, kg);
+      const t = el('text', {x: sx + sw + 8, y: sy + 13, fill: C.keyInk, 'font-size': 10.5, 'font-weight': 700, 'font-family': 'Figtree, Arial, sans-serif', 'letter-spacing': '.04em'}, kg); t.textContent = it[1];
+      kx += sw + 8 + it[1].length * 6.6 + 26;
+    });
+    const tk = el('text', {x: W - 18, y: ky + 21, 'text-anchor': 'end', fill: C.keyInk, 'font-size': 10.5, 'font-weight': 600, 'font-family': 'Figtree, Arial, sans-serif'}, kg); tk.textContent = 'Arrows show the order. The token carries the value.';
+    if (kx > W - 300) tk.remove();
+  }
+
+  function highlight(id, state) {
+    const r = nodes[id]; if (!r) return; r.state = state;
+    const base = r.geo.stroke;
+    r.geo.s.setAttribute('stroke', state === 'active' ? C.active : state === 'done' ? C.done : state === 'error' ? C.error : base);
+    r.geo.s.setAttribute('stroke-width', state === 'active' || state === 'error' ? 4.5 : 2.5);
+    if (state === 'active' || state === 'error') r.geo.s.setAttribute('filter', 'url(#fk-glow)'); else if (r.type !== 'slot') r.geo.s.setAttribute('filter', 'url(#fk-shadow)');
+    r.g.setAttribute('opacity', state === 'done' ? .85 : 1);
+  }
+  function clear() { Object.keys(nodes).forEach(id => highlight(id, null)); Object.values(edges).forEach(e => { e.path.setAttribute('stroke', C.line); e.path.setAttribute('marker-end', 'url(#fk-arrow)'); }); while (L.tokens.firstChild) L.tokens.removeChild(L.tokens.firstChild); }
+  function setText(id, s) { const r = nodes[id]; if (!r) return; while (r.t.firstChild) r.t.removeChild(r.t.firstChild); const lines = String(s).split('\n'), fs = lines.some(l => l.length > 26) ? 12 : 13, lh = fs + 3; r.t.setAttribute('font-size', fs); r.t.setAttribute('y', r.geo.cy + (lines.length === 1 ? fs * .36 : fs * .36 - (lines.length - 1) * lh / 2)); lines.forEach((l, i) => { const ts = el('tspan', {x: r.geo.textX, dy: i === 0 ? 0 : lh}, r.t); ts.textContent = l; }); r.text = s; }
+  function flash(id, color) { const r = nodes[id]; if (!r) return; r.geo.s.setAttribute('stroke', color || C.active); r.geo.s.setAttribute('stroke-width', 4.5); if (hasGSAP && !reduce) gsap.fromTo(r.geo.s, {attr: {'stroke-width': 8}}, {attr: {'stroke-width': 4.5}, duration: .5}); }
+  function fill(slotId, spec) { const r = nodes[slotId]; if (!r) return null; const col = r.col, row = r.row; r.g.remove(); delete nodes[slotId]; return addNode(Object.assign({col: col, row: row}, spec, {id: slotId})); }
+  function empty(slotId, label) { const r = nodes[slotId]; if (!r) return; r.g.remove(); delete nodes[slotId]; return addNode({id: slotId, type: 'slot', text: label || 'drop a symbol here', col: r.col, row: r.row}); }
+  function token(keys, label, color) {
+    const list = (Array.isArray(keys) ? keys : [keys]).map(k => edges[k]).filter(Boolean); if (!list.length) return null;
+    const g = el('g', {class: 'fk-token'}, L.tokens);
+    const tw = Math.max(32, String(label).length * 7.6 + 18);
+    el('circle', {r: 17, fill: color || '#38B0E0', opacity: .28}, g);
+    el('rect', {x: -tw / 2, y: -12, width: tw, height: 24, rx: 12, fill: color || '#38B0E0', stroke: '#0e1230', 'stroke-width': 1.2}, g);
+    const t = el('text', {y: 4.5, 'text-anchor': 'middle', fill: '#06120f', 'font-size': 12.5, 'font-weight': 800, 'font-family': '"Red Hat Mono", monospace'}, g); t.textContent = label;
+    const total = list.reduce((s, e) => s + e.path.getTotalLength(), 0);
+    const at = u => { let d = u * total; for (const e of list) { const len = e.path.getTotalLength(); if (d <= len || e === list[list.length - 1]) { const p = e.path.getPointAtLength(Math.min(len, d)); return [p.x, p.y]; } d -= len; } };
+    const place = u => { const p = at(u); g.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); };
+    list.forEach(e => { e.path.setAttribute('stroke', C.active); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); });
+    place(0);
+    if (!hasGSAP || reduce) { place(1); setTimeout(() => g.remove(), 500); return null; }
+    const o = {u: 0};
+    return gsap.timeline({onComplete: () => g.remove()}).to(o, {u: 1, duration: Math.max(.5, total / 320), ease: 'none', onUpdate: () => place(o.u)});
+  }
+  // view: zoom and pan through the viewBox
+  const home = {x: 0, y: 0, w: W, h: H}; const V = Object.assign({}, home);
+  const apply = () => svg.setAttribute('viewBox', V.x + ' ' + V.y + ' ' + V.w + ' ' + V.h);
+  const asp = () => (stage.clientWidth && stage.clientHeight) ? stage.clientHeight / stage.clientWidth : home.h / home.w;  // the view keeps the stage's aspect
+  function clamp() { V.w = Math.min(home.w * 1.2, Math.max(home.w / 5, V.w)); V.h = V.w * asp(); V.x = Math.min(Math.max(V.x, -home.w * .1), home.w * 1.1 - V.w); V.y = Math.min(Math.max(V.y, -home.h * .1), Math.max(-home.h * .1, home.h * 1.1 - V.h)); }
+  function go(t) { if (hasGSAP && !reduce) gsap.to(V, {x: t.x, y: t.y, w: t.w, h: t.h, duration: .45, ease: 'power2.out', onUpdate: apply}); else { Object.assign(V, t); apply(); } }
+  function zoom(f, cx, cy) { const nx = cx == null ? V.x + V.w / 2 : cx, ny = cy == null ? V.y + V.h / 2 : cy; const t = {w: V.w / f, h: V.h / f}; t.x = nx - (nx - V.x) / f; t.y = ny - (ny - V.y) / f; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  function fitAll() { go(home); }
+  // the default view: the whole chart when its symbols stay readable (about 150 px wide on screen), otherwise zoomed in around the first symbol
+  function comfortable(animate) {
+    const sw = stage.clientWidth || 0, sh = stage.clientHeight || 0, first = O.nodes.length ? nodes[O.nodes[0].id] : null;
+    const scale = (sw && sh) ? Math.min(sw / home.w, sh / home.h) : 1;   // screen pixels per chart unit when the whole chart fits
+    if (!first || O.startFit || !sw || O.nodeW * scale >= 140) { if (animate) go(home); else { Object.assign(V, home); apply(); } return; }
+    const w = Math.min(home.w * 1.2, sw * O.nodeW / 150);
+    const tgt = {w: w, h: w * asp()}; tgt.x = first.geo.cx - w / 2; tgt.y = first.geo.cy - O.rowH * 0.9;
+    Object.assign(V, tgt); clamp(); if (animate) go(Object.assign({}, V)); else apply();
+  }
+  function fit() { comfortable(true); }
+  function focus(id) { const r = nodes[id]; if (!r) return; const w = Math.max(home.w / 2.2, O.colW * 2.4); const t = {w: w, h: w * asp()}; t.x = r.geo.cx - w / 2; t.y = r.geo.cy - t.h / 2; Object.assign(V, t); clamp(); go(Object.assign({}, V)); }
+  apply(); comfortable(false);
+  if (!document.getElementById('flowkit-css')) {
+    const st = document.createElement('style'); st.id = 'flowkit-css';
+    st.textContent = '.flow{user-select:none;-webkit-user-select:none}.flow .fk-node:focus-visible>*:first-child{stroke:#E0B840;stroke-width:4.5}' +
+      '.fk-zoom{position:absolute;z-index:4;right:12px;top:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:rgba(11,15,43,.82);border:1px solid rgba(169,180,255,.25);border-radius:6px}' +
+      '.fk-zoom button{width:34px;height:30px;border:0;border-radius:4px;background:transparent;color:#eef1fa;font:600 17px/1 Archivo,sans-serif;cursor:pointer;padding:0}.fk-zoom button.fit{font-size:10px;letter-spacing:.06em;height:26px}' +
+      '.fk-zoom button:hover{background:rgba(169,180,255,.18);color:#E0B840}.fk-zoom button:focus-visible{outline:2px solid #E0B840}' +
+      '.fk-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.fk-box{border:1px solid var(--line,#2a3270);border-radius:8px;padding:8px 10px;background:rgba(11,15,43,.6)}' +
+      '.fk-box .n{font:600 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}.fk-box .v{font:700 18px "Red Hat Mono",monospace;color:#eef1fa;margin-top:2px;min-height:24px}.fk-box .v.empty{color:#6b739a;font-weight:500;font-size:13px}.fk-box .l{font-size:11px;color:var(--silk-dim,#aeb3c9)}' +
+      '.fk-con{background:#060917;border:1px solid var(--line,#2a3270);border-radius:8px;padding:10px 12px;min-height:64px;font:13px/1.55 "Red Hat Mono",Consolas,monospace;color:#9FE7FF;white-space:pre-wrap}.fk-con .cur{display:inline-block;width:8px;height:14px;background:#9FE7FF;vertical-align:-2px;animation:fkblink 1s steps(2) infinite}@keyframes fkblink{to{opacity:0}}' +
+      'html[data-theme=light] .fk-zoom{background:rgba(255,255,255,.95);border-color:#DADDEA}html[data-theme=light] .fk-zoom button{color:#283068}html[data-theme=light] .fk-zoom button:hover{background:#EEF0F8;color:#283068}' +
+      'html[data-theme=light] .fk-box{background:#FFFFFF;border-color:#DADDEA}html[data-theme=light] .fk-box .n{color:#5d6178}html[data-theme=light] .fk-box .v{color:#1A1D2E}html[data-theme=light] .fk-box .v.empty{color:#9a9fbd}html[data-theme=light] .fk-box .l{color:#5d6178}' +
+      'html[data-theme=light] .fk-con{background:#1A1D2E;border-color:#DADDEA;color:#9FE7FF}';
+    document.head.appendChild(st);
+  }
+  const box = document.createElement('div'); box.className = 'fk-zoom'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Zoom');
+  box.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><button type="button" class="fit" data-z="fit" aria-label="Fit the whole flowchart">FIT</button>';
+  stage.appendChild(box);
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.z === 'in') zoom(1.3); else if (b.dataset.z === 'out') zoom(1 / 1.3); else fitAll(); });
+  let drag = null;
+  svg.addEventListener('wheel', e => { e.preventDefault(); const r = svg.getBoundingClientRect(), sx = V.w / r.width; zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, V.x + (e.clientX - r.left) * sx, V.y + (e.clientY - r.top) * sx); }, {passive: false});
+  svg.addEventListener('pointerdown', e => { if (e.target.closest('.fk-node')) return; drag = {x: e.clientX, y: e.clientY, vx: V.x, vy: V.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', e => { if (!drag) return; const r = svg.getBoundingClientRect(), sx = V.w / r.width; V.x = drag.vx - (e.clientX - drag.x) * sx; V.y = drag.vy - (e.clientY - drag.y) * sx; clamp(); apply(); });
+  svg.addEventListener('pointerup', () => { drag = null; }); svg.addEventListener('pointercancel', () => { drag = null; });
+
+  const api = {svg: svg, el: el, X: X, Y: Y, nodes: nodes, edges: edges, layers: L, addNode: addNode, addEdge: addEdge, highlight: highlight, clear: clear, setText: setText, flash: flash, fill: fill, empty: empty, token: token, focus: focus, fit: fit, fitAll: fitAll, zoom: zoom, onPick: fn => { pick = fn; }, W: W, H: H};
+  window.__flows = window.__flows || []; window.__flows.push(api);
+  return api;
+}
+// memory boxes: FlowKit.memory(host, [{name, label}]) -> {set, get, reset}
+FlowKit.memory = function (host, vars) {
+  host.classList.add('fk-mem'); host.innerHTML = vars.map(v => '<div class="fk-box" data-n="' + v.name + '"><div class="n">' + v.name + '</div><div class="v empty">empty</div><div class="l">' + (v.label || '') + '</div></div>').join('');
+  const vals = {}; const hasGSAP = typeof window.gsap !== 'undefined';
+  return {set(name, value, o) { const b = host.querySelector('[data-n="' + name + '"] .v'); if (!b) return; vals[name] = value; if (value === undefined || value === null) { b.textContent = 'empty'; b.classList.add('empty'); return; } b.textContent = String(value); b.classList.remove('empty'); if (hasGSAP && !(o && o.pop === false)) gsap.fromTo(b, {scale: 1.25, color: '#E0B840'}, {scale: 1, color: document.documentElement.getAttribute('data-theme') === 'light' ? '#1A1D2E' : '#eef1fa', duration: .5, transformOrigin: 'left center'}); },
+    get: name => vals[name], reset() { Object.keys(vals).forEach(k => delete vals[k]); host.querySelectorAll('.v').forEach(b => { b.textContent = 'empty'; b.classList.add('empty'); }); }};
+};
+// the program's screen: FlowKit.console(host) -> {print, clear, lines}
+FlowKit.console = function (host) {
+  host.classList.add('fk-con'); const lines = []; const render = () => { host.textContent = lines.length ? lines.join('\n') : ''; const c = document.createElement('span'); c.className = 'cur'; host.appendChild(c); };
+  render();
+  return {print(t) { lines.push(String(t)); render(); }, clear() { lines.length = 0; render(); }, lines: () => lines.slice()};
+};
+// FLOWKIT END
+
+// PYSANDBOX START
+// CBT PySandbox: an "edit and run" Python box powered by Pyodide (real CPython in the browser, loaded once on first Run).
+// Runs in a Web Worker so an infinite loop can be stopped. input() reads from the Inputs box, one line per call.
+//   const sb = PySandbox(hostEl, {title, code, inputs, tests: [{expr, expect}], timeout: 15000, onRun(result), onTests(passed, total)});
+//   sb.run(); sb.setCode(s); sb.getCode(); sb.setInputs(s); sb.reset(); sb.output()
+// result: {ok, out, err, tests: [{expr, expect, got, pass}]}. Without the CDN the box shows a plain fallback message.
+function PySandbox(host, opts) {
+  'use strict';
+  const O = Object.assign({title: 'Try it: edit and run the Python', code: 'print("hello")', inputs: '', tests: [], timeout: 15000,
+    pyodideUrl: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', runLabel: 'Run', resetLabel: 'Reset code'}, opts || {});
+  if (!document.getElementById('pysandbox-css')) {
+    const st = document.createElement('style'); st.id = 'pysandbox-css';
+    st.textContent = '.pysb{border:1px solid var(--line,#2a3270);border-radius:8px;background:rgba(11,15,43,.6);overflow:hidden;font-family:Figtree,system-ui,sans-serif}' +
+      '.pysb-head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line,#2a3270);font-size:13px}' +
+      '.pysb-head b{font-family:Archivo,sans-serif;font-weight:700}.pysb-status{margin-left:auto;font:500 11px "Red Hat Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-grid{display:grid;grid-template-columns:1fr 200px;gap:0}@media(max-width:700px){.pysb-grid{grid-template-columns:1fr}}' +
+      '.pysb textarea{width:100%;box-sizing:border-box;border:0;background:#0b0f2b;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;padding:10px 12px;resize:vertical;min-height:160px;outline:none;tab-size:4}' +
+      '.pysb textarea:focus{box-shadow:inset 0 0 0 2px var(--cbt-gold,#E0B840)}' +
+      '.pysb-in{border-left:1px solid var(--line,#2a3270)}@media(max-width:700px){.pysb-in{border-left:0;border-top:1px solid var(--line,#2a3270)}}' +
+      '.pysb-in label,.pysb-out label{display:block;padding:6px 12px 0;font:500 10.5px "Red Hat Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-in textarea{min-height:60px}' +
+      '.pysb-bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line,#2a3270);flex-wrap:wrap}' +
+      '.pysb-bar button{font:600 13px Figtree,sans-serif;padding:7px 14px;border-radius:6px;border:1px solid var(--line,#2a3270);background:#1b2140;color:#eef1fa;cursor:pointer}' +
+      '.pysb-bar button.primary{background:var(--cbt-gold,#E0B840);color:#1a1205;border-color:transparent}.pysb-bar button:disabled{opacity:.5;cursor:default}' +
+      '.pysb-bar .hint{font-size:12px;color:var(--silk-dim,#aeb3c9)}' +
+      '.pysb-prog{height:3px;background:transparent;position:relative;overflow:hidden}.pysb-prog i{position:absolute;left:-40%;top:0;bottom:0;width:40%;background:var(--cbt-sky,#38B0E0);animation:pysbp 1.2s linear infinite}@keyframes pysbp{to{left:100%}}' +
+      '.pysb-out pre{margin:0;padding:10px 12px;min-height:56px;max-height:260px;overflow:auto;background:#060917;color:#eef1fa;font:13px/1.5 "Red Hat Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word}' +
+      '.pysb-out pre.err{color:#F0786A}.pysb-tests{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px;font:12.5px "Red Hat Mono",monospace}' +
+      '.pysb-tests li{display:flex;gap:8px;align-items:baseline}.pysb-tests li::before{content:"";width:9px;height:9px;border-radius:50%;background:#555d8a;flex:none;position:relative;top:1px}' +
+      '.pysb-tests li.pass::before{background:#6FD49B}.pysb-tests li.fail::before{background:#F0786A}.pysb-tests li .got{color:var(--silk-dim,#aeb3c9)}' +
+      'html[data-theme=light] .pysb{background:#FFFFFF;border-color:#DADDEA}html[data-theme=light] .pysb-head{border-color:#DADDEA;color:#1A1D2E}html[data-theme=light] .pysb-status{color:#5d6178}' +
+      'html[data-theme=light] .pysb textarea{background:#F4F5FA;color:#1A1D2E}html[data-theme=light] .pysb-in{border-color:#DADDEA}html[data-theme=light] .pysb-in label,html[data-theme=light] .pysb-out label{color:#5d6178}' +
+      'html[data-theme=light] .pysb-bar{border-color:#DADDEA}html[data-theme=light] .pysb-bar button{background:#FFFFFF;border-color:#C5CAE0;color:#283068}html[data-theme=light] .pysb-bar button.primary{background:#E0B840;color:#1a1205;border-color:transparent}html[data-theme=light] .pysb-bar .hint{color:#5d6178}' +
+      'html[data-theme=light] .pysb-out pre{background:#1A1D2E;color:#eef1fa}html[data-theme=light] .pysb-out pre.err{color:#ffb3a9}html[data-theme=light] .pysb-tests{color:#1A1D2E}html[data-theme=light] .pysb-tests li .got{color:#5d6178}html[data-theme=light] .pysb-tests li.pass::before{background:#2E9E63}html[data-theme=light] .pysb-tests li.fail::before{background:#D6473C}';
+    document.head.appendChild(st);
+  }
+  host.classList.add('pysb');
+  host.innerHTML = '<div class="pysb-head"><b></b><span class="pysb-status">Python not loaded yet</span></div><div class="pysb-prog"></div>' +
+    '<div class="pysb-grid"><div><textarea class="pysb-code" spellcheck="false" aria-label="Python code"></textarea></div>' +
+    '<div class="pysb-in"><label>Inputs (one per input() call)</label><textarea class="pysb-inputs" spellcheck="false" aria-label="Inputs, one per line"></textarea></div></div>' +
+    '<div class="pysb-bar"><button type="button" class="primary pysb-run"></button><button type="button" class="pysb-reset"></button><span class="hint">Ctrl+Enter runs. The first run downloads Python (about 10 MB) once.</span></div>' +
+    '<div class="pysb-out"><label>Output</label><pre class="pysb-pre">Nothing run yet.</pre><ul class="pysb-tests" hidden></ul></div>';
+  const q = s => host.querySelector(s);
+  q('.pysb-head b').textContent = O.title; q('.pysb-run').textContent = O.runLabel; q('.pysb-reset').textContent = O.resetLabel;
+  const code = q('.pysb-code'), inputs = q('.pysb-inputs'), pre = q('.pysb-pre'), status = q('.pysb-status'), prog = q('.pysb-prog'), tests = q('.pysb-tests'), btnRun = q('.pysb-run');
+  code.value = O.code; inputs.value = O.inputs;
+  let worker = null, ready = false, loading = false, timer = null, last = null, failed = false;
+  const WORKER_SRC = [
+    'var py = null, url = "' + O.pyodideUrl + '";',
+    'self.onmessage = async function (e) {',
+    '  var m = e.data;',
+    '  try {',
+    '    if (!py) { importScripts(url + "pyodide.js"); py = await loadPyodide({indexURL: url}); postMessage({type: "ready", version: py.version}); }',
+    '    if (m.type !== "run") return;',
+    '    var lines = m.inputs.split(/\\r?\\n/); var out = [];',
+    '    py.setStdout({batched: function (s) { out.push(s); }}); py.setStderr({batched: function (s) { out.push(s); }});',
+    '    py.setStdin({stdin: function () { var l = lines.length ? lines.shift() : ""; return l + "\\n"; }, isatty: false});',
+    '    var ns = py.globals.get("dict")(); var result = {type: "done", ok: true, out: "", err: "", tests: []};',
+    '    try { await py.runPythonAsync(m.code, {globals: ns}); }',
+    '    catch (err) { result.ok = false; result.err = String(err.message || err); }',
+    '    result.out = out.join("\\n");',
+    '    for (var i = 0; i < m.tests.length; i++) { var t = m.tests[i], got;',
+    '      try { got = py.runPython("repr(" + t.expr + ")", {globals: ns}); } catch (e2) { got = "error: " + String(e2.message || e2).trim().split("\\n").pop(); }',
+    '      result.tests.push({expr: t.expr, expect: t.expect, got: got, pass: got === t.expect}); }',
+    '    ns.destroy(); postMessage(result);',
+    '  } catch (err) { postMessage({type: "fatal", err: String(err.message || err)}); }',
+    '};'].join('\n');
+  function spawn() {
+    const blob = new Blob([WORKER_SRC], {type: 'application/javascript'});
+    worker = new Worker(URL.createObjectURL(blob)); ready = false;
+    worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') { ready = true; loading = false; prog.innerHTML = ''; status.textContent = 'Python ' + m.version + ' ready'; return; }
+      if (m.type === 'fatal') { fail(m.err); return; }
+      if (m.type === 'done') { clearTimeout(timer); btnRun.disabled = false; show(m); }
+    };
+    worker.onerror = e => { fail(e.message || 'worker error'); };
+  }
+  function fail(msg) {
+    clearTimeout(timer); loading = false; ready = false; failed = true; btnRun.disabled = false; prog.innerHTML = '';
+    status.textContent = 'Python could not load';
+    pre.className = 'pysb-pre err'; pre.textContent = 'Python could not load here (the network may block cdn.jsdelivr.net). Copy the code into IDLE on the lab PC and run it there.' + (msg ? '\nDetails: ' + msg : '');
+    if (worker) { worker.terminate(); worker = null; }
+  }
+  function trimTrace(err) {
+    // keep from the first line that mentions the student's code; Pyodide adds its own frames above it
+    const i = err.indexOf('File "<exec>"'); if (i < 0) return err.trim();
+    const head = err.slice(0, i).split('\n').filter(l => /^Traceback/.test(l)).join('\n');
+    return (head ? head + '\n  ' : '') + err.slice(i).trim();
+  }
+  function show(m) {
+    last = m; const err = m.err ? trimTrace(m.err) : '';
+    pre.className = 'pysb-pre' + (m.ok ? '' : ' err');
+    pre.textContent = (m.out ? m.out + (m.out.endsWith('\n') ? '' : '\n') : '') + (err ? err : '') || '(no output)';
+    if (O.tests && O.tests.length) {
+      tests.hidden = false; tests.innerHTML = m.tests.map(t => '<li class="' + (t.pass ? 'pass' : 'fail') + '"><span>' + esc(t.expr) + ' expected ' + esc(t.expect) + '</span><span class="got">got ' + esc(t.got) + '</span></li>').join('');
+      const passed = m.tests.filter(t => t.pass).length; status.textContent = passed + ' of ' + m.tests.length + ' tests pass';
+      if (O.onTests) O.onTests(passed, m.tests.length, m);
+    } else status.textContent = m.ok ? 'Ran without errors' : 'Stopped with an error';
+    if (O.onRun) O.onRun(m);
+  }
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  function run() {
+    if (failed) { failed = false; }
+    if (!worker) spawn();
+    btnRun.disabled = true; tests.hidden = true; pre.className = 'pysb-pre'; pre.textContent = ready ? 'Running...' : 'Loading Python (about 10 MB, once)...';
+    if (!ready) { loading = true; status.textContent = 'Loading Python...'; prog.innerHTML = '<i></i>'; }
+    worker.postMessage({type: 'run', code: code.value, inputs: inputs.value, tests: O.tests || []});
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ready && loading) return; // still downloading; the fatal handler covers real failures
+      worker.terminate(); worker = null; ready = false; btnRun.disabled = false;
+      pre.className = 'pysb-pre err'; pre.textContent = 'Stopped after ' + Math.round(O.timeout / 1000) + ' seconds: the program never finished. Look for a loop whose condition never becomes False.';
+      status.textContent = 'Stopped (infinite loop?)'; if (O.onRun) O.onRun({ok: false, out: '', err: 'timeout', tests: []});
+    }, O.timeout + (ready ? 0 : 60000));
+  }
+  btnRun.addEventListener('click', run);
+  q('.pysb-reset').addEventListener('click', () => { code.value = O.code; inputs.value = O.inputs; pre.className = 'pysb-pre'; pre.textContent = 'Code reset. Press Run.'; tests.hidden = true; });
+  code.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if (e.key === 'Tab') { e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '    ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 4; } });
+  const api = {run: run, setCode: s => { code.value = s; }, getCode: () => code.value, setInputs: s => { inputs.value = s; }, setTests: t => { O.tests = t; },
+    reset: () => q('.pysb-reset').click(), output: () => pre.textContent, last: () => last, isReady: () => ready, el: host};
+  window.__pysandboxes = window.__pysandboxes || []; window.__pysandboxes.push(api);
+  return api;
+}
+// PYSANDBOX END
+
+// SIM START
+// ---- the simulation: plain functions with no DOM. Each mode runs the real algorithm and records one snapshot per step
+// (the call stack, the screen, the live values, the picture state), so Step back is just "show the previous snapshot". ----
+const SKY = '#38B0E0', GREEN = '#6FD49B', CORAL = '#F0786A';
+const CAPACITY = 900, NOBASE_CAP = 12;
+const RUSH = {R1: [400, 240], R2: [450, 210], R3: [100, 130], R4: [200, 140], R5: [300, 160], R6: [350, 120]};
+const SETS = {a: ['R1', 'R2', 'R3'], b: ['R1', 'R3', 'R4', 'R5']};
+const pyBool = b => b ? 'True' : 'False';
+const clone = o => JSON.parse(JSON.stringify(o));
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+const nf = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+const CODE = {
+  power: ['def power(base, exp):', '    if exp == 0:', '        return 1', '    smaller = power(base, exp - 1)', '    return base * smaller'],
+  power_nb: ['def power(base, exp):', '    smaller = power(base, exp - 1)', '    return base * smaller'],
+  factorial: ['def factorial(n):', '    if n == 0:', '        return 1', '    smaller = factorial(n - 1)', '    return n * smaller'],
+  factorial_nb: ['def factorial(n):', '    smaller = factorial(n - 1)', '    return n * smaller'],
+  fib: ['def fib(n):', '    if n < 2:', '        return n', '    return fib(n - 1) + fib(n - 2)'],
+  evenodd: ['def is_even(n):', '    if n == 0:', '        return True', '    return is_odd(n - 1)', '', 'def is_odd(n):', '    if n == 0:', '        return False', '    return is_even(n - 1)'],
+  hanoi: ['def hanoi(n, source, target, spare):', '    if n == 0:', '        return 0', '    moves = hanoi(n - 1, source, spare, target)', '    print("Move crate", n, "from", source, "to", target)', '    moves = moves + 1', '    moves = moves + hanoi(n - 1, spare, target, source)', '    return moves'],
+  subsets: ['def best_load(i, weight, fee):', '    if i == len(names):', '        if weight <= CAPACITY and fee > total(fees, best):', '            copy_into(best, current)', '        return 1', '    current.append(i)', '    tried = best_load(i + 1, weight + weights[i], fee + fees[i])', '    current.pop()', '    tried = tried + best_load(i + 1, weight, fee)', '    return tried']
+};
+
+function Recorder() {
+  const R = {steps: [], stack: [], con: [], mem: {}, viz: null};
+  R.snap = function (o) {
+    const top = R.stack.length ? R.stack[R.stack.length - 1] : null;
+    R.steps.push(Object.assign({phase: 'call', node: null, line: 0, tok: null, err: false, cond: null}, o,
+      {stack: clone(R.stack), con: R.con.slice(), mem: clone(R.mem), viz: clone(R.viz), seen: top ? top.seen.slice() : []}));
+    if (top && o.node && top.seen.indexOf(o.node) < 0) top.seen.push(o.node);
+  };
+  return R;
+}
+
+// modes 1 and 2: power and factorial (one recursive call per frame), with or without the base case
+function simLinear(R, kind, A, nobase) {
+  const isP = kind === 'power', pname = isP ? 'exp' : 'n', start = isP ? A.exp : A.n;
+  const lab = v => isP ? 'power(' + A.base + ', ' + v + ')' : 'factorial(' + v + ')';
+  const frame = v => ({label: lab(v), vars: isP ? [['base', A.base], ['exp', v], ['smaller', null]] : [['n', v], ['smaller', null]], wait: null, ret: null, seen: []});
+  const L = nobase ? {def: 1, call: 2, ret: 3} : {def: 1, test: 2, base: 3, call: 4, ret: 5};
+  const fnLines = CODE[kind + (nobase ? '_nb' : '')].length, mainL = fnLines + 2;
+  const boxes = v => isP ? 'base = ' + A.base + ' and exp = ' + v : 'n = ' + v;
+  let calls = 0, deepest = 0;
+  R.mem = {running: 'MAIN', depth: 0, returned: null, result: null};
+  const pushSnap = (f, v, depth) => {
+    R.stack.push(f); calls++; deepest = Math.max(deepest, depth); R.mem.running = f.label; R.mem.depth = depth;
+    R.snap({phase: 'call', node: 'start', line: L.def, tok: depth > 1 ? {edges: ['call>start'], label: isP ? A.base + ', ' + v : String(v), color: SKY} : null,
+      text: depth === 1 ? 'MAIN calls ' + f.label + '. Python pushes a frame on the call stack: a private set of boxes for this call, with ' + boxes(v) + '.'
+        : 'A new frame for ' + f.label + ' is pushed on top of the stack, with its own ' + pname + ' = ' + v + '. The frame below is paused, not finished. Stack depth: ' + depth + '.'});
+  };
+  if (nobase) {
+    let f = null;
+    for (let d = 1; d <= NOBASE_CAP; d++) {
+      const v = start - (d - 1);
+      f = frame(v); pushSnap(f, v, d);
+      f.wait = lab(v - 1);
+      R.snap({phase: 'rec', node: 'call', line: L.call, tok: {edges: ['start>call'], label: pname + ' = ' + v, color: SKY},
+        text: f.label + ' goes straight to the recursive call and asks for ' + lab(v - 1) + '. No line ever asks "am I done?"' + (v - 1 < 0 ? ' The argument is already below zero and it keeps falling.' : v - 1 === 0 ? ' The next call is where the base case used to stop the chain.' : '')});
+    }
+    const callLine = CODE[kind + '_nb'][1].trim(), fn = isP ? 'power' : 'factorial';
+    R.con.push('Traceback (most recent call last):', '  File "recursion.py", line ' + mainL + ', in <module>', '    result = ' + lab(start));
+    for (let k = 0; k < 3; k++) R.con.push('  File "recursion.py", line 2, in ' + fn, '    ' + callLine);
+    R.con.push('  [Previous line repeated 996 more times]', 'RecursionError: maximum recursion depth exceeded');
+    R.mem.returned = 'nothing';
+    R.snap({phase: 'err', node: 'call', err: true, line: L.call, tok: null,
+      text: 'The page stops the animation at ' + NOBASE_CAP + ' frames. Python keeps pushing frames until its limit of 1,000, then stops the program with RecursionError: maximum recursion depth exceeded. This is a stack overflow: the stack ran out of room because no base case ever ended the calls. Not one call returned a value.'});
+    return {result: null, calls: calls, deepest: deepest, error: true};
+  }
+  function go(v, depth) {
+    const f = frame(v); pushSnap(f, v, depth);
+    const isBase = v === 0;
+    R.snap({phase: 'test', node: 'd', line: L.test, cond: [pname + ' == 0', v + ' == 0', isBase], tok: {edges: ['start>d'], label: pname + ' = ' + v, color: SKY},
+      text: f.label + ' asks: ' + pname + ' == 0? Here ' + v + ' == 0 is ' + pyBool(isBase) + (isBase ? '. This is the base case: the answer is known without another call.' : ', so it is not the base case yet. It takes the No branch.')});
+    if (isBase) {
+      f.ret = '1'; R.mem.returned = 1; R.con.push('return  ' + f.label + ' -> 1');
+      R.snap({phase: 'base', node: 'base', line: L.base, tok: {edges: ['d>base'], label: 'Yes', color: GREEN},
+        text: 'Base case. ' + f.label + ' returns 1 and calls nobody. ' + (depth > 1 ? 'The chain of calls stops here, and the answers can start to travel back down the stack.' : 'There was nothing to wait for.')});
+      return {val: 1, from: 'base'};
+    }
+    f.wait = lab(v - 1);
+    R.snap({phase: 'rec', node: 'call', line: L.call, tok: {edges: ['d>call'], label: 'No', color: SKY},
+      text: 'Recursive case. ' + f.label + ' needs ' + lab(v - 1) + ' first: a smaller version of the same problem. It waits on this line, and its smaller box stays empty.'});
+    const sub = go(v - 1, depth + 1), child = R.stack.pop();
+    f.wait = null; f.vars[f.vars.length - 1][1] = sub.val; R.mem.running = f.label; R.mem.depth = depth;
+    R.snap({phase: 'ret', node: 'call', line: L.call, tok: {edges: [sub.from + '>call'], label: String(sub.val), color: GREEN},
+      text: child.label + ' is finished, so its frame is popped off the top (last in, first out, like the van). The value ' + sub.val + ' travels back to ' + f.label + ', which was waiting: smaller = ' + sub.val + '.'});
+    const val = (isP ? A.base : v) * sub.val;
+    f.ret = String(val); R.mem.returned = val; R.con.push('return  ' + f.label + ' -> ' + val);
+    R.snap({phase: 'ret', node: 'ret', line: L.ret, tok: {edges: ['call>ret'], label: 'smaller = ' + sub.val, color: SKY},
+      text: f.label + ' can finish now: ' + (isP ? 'base × smaller = ' + A.base : 'n × smaller = ' + v) + ' × ' + sub.val + ' = ' + val + '. It returns ' + val + '.'});
+    return {val: val, from: 'ret'};
+  }
+  const r = go(start, 1); R.stack.pop();
+  R.mem.running = 'MAIN'; R.mem.depth = 0; R.mem.result = r.val; R.con.push(String(r.val));
+  R.snap({phase: 'ret', node: null, line: mainL + 1, tok: null,
+    text: 'The last frame is popped and the stack is empty again. MAIN stores ' + r.val + ' in result, and print shows ' + r.val + '. ' + lab(start) + ' took ' + plural(calls, 'call') + ', and the stack was ' + plural(deepest, 'frame') + ' deep at its tallest.'});
+  return {result: r.val, calls: calls, deepest: deepest};
+}
+
+// mode 3: fib (two recursive calls per frame) with the call tree
+function simFib(R, n0) {
+  const tree = [], count = {}; let calls = 0, deepest = 0;
+  R.viz = {st: [], val: []}; R.mem = {running: 'MAIN', depth: 0, calls: 0, result: null};
+  function go(n, depth, parent, via) {
+    const id = tree.length; tree.push({n: n, parent: parent, depth: depth - 1, kids: []}); if (parent !== null) tree[parent].kids.push(id);
+    calls++; count[n] = (count[n] || 0) + 1; deepest = Math.max(deepest, depth);
+    const f = {label: 'fib(' + n + ')', tid: id, vars: [['n', n], ['fib(n-1)', null], ['fib(n-2)', null]], wait: null, ret: null, seen: ['start']};
+    R.stack.push(f); R.viz.st[id] = 1; R.viz.val[id] = null; R.mem.running = f.label; R.mem.depth = depth; R.mem.calls = calls;
+    const base = n < 2;
+    R.snap({phase: 'call', node: 'd', line: 2, cond: ['n < 2', n + ' < 2', base], tok: {edges: via ? [via + '>start', 'start>d'] : ['start>d'], label: 'n = ' + n, color: SKY},
+      text: (depth === 1 ? 'MAIN calls fib(' + n + ') and a frame is pushed. ' : 'A frame for fib(' + n + ') is pushed (call number ' + calls + '). ') +
+        (count[n] > 1 ? 'Look at the tree: fib(' + n + ') was already computed ' + (count[n] === 2 ? 'once' : (count[n] - 1) + ' times') + ' (same color). The function does not remember answers, so it does the work again. ' : '') +
+        'It asks: n < 2? ' + n + ' < 2 is ' + pyBool(base) + '.'});
+    if (base) {
+      f.ret = String(n); R.viz.st[id] = 3; R.viz.val[id] = n; R.con.push('return  fib(' + n + ') -> ' + n);
+      R.snap({phase: 'base', node: 'base', line: 3, tok: {edges: ['d>base'], label: 'Yes', color: GREEN}, text: 'Base case: fib(' + n + ') returns ' + n + ' with no more calls. fib(0) is 0 and fib(1) is 1; every other answer is built from these two.'});
+      return {val: n, from: 'base'};
+    }
+    f.wait = 'fib(' + (n - 1) + ')'; R.viz.st[id] = 2;
+    R.snap({phase: 'rec', node: 'c1', line: 4, tok: {edges: ['d>c1'], label: 'No', color: SKY}, text: 'Recursive case: fib(' + n + ') needs two smaller answers, fib(' + (n - 1) + ') and fib(' + (n - 2) + '). First it calls fib(' + (n - 1) + ') and waits.'});
+    const a = go(n - 1, depth + 1, id, 'c1'); R.stack.pop();
+    f.vars[1][1] = a.val; f.wait = 'fib(' + (n - 2) + ')'; R.mem.running = f.label; R.mem.depth = depth;
+    R.snap({phase: 'rec', node: 'c2', line: 4, tok: {edges: [a.from + '>c1'], label: String(a.val), color: GREEN},
+      text: 'fib(' + (n - 1) + ') is popped and its answer ' + a.val + ' comes back to fib(' + n + '). Half of the line is done. Now the second call: fib(' + (n - 2) + '). The frame waits again.'});
+    const b = go(n - 2, depth + 1, id, 'c2'); R.stack.pop();
+    const val = a.val + b.val;
+    f.vars[2][1] = b.val; f.wait = null; f.ret = String(val); R.viz.st[id] = 3; R.viz.val[id] = val; R.mem.running = f.label; R.mem.depth = depth; R.con.push('return  fib(' + n + ') -> ' + val);
+    R.snap({phase: 'ret', node: 'ret', line: 4, tok: {edges: [b.from + '>c2', 'c2>ret'], label: String(b.val), color: GREEN},
+      text: 'fib(' + (n - 2) + ') is popped with ' + b.val + '. fib(' + n + ') has both answers now: ' + a.val + ' + ' + b.val + ' = ' + val + '. It returns ' + val + '.'});
+    return {val: val, from: 'ret'};
+  }
+  const r = go(n0, 1, null, null); R.stack.pop();
+  R.mem.running = 'MAIN'; R.mem.depth = 0; R.mem.result = r.val; R.con.push(String(r.val));
+  const reps = Object.keys(count).map(Number).filter(k => count[k] > 1).sort((x, y) => y - x).map(k => 'fib(' + k + ') ran ' + count[k] + ' times');
+  R.snap({phase: 'ret', node: null, line: 7, tok: null,
+    text: 'The stack is empty. MAIN stores ' + r.val + ' in result and print shows ' + r.val + '. fib(' + n0 + ') made ' + plural(calls, 'call') + (reps.length ? ': ' + reps.join(', ') + '. Each extra 1 in n makes the count more than one and a half times bigger: the fast growth you named exponential in week 3.' : '. Try a bigger n and watch the Calls box.')});
+  // lay the tree out: leaves left to right, a parent above the middle of its children
+  let leaf = 0, levels = 0;
+  (function place(id) { const t = tree[id]; levels = Math.max(levels, t.depth + 1); if (!t.kids.length) { t.x = leaf++; return; } t.kids.forEach(place); t.x = (tree[t.kids[0]].x + tree[t.kids[t.kids.length - 1]].x) / 2; })(0);
+  return {result: r.val, calls: calls, deepest: deepest, tree: tree, leaves: leaf, levels: levels, count: count};
+}
+
+// mode 4: is_even and is_odd call each other (indirect recursion)
+function simEvenOdd(R, first, n0) {
+  let calls = 0, deepest = 0;
+  R.mem = {running: 'MAIN', depth: 0, returned: null, result: null};
+  function go(fn, n, depth, via) {
+    const P = fn === 'is_even' ? 'e' : 'o', other = fn === 'is_even' ? 'is_odd' : 'is_even', off = fn === 'is_even' ? 0 : 5;
+    const f = {label: fn + '(' + n + ')', vars: [['n', n]], wait: null, ret: null, seen: []};
+    R.stack.push(f); calls++; deepest = Math.max(deepest, depth); R.mem.running = f.label; R.mem.depth = depth;
+    R.snap({phase: 'call', node: P + '_start', line: off + 1, tok: via ? {edges: [via + '>' + P + '_start'], label: 'n = ' + n, color: SKY} : null,
+      text: depth === 1 ? 'MAIN calls ' + f.label + ' and a frame is pushed with n = ' + n + '.'
+        : 'The token crosses to the other chart: a frame for ' + f.label + ' is pushed. This is indirect recursion: ' + other + ' did not call itself, it called ' + fn + ', and ' + fn + ' will call ' + other + ' back.'});
+    const base = n === 0;
+    R.snap({phase: 'test', node: P + '_d', line: off + 2, cond: ['n == 0', n + ' == 0', base], tok: {edges: [P + '_start>' + P + '_d'], label: 'n = ' + n, color: SKY},
+      text: f.label + ' asks: n == 0? ' + n + ' == 0 is ' + pyBool(base) + (base ? '. Base case.' : '. Not yet.')});
+    if (base) {
+      const val = fn === 'is_even';
+      f.ret = pyBool(val); R.mem.returned = pyBool(val); R.con.push('return  ' + f.label + ' -> ' + pyBool(val));
+      R.snap({phase: 'base', node: P + '_base', line: off + 3, tok: {edges: [P + '_d>' + P + '_base'], label: 'Yes', color: GREEN},
+        text: 'Base case: ' + f.label + ' returns ' + pyBool(val) + (val ? ', because zero is even.' : ', because zero is not odd.') + ' Both functions stop at zero, so the back-and-forth always ends.'});
+      return {val: val, from: P + '_base'};
+    }
+    f.wait = other + '(' + (n - 1) + ')';
+    R.snap({phase: 'rec', node: P + '_call', line: off + 4, tok: {edges: [P + '_d>' + P + '_call'], label: 'No', color: SKY},
+      text: n + ' is ' + (fn === 'is_even' ? 'even' : 'odd') + ' exactly when ' + (n - 1) + ' is ' + (fn === 'is_even' ? 'odd' : 'even') + '. So ' + f.label + ' asks the other function: ' + f.wait + '. It waits for the answer.'});
+    const sub = go(other, n - 1, depth + 1, P + '_call'), child = R.stack.pop();
+    f.wait = null; f.ret = pyBool(sub.val); R.mem.running = f.label; R.mem.depth = depth; R.mem.returned = pyBool(sub.val); R.con.push('return  ' + f.label + ' -> ' + pyBool(sub.val));
+    R.snap({phase: 'ret', node: P + '_call', line: off + 4, tok: {edges: [sub.from + '>' + P + '_call'], label: pyBool(sub.val), color: GREEN},
+      text: child.label + ' is popped and hands back ' + pyBool(sub.val) + '. ' + f.label + ' has nothing left to compute, so it returns the same value, ' + pyBool(sub.val) + ', to its own caller.'});
+    return {val: sub.val, from: P + '_call'};
+  }
+  const r = go(first, n0, 1, null); R.stack.pop();
+  R.mem.running = 'MAIN'; R.mem.depth = 0; R.mem.result = pyBool(r.val); R.con.push(pyBool(r.val));
+  R.snap({phase: 'ret', node: null, line: 12, tok: null,
+    text: 'The stack is empty. MAIN stores ' + pyBool(r.val) + ' in result and print shows it: ' + n0 + ' is ' + ((n0 % 2 === 0) ? 'even' : 'odd') + '. The two functions took turns ' + plural(calls, 'time') + ', and every call sat on the same call stack.'});
+  return {result: r.val, calls: calls, deepest: deepest};
+}
+
+// mode 5: Tower of Hanoi with crates on three dock pallets
+function simHanoi(R, n0) {
+  let calls = 0, deepest = 0, moves = 0; const expected = Math.pow(2, n0) - 1, list = [];
+  const pegs = {A: [], B: [], C: []}; for (let k = n0; k >= 1; k--) pegs.A.push(k);
+  R.viz = {pegs: clone(pegs), last: null}; R.mem = {running: 'MAIN', depth: 0, moves: '0 of ' + expected, result: null};
+  function go(n, s, t, sp, depth, via) {
+    const f = {label: 'hanoi(' + n + ', ' + s + ', ' + t + ', ' + sp + ')', vars: [['n', n], ['source', s], ['target', t], ['spare', sp], ['moves', null]], wait: null, ret: null, seen: ['start']};
+    R.stack.push(f); calls++; deepest = Math.max(deepest, depth); R.mem.running = f.label; R.mem.depth = depth;
+    const base = n === 0;
+    R.snap({phase: 'call', node: 'd', line: 2, cond: ['n == 0', n + ' == 0', base], tok: {edges: via ? [via + '>start', 'start>d'] : ['start>d'], label: n + ', ' + s + ', ' + t + ', ' + sp, color: SKY},
+      text: (depth === 1 ? 'MAIN calls ' + f.label + ': move ' + plural(n, 'crate') + ' from pallet ' + s + ' to pallet ' + t + ', with ' + sp + ' as the spare. ' : 'A frame for ' + f.label + ' is pushed: move ' + plural(n, 'crate') + ' from ' + s + ' to ' + t + '. ') + 'It asks: n == 0? ' + n + ' == 0 is ' + pyBool(base) + '.'});
+    if (base) {
+      f.ret = '0';
+      R.snap({phase: 'base', node: 'base', line: 3, tok: {edges: ['d>base'], label: 'Yes', color: GREEN}, text: 'Base case: there are no crates to move, so ' + f.label + ' returns 0 moves right away.'});
+      return {val: 0, from: 'base'};
+    }
+    f.wait = 'hanoi(' + (n - 1) + ', ' + s + ', ' + sp + ', ' + t + ')';
+    R.snap({phase: 'rec', node: 'c1', line: 4, tok: {edges: ['d>c1'], label: 'No', color: SKY},
+      text: 'Crate ' + n + ' is at the bottom of this pile, so first the ' + (n - 1 === 0 ? 'crates above it (none here)' : plural(n - 1, 'smaller crate') + ' above it') + ' must get out of the way: from ' + s + ' to the spare ' + sp + '. That is the same problem, one crate smaller: ' + f.wait + '.'});
+    const a = go(n - 1, s, sp, t, depth + 1, 'c1'); R.stack.pop();
+    f.wait = null; pegs[s].pop(); pegs[t].push(n); moves++; list.push([n, s, t]);
+    f.vars[4][1] = a.val + 1; R.viz = {pegs: clone(pegs), last: [n, s, t]}; R.mem.running = f.label; R.mem.depth = depth; R.mem.moves = moves + ' of ' + expected;
+    R.con.push('Move crate ' + n + ' from ' + s + ' to ' + t);
+    R.snap({phase: 'work', node: 'mv', line: 5, tok: {edges: [a.from + '>c1', 'c1>mv'], label: 'moves = ' + a.val, color: GREEN},
+      text: 'The first call is popped with ' + plural(a.val, 'move') + '. Crate ' + n + ' is free now: move it from ' + s + ' to ' + t + '. That is move ' + moves + ' of ' + expected + ', and moves = ' + a.val + ' + 1 = ' + (a.val + 1) + ' in this frame.'});
+    f.wait = 'hanoi(' + (n - 1) + ', ' + sp + ', ' + t + ', ' + s + ')';
+    R.snap({phase: 'rec', node: 'c2', line: 7, tok: {edges: ['mv>c2'], label: 'moves = ' + (a.val + 1), color: SKY},
+      text: 'Second recursive call: bring the ' + (n - 1 === 0 ? 'smaller crates (none here)' : plural(n - 1, 'smaller crate')) + ' from the spare ' + sp + ' onto crate ' + n + ' at ' + t + ': ' + f.wait + '.'});
+    const b = go(n - 1, sp, t, s, depth + 1, 'c2'); R.stack.pop();
+    const val = a.val + 1 + b.val;
+    f.wait = null; f.vars[4][1] = val; f.ret = String(val); R.mem.running = f.label; R.mem.depth = depth;
+    R.snap({phase: 'ret', node: 'ret', line: 8, tok: {edges: [b.from + '>c2', 'c2>ret'], label: String(b.val), color: GREEN},
+      text: 'The second call is popped with ' + plural(b.val, 'move') + '. ' + f.label + ' is done: moves = ' + (a.val + 1) + ' + ' + b.val + ' = ' + val + '. It returns ' + val + '.'});
+    return {val: val, from: 'ret'};
+  }
+  const r = go(n0, 'A', 'C', 'B', 1, null); R.stack.pop();
+  R.mem.running = 'MAIN'; R.mem.depth = 0; R.mem.result = r.val; R.con.push(String(r.val));
+  R.snap({phase: 'ret', node: null, line: 11, tok: null,
+    text: 'All ' + plural(n0, 'crate') + ' are on pallet C and the stack is empty. print shows ' + r.val + ' moves, exactly 2 to the power ' + n0 + ' minus 1 = ' + expected + '. One more crate doubles the work and adds one: 1, 3, 7, 15, 31.'});
+  return {result: r.val, calls: calls, deepest: deepest, moves: list, expected: expected};
+}
+
+// the week 3 greedy rule (best fee per pound first), used for the comparison at the end of mode 6
+function greedyPerPound(names) {
+  const left = names.slice(), taken = []; let w = 0, fee = 0;
+  while (left.length) {
+    let b = 0; for (let k = 1; k < left.length; k++) if (RUSH[left[k]][1] / RUSH[left[k]][0] > RUSH[left[b]][1] / RUSH[left[b]][0]) b = k;
+    const nm = left.splice(b, 1)[0];
+    if (w + RUSH[nm][0] <= CAPACITY) { taken.push(nm); w += RUSH[nm][0]; fee += RUSH[nm][1]; }
+  }
+  return {taken: taken, weight: w, fee: fee};
+}
+
+// mode 6: every subset of the rush orders by backtracking (take, then undo and skip)
+function simSubsets(R, setKey) {
+  const names = SETS[setKey], n = names.length, total = Math.pow(2, n), weights = names.map(k => RUSH[k][0]), fees = names.map(k => RUSH[k][1]);
+  const tree = [], current = []; let best = [], bestFee = 0, bestW = 0, tried = 0, calls = 0, deepest = 0;
+  const show = a => a.length ? a.map(i => names[i]).join(' + ') : 'empty van';
+  R.viz = {st: [], best: null};
+  const setMem = w => { R.mem.load = current.length ? current.map(i => names[i]).join(', ') : '(empty)'; };
+  R.mem = {load: '(empty)', weight: '0 lb', fee: '$0', best: 'none yet', tried: '0 of ' + total};
+  function go(i, w, fee, depth, via, parent, choice) {
+    const id = tree.length; tree.push({i: i, parent: parent, choice: choice, depth: depth - 1, kids: [], w: w, fee: fee}); if (parent !== null) tree[parent].kids.push(id);
+    const f = {label: 'best_load(' + i + ', ' + w + ', ' + fee + ')', tid: id, vars: [['i', i], ['weight', w], ['fee', fee], ['tried', null]], wait: null, ret: null, seen: ['start']};
+    R.stack.push(f); calls++; deepest = Math.max(deepest, depth); R.viz.st[id] = 1; setMem(); R.mem.weight = w + ' lb'; R.mem.fee = '$' + fee;
+    const leaf = i === n;
+    R.snap({phase: 'call', node: 'd', line: 2, cond: ['i == len(names)', i + ' == ' + n, leaf], tok: {edges: via ? [via + '>start', 'start>d'] : ['start>d'], label: w + ' lb, $' + fee, color: SKY},
+      text: (depth === 1 ? 'MAIN calls best_load(0, 0, 0): start with order ' + names[0] + ', an empty van, and 0 dollars. ' : 'A frame for ' + f.label + ' is pushed. The load so far is ' + show(current) + ' (' + w + ' lb, ' + fee + ' dollars). ') +
+        'It asks: i == len(names)? ' + i + ' == ' + n + ' is ' + pyBool(leaf) + (leaf ? '.' : ', so order ' + names[i] + ' is still undecided.')});
+    if (leaf) {
+      const fits = w <= CAPACITY, better = fits && fee > bestFee; tried++;
+      if (better) { best = current.slice(); bestFee = fee; bestW = w; R.viz.best = id; R.mem.best = show(best).replace(/ \+ /g, ', ') + ': $' + fee; }
+      R.viz.st[id] = fits ? 3 : 4; R.mem.tried = tried + ' of ' + total; f.ret = '1';
+      R.con.push((show(current) + ':').padEnd(19) + (w + ' lb').padStart(7) + ('$' + fee).padStart(6) + (fits ? (better ? '  fits, new best' : '  fits') : '  too heavy'));
+      R.snap({phase: 'base', node: 'leaf', line: better ? 4 : 3, tok: {edges: ['d>leaf'], label: 'Yes', color: fits ? GREEN : CORAL},
+        text: 'Base case: every order is decided, so this is one complete load: ' + show(current) + ', ' + w + ' lb, ' + fee + ' dollars. ' +
+          (fits ? (better ? 'It fits 900 lb and pays more than the best so far, so it is saved as the new best.' : 'It fits 900 lb, but the best so far pays ' + bestFee + ' dollars, so nothing changes.') : 'It is over the 900 lb capacity of VAN-2, so it cannot go.') +
+          ' Loads tried: ' + tried + ' of ' + total + '. The call returns 1 (one load counted).'});
+      f.seen.push('base');
+      return {val: 1, from: 'base'};
+    }
+    current.push(i); setMem(); f.wait = 'best_load(' + (i + 1) + ', ' + (w + weights[i]) + ', ' + (fee + fees[i]) + ')'; R.viz.st[id] = 2;
+    R.snap({phase: 'rec', node: 'c1', line: 7, tok: {edges: ['d>c1'], label: 'No', color: SKY},
+      text: 'First choice for ' + names[i] + ': take it. current.append(' + i + ') puts ' + names[i] + ' in the load, and the function calls itself for the next order with ' + (w + weights[i]) + ' lb and ' + (fee + fees[i]) + ' dollars.'});
+    const a = go(i + 1, w + weights[i], fee + fees[i], depth + 1, 'c1', id, 'take'); R.stack.pop();
+    current.pop(); setMem(); R.mem.weight = w + ' lb'; R.mem.fee = '$' + fee; f.vars[3][1] = a.val; f.wait = 'best_load(' + (i + 1) + ', ' + w + ', ' + fee + ')';
+    R.snap({phase: 'rec', node: 'c2', line: 9, tok: {edges: [a.from + '>c1', 'c1>c2'], label: String(a.val), color: GREEN},
+      text: 'Every load that takes ' + names[i] + ' here is tried (' + plural(a.val, 'load') + '). Backtrack: current.pop() takes ' + names[i] + ' out again, which undoes the choice. Second choice: skip ' + names[i] + ' and call for the next order with the same ' + w + ' lb and ' + fee + ' dollars.'});
+    const b = go(i + 1, w, fee, depth + 1, 'c2', id, 'skip'); R.stack.pop();
+    const val = a.val + b.val;
+    f.vars[3][1] = val; f.wait = null; f.ret = String(val); R.viz.st[id] = 5; setMem(); R.mem.weight = w + ' lb'; R.mem.fee = '$' + fee;
+    R.snap({phase: 'ret', node: 'ret', line: 10, tok: {edges: [b.from + '>c2', 'c2>ret'], label: String(b.val), color: GREEN},
+      text: 'Both choices for ' + names[i] + ' are explored from this point. ' + f.label + ' returns ' + a.val + ' + ' + b.val + ' = ' + plural(val, 'load') + ' tried.'});
+    return {val: val, from: 'ret'};
+  }
+  const r = go(0, 0, 0, 1, null, null, null); R.stack.pop();
+  const g = greedyPerPound(names), diff = bestFee - g.fee;
+  R.mem.load = '(empty)'; R.mem.weight = '0 lb'; R.mem.fee = '$0'; R.con.push(String(r.val), '[' + best.join(', ') + ']');
+  R.snap({phase: 'ret', node: null, line: 13, tok: null,
+    text: 'All ' + r.val + ' loads are tried and the stack is empty. The best load is ' + show(best) + ': ' + bestW + ' lb, ' + bestFee + ' dollars (print shows the positions ' + '[' + best.join(', ') + ']). ' +
+      'The fee per pound rule from week 3 takes ' + g.taken.join(', ') + ' from these orders: ' + g.weight + ' lb, ' + g.fee + ' dollars' + (diff > 0 ? ', which is ' + diff + ' dollars less. The greedy rule was quick but not the best; trying everything is sure, and it cost ' + r.val + ' loads here, 64 for all six orders, and 1,048,576 for 20 orders.' : ', the same fee. The greedy rule got lucky here; only trying everything proves it.')});
+  let leafN = 0;
+  (function place(id) { const t = tree[id]; if (!t.kids.length) { t.x = leafN++; return; } t.kids.forEach(place); t.x = (tree[t.kids[0]].x + tree[t.kids[1]].x) / 2; })(0);
+  return {result: r.val, calls: calls, deepest: deepest, tree: tree, leaves: leafN, levels: n + 1, names: names, best: best.map(i => names[i]), bestFee: bestFee, bestW: bestW, greedy: g};
+}
+
+function simulate(cfg) {
+  const R = Recorder(); let out, fnLines, main, memVars;
+  if (cfg.mode === 'power' || cfg.mode === 'factorial') {
+    const nb = !!cfg.nobase, A = cfg.mode === 'power' ? {base: cfg.base, exp: cfg.exp} : {n: cfg.n};
+    out = simLinear(R, cfg.mode, A, nb); fnLines = CODE[cfg.mode + (nb ? '_nb' : '')];
+    main = ['result = ' + (cfg.mode === 'power' ? 'power(' + cfg.base + ', ' + cfg.exp + ')' : 'factorial(' + cfg.n + ')'), 'print(result)'];
+    memVars = [['running', 'the frame on top of the stack'], ['depth', 'frames on the stack now'], ['returned', 'the last value a call returned'], ['result', 'what MAIN receives at the end']];
+  } else if (cfg.mode === 'fib') {
+    out = simFib(R, cfg.fibn); fnLines = CODE.fib; main = ['result = fib(' + cfg.fibn + ')', 'print(result)'];
+    memVars = [['running', 'the frame on top of the stack'], ['depth', 'frames on the stack now'], ['calls', 'calls to fib so far'], ['result', 'what MAIN receives at the end']];
+  } else if (cfg.mode === 'evenodd') {
+    out = simEvenOdd(R, cfg.eo, cfg.eon); fnLines = CODE.evenodd; main = ['result = ' + cfg.eo + '(' + cfg.eon + ')', 'print(result)'];
+    memVars = [['running', 'the frame on top of the stack'], ['depth', 'frames on the stack now'], ['returned', 'the last value a call returned'], ['result', 'what MAIN receives at the end']];
+  } else if (cfg.mode === 'hanoi') {
+    out = simHanoi(R, cfg.crates); fnLines = CODE.hanoi; main = ['moves = hanoi(' + cfg.crates + ', "A", "C", "B")', 'print(moves)'];
+    memVars = [['running', 'the frame on top of the stack'], ['depth', 'frames on the stack now'], ['moves', 'moves made, of 2 to the power n minus 1'], ['result', 'what MAIN prints at the end']];
+  } else {
+    out = simSubsets(R, cfg.set); fnLines = CODE.subsets; main = ['tried = best_load(0, 0, 0)', 'print(tried)', 'print(best)'];
+    memVars = [['load', 'current: the orders in the van now'], ['weight', 'of the current load (limit 900 lb)'], ['fee', 'of the current load'], ['best', 'best so far: the best load that fits'], ['tried', 'complete loads checked']];
+  }
+  const init = {phase: null, node: null, line: 0, tok: null, err: false, cond: null, stack: [], con: [], seen: [],
+    mem: Object.assign({}, R.steps[0].mem, cfg.mode === 'subsets' ? {} : {running: 'MAIN', depth: 0}, cfg.mode === 'fib' ? {calls: 0} : {}),
+    viz: cfg.mode === 'hanoi' ? {pegs: {A: R.steps[0].viz.pegs.A.slice(), B: [], C: []}, last: null} : cfg.mode === 'fib' ? {st: [], val: []} : cfg.mode === 'subsets' ? {st: [], best: null} : null};
+  if (cfg.mode === 'hanoi') { init.viz.pegs.A = []; for (let k = cfg.crates; k >= 1; k--) init.viz.pegs.A.push(k); }
+  return Object.assign(out, {steps: R.steps, init: init, lines: fnLines.concat([''], main), fnLines: fnLines.length, memVars: memVars});
+}
+
+// ---- the flowcharts (grid units: col, row; 230 px per column, 92 px per row). RETURN ovals end a call, the way Flowgorithm draws the End of a function ----
+const COLW = 230, ROWH = 92;
+const hwOf = n => (n.w || (n.type === 'decision' ? 210 : 180)) / 2 / COLW;
+const hhOf = n => (n.type === 'decision' ? 82 : 54) / 2 / ROWH;
+const N = (id, type, text, col, row, w) => ({id: id, type: type, text: text, col: col, row: row, w: w});
+function chartFor(cfg) {
+  const nodes = [], edges = [], tags = [], loops = [], rets = [], flights = [];
+  const by = id => nodes.find(n => n.id === id);
+  const E = (from, to, o) => { edges.push(Object.assign({from: from, to: to}, o || {})); return from + '>' + to; };
+  const right = (a, b, o) => E(a, b, Object.assign({points: [[by(a).col + hwOf(by(a)), by(a).row], [by(b).col - hwOf(by(b)), by(b).row]]}, o || {}));
+  const loop = (a, lane) => loops.push(E(a, 'start', {points: [[by(a).col - hwOf(by(a)), by(a).row], [lane, by(a).row], [lane, by('start').row], [by('start').col - hwOf(by('start')), by('start').row]]}));
+  const flight = (a, b) => flights.push(E(a, b, {points: [[by(a).col, by(a).row], [by(b).col, by(b).row]]}));
+  let cols = 1.8, rows = 4, note = null;
+  if (cfg.mode === 'power' || cfg.mode === 'factorial') {
+    const isP = cfg.mode === 'power', head = isP ? 'START\npower(base, exp)' : 'START\nfactorial(n)', callT = isP ? 'smaller =\npower(base, exp - 1)' : 'smaller =\nfactorial(n - 1)', retT = isP ? 'RETURN\nbase × smaller' : 'RETURN\nn × smaller';
+    if (cfg.nobase) {
+      nodes.push(N('start', 'terminal', head, 0, 0, 200), N('call', 'call', callT, 0, 1.15, 224), N('ret', 'terminal', retT, 0, 2.3, 200));
+      E('start', 'call'); E('call', 'ret'); loop('call', -0.56);
+      tags.push(['call', 'recursive case', 'sky']); rows = 3.3; cols = 1.8;
+      note = {col: 0.56, row: 0.3, lines: ['Base case removed:', 'no symbol can', 'end the calls.']};
+    } else {
+      nodes.push(N('start', 'terminal', head, 0, 0, 200), N('d', 'decision', isP ? 'exp == 0?' : 'n == 0?', 0, 1, 190), N('base', 'terminal', 'RETURN 1', 1, 1, 150), N('call', 'call', callT, 0, 2, 224), N('ret', 'terminal', retT, 0, 3, 200));
+      E('start', 'd'); right('d', 'base', {label: 'Yes', side: 'right'}); E('d', 'call', {label: 'No'}); E('call', 'ret'); loop('call', -0.56);
+      rets.push(E('base', 'call', {points: [[1, 1 + hhOf(by('base'))], [1, 1.83], [hwOf(by('call')), 1.83]]}));
+      rets.push(E('ret', 'call', {points: [[hwOf(by('ret')), 3], [0.62, 3], [0.62, 2.17], [hwOf(by('call')), 2.17]]}));
+      tags.push(['base', 'base case', 'green'], ['call', 'recursive case', 'sky']);
+    }
+  } else if (cfg.mode === 'fib') {
+    nodes.push(N('start', 'terminal', 'START fib(n)', 0, 0, 180), N('d', 'decision', 'n < 2?', 0, 1, 190), N('base', 'terminal', 'RETURN n', 1, 1, 150), N('c1', 'call', 'fib(n - 1)', 0, 2, 180), N('c2', 'call', 'fib(n - 2)', 0, 3, 180), N('ret', 'terminal', 'RETURN\nfib(n-1) + fib(n-2)', 0, 4, 224));
+    E('start', 'd'); right('d', 'base', {label: 'Yes', side: 'right'}); E('d', 'c1', {label: 'No'}); E('c1', 'c2'); E('c2', 'ret'); loop('c1', -0.56); loop('c2', -0.56);
+    flight('base', 'c1'); flight('base', 'c2'); flight('ret', 'c1'); flight('ret', 'c2');
+    tags.push(['base', 'base case', 'green'], ['c1', 'recursive case', 'sky'], ['c2', 'recursive case', 'sky']); rows = 5;
+  } else if (cfg.mode === 'evenodd') {
+    const OC = 1.42;
+    nodes.push(N('e_start', 'terminal', 'START\nis_even(n)', 0, 0, 170), N('e_d', 'decision', 'n == 0?', 0, 1, 180), N('e_call', 'call', 'RETURN\nis_odd(n - 1)', 0, 2, 190), N('e_base', 'terminal', 'RETURN True', 0, 3, 170),
+      N('o_start', 'terminal', 'START\nis_odd(n)', OC, 0, 170), N('o_d', 'decision', 'n == 0?', OC, 1, 180), N('o_call', 'call', 'RETURN\nis_even(n - 1)', OC, 2, 190), N('o_base', 'terminal', 'RETURN False', OC, 3, 170));
+    E('e_start', 'e_d'); E('e_d', 'e_call', {label: 'No'}); E('e_d', 'e_base', {label: 'Yes', side: 'left', points: [[-hwOf(by('e_d')), 1], [-0.5, 1], [-0.5, 3], [-hwOf(by('e_base')), 3]]});
+    E('o_start', 'o_d'); E('o_d', 'o_call', {label: 'No'}); E('o_d', 'o_base', {label: 'Yes', side: 'right', points: [[OC + hwOf(by('o_d')), 1], [OC + 0.5, 1], [OC + 0.5, 3], [OC + hwOf(by('o_base')), 3]]});
+    loops.push(E('e_call', 'o_start', {points: [[hwOf(by('e_call')), 1.9], [0.6, 1.9], [0.6, 0.1], [OC - hwOf(by('o_start')), 0.1]]}));
+    loops.push(E('o_call', 'e_start', {points: [[OC - hwOf(by('o_call')), 2.1], [0.82, 2.1], [0.82, -0.1], [hwOf(by('e_start')), -0.1]]}));
+    flight('o_base', 'e_call'); flight('o_call', 'e_call'); flight('e_base', 'o_call'); flight('e_call', 'o_call');
+    tags.push(['e_base', 'base case', 'green'], ['o_base', 'base case', 'green']); cols = 2.36; rows = 4;
+  } else if (cfg.mode === 'hanoi') {
+    const M = 0.15, B = 1.15;
+    nodes.push(N('start', 'terminal', 'START hanoi(n,\nsource, target, spare)', M, 0, 224), N('d', 'decision', 'n == 0?', M, 1, 190), N('base', 'terminal', 'RETURN 0', B, 1, 150),
+      N('c1', 'call', 'hanoi(n - 1,\nsource, spare, target)', M, 2, 224), N('mv', 'io', 'OUTPUT Move crate n\nsource to target', M, 3, 224), N('c2', 'call', 'hanoi(n - 1,\nspare, target, source)', M, 4, 224), N('ret', 'terminal', 'RETURN moves', B, 4, 164));
+    E('start', 'd'); right('d', 'base', {label: 'Yes', side: 'right'}); E('d', 'c1', {label: 'No'}); E('c1', 'mv'); E('mv', 'c2'); right('c2', 'ret'); loop('c1', M - 0.6); loop('c2', M - 0.6);
+    flight('base', 'c1'); flight('base', 'c2'); flight('ret', 'c1'); flight('ret', 'c2');
+    tags.push(['base', 'base case', 'green'], ['c1', 'recursive case', 'sky'], ['c2', 'recursive case', 'sky']); cols = 1.98; rows = 5;
+  } else {
+    const M = 0.15, B = 1.3;
+    nodes.push(N('start', 'terminal', 'START best_load\n(i, weight, fee)', M, 0, 224), N('d', 'decision', 'i == len(names)?', M, 1, 236), N('leaf', 'process', 'save this load\nif it is the best', B, 1, 196), N('base', 'terminal', 'RETURN 1', B, 2, 150),
+      N('c1', 'call', 'TAKE order i\nbest_load(i + 1, ...)', M, 2, 224), N('c2', 'call', 'SKIP order i\nbest_load(i + 1, ...)', M, 3, 224), N('ret', 'terminal', 'RETURN tried', M, 4, 170));
+    E('start', 'd'); right('d', 'leaf', {label: 'Yes', side: 'right'}); E('leaf', 'base'); E('d', 'c1', {label: 'No'}); E('c1', 'c2'); E('c2', 'ret'); loop('c1', M - 0.6); loop('c2', M - 0.6);
+    flight('base', 'c1'); flight('base', 'c2'); flight('ret', 'c1'); flight('ret', 'c2');
+    tags.push(['leaf', 'base case', 'green'], ['c1', 'take', 'sky'], ['c2', 'undo, then skip', 'sky']); cols = 2.2; rows = 5;
+  }
+  return {cols: cols, rows: rows, colW: COLW, rowH: ROWH, pad: 30, key: false, startFit: true, nodes: nodes, edges: edges, tags: tags, loops: loops, rets: rets, flights: flights, note: note};
+}
+// SIM END
+
+// ---- the learner's choices ----
+const CFG = {mode: 'power', base: 2, exp: 3, n: 4, fibn: 4, eo: 'is_even', eon: 3, crates: 3, set: 'a', nobase: false};
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NSVG = 'http://www.w3.org/2000/svg';
+const sv = (t, a, p) => { const e = document.createElementNS(NSVG, t); Object.keys(a || {}).forEach(k => e.setAttribute(k, a[k])); if (p) p.appendChild(e); return e; };
+const isLinear = () => CFG.mode === 'power' || CFG.mode === 'factorial';
+const callText = () => CFG.mode === 'power' ? 'power(' + CFG.base + ', ' + CFG.exp + ')' : CFG.mode === 'factorial' ? 'factorial(' + CFG.n + ')' : CFG.mode === 'fib' ? 'fib(' + CFG.fibn + ')'
+  : CFG.mode === 'evenodd' ? CFG.eo + '(' + CFG.eon + ')' : CFG.mode === 'hanoi' ? 'hanoi(' + CFG.crates + ', "A", "C", "B")' : 'best_load(0, 0, 0)';
+
+let fk = null, SIM = null, STEPS = [], MEM = null, VIZ = null, INFO = {}, CHART = null;
+const CON = FlowKit.console($('#screen'));
+let K = 0, tl = null, running = false, timer = null, speed = 1;
+const SPEEDS = [0.25, 0.5, 1, 2, 4];
+
+// ---- click-to-explain notes ----
+function infoFor(cfg) {
+  const m = cfg.mode, flow = ' In Flowgorithm the End oval of a function shows its Return value, so a RETURN oval here ends the call.';
+  if (m === 'power' || m === 'factorial') {
+    const p = m === 'power', nm = p ? 'power' : 'factorial', v = p ? 'exp' : 'n';
+    if (cfg.nobase) return {
+      start: '<b>START.</b> Each call of ' + nm + ' begins here with its own parameters, kept in a new frame on the call stack.',
+      call: '<b>CALL.</b> With the base case removed, every call reaches this symbol and calls again with ' + v + ' - 1. The value goes 3, 2, 1, 0, -1, -2 and nothing ever tells it to stop.',
+      ret: '<b>RETURN.</b> Never reached in this version: no call ever comes back, so there is never a value to multiply.'};
+    return {
+      start: '<b>START.</b> Each call of ' + nm + ' begins here with its own parameters (' + (p ? 'base and exp' : 'n') + '), kept in a new frame on the call stack.',
+      d: '<b>DECISION: the base case test.</b> ' + v + ' == 0? asks whether the problem is small enough to answer right away. Every recursive function needs a test like this one.',
+      base: '<b>RETURN 1: the base case.</b> ' + (p ? 'Any number to the power 0 is 1' : 'The factorial of 0 is 1') + ', so no more calls are needed. This is where the chain of calls stops.' + flow,
+      call: '<b>CALL: the recursive case.</b> The function calls itself with ' + v + ' - 1, so every call is one step closer to the base case. The dashed arrow goes back to START, where a new frame begins. The dotted arrows show where a returned value comes back.',
+      ret: '<b>RETURN ' + (p ? 'base × smaller' : 'n × smaller') + '.</b> This runs only after the smaller call has returned. The frame is popped and the value goes to whoever was waiting.'};
+  }
+  if (m === 'fib') return {
+    start: '<b>START.</b> Each call of fib begins here with its own n in a new frame.',
+    d: '<b>DECISION: the base case test.</b> n < 2? covers two base cases at once: fib(0) is 0 and fib(1) is 1.',
+    base: '<b>RETURN n: the base case.</b> For 0 and 1 the answer is n, with no more calls.' + flow,
+    c1: '<b>CALL fib(n - 1): the first recursive call.</b> The frame waits here until the whole subtree under fib(n - 1) has finished.',
+    c2: '<b>CALL fib(n - 2): the second recursive call.</b> Two calls per frame is why the call tree doubles so fast. Much of this work was already done under the first call.',
+    ret: '<b>RETURN fib(n-1) + fib(n-2).</b> In Python this is one line: both calls and the addition. The frame is popped and the sum goes back.'};
+  if (m === 'evenodd') return {
+    e_start: '<b>START is_even(n).</b> A frame for is_even is pushed with its own n.',
+    e_d: '<b>DECISION.</b> n == 0? is the base case test of is_even.',
+    e_base: '<b>RETURN True: the base case.</b> Zero is even.',
+    e_call: '<b>CALL is_odd(n - 1).</b> is_even does not call itself. It calls is_odd, which calls is_even again: that is indirect recursion. When a function calls itself, as power does, the recursion is direct.',
+    o_start: '<b>START is_odd(n).</b> A frame for is_odd is pushed with its own n.',
+    o_d: '<b>DECISION.</b> n == 0? is the base case test of is_odd.',
+    o_base: '<b>RETURN False: the base case.</b> Zero is not odd.',
+    o_call: '<b>CALL is_even(n - 1).</b> The other half of the loop between the two functions. Each crossing makes n smaller by 1, so the calls always reach zero.'};
+  if (m === 'hanoi') return {
+    start: '<b>START.</b> hanoi(n, source, target, spare) moves n crates from the source pallet to the target pallet. A bigger crate may never sit on a smaller one.',
+    d: '<b>DECISION: the base case test.</b> n == 0? means there is nothing to move.',
+    base: '<b>RETURN 0: the base case.</b> Zero crates take zero moves.' + flow,
+    c1: '<b>First recursive call.</b> Move the n - 1 smaller crates out of the way, from the source to the spare. Notice that target and spare trade places in the arguments.',
+    mv: '<b>OUTPUT: the one real move.</b> The biggest crate of this call goes from source to target. Each frame makes exactly one move.',
+    c2: '<b>Second recursive call.</b> Move the n - 1 smaller crates from the spare onto the big crate. Two calls around one move gives 2 to the power n minus 1 moves in all.',
+    ret: '<b>RETURN moves.</b> The moves of the first call, plus 1, plus the moves of the second call.'};
+  return {
+    start: '<b>START.</b> best_load(i, weight, fee) decides order number i. weight and fee describe the load built so far.',
+    d: '<b>DECISION: the base case test.</b> i == len(names)? is True when every order has been decided, so the load is complete.',
+    leaf: '<b>PROCESS: check one complete load.</b> If the weight is at most 900 lb and the fee beats the best so far, the load is saved as the new best.',
+    base: '<b>RETURN 1: the base case.</b> One complete load was counted.' + flow,
+    c1: '<b>TAKE order i.</b> current.append(i) puts the order in the load, then the function calls itself for the next order with the larger weight and fee.',
+    c2: '<b>SKIP order i.</b> First current.pop() takes the order out again (the undo that gives backtracking its name), then the function calls itself for the next order with the same weight and fee.',
+    ret: '<b>RETURN tried.</b> The loads counted under "take" plus the loads counted under "skip". Two choices for each of n orders gives 2 to the power n loads.'};
+}
+
+// ---- small labels on the chart: base case, recursive case ----
+function tag(id, text, tone) {
+  const r = fk.nodes[id]; if (!r) return;
+  const w = text.length * 6.3 + 16, top = r.geo.cy - r.geo.h / 2, x = r.type === 'call' ? r.geo.cx + 40 : r.geo.cx + r.geo.w / 2 - w + 8;
+  const g = fk.el('g', {class: 'rr-tag', 'pointer-events': 'none'}, fk.layers.labels);
+  fk.el('rect', {x: x, y: top - 10, width: w, height: 19, rx: 9.5, fill: tone === 'green' ? '#2E9E63' : '#1F86B5', stroke: '#FFFFFF', 'stroke-width': 1.5}, g);
+  const t = fk.el('text', {x: x + w / 2, y: top + 3.5, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 10.5, 'font-weight': 800, 'font-family': 'Figtree, Arial, sans-serif', 'letter-spacing': '.03em'}, g); t.textContent = text;
+}
+function chartNote(n) {
+  const g = fk.el('g', {'pointer-events': 'none'}, fk.layers.labels);
+  n.lines.forEach((l, i) => { const t = fk.el('text', {x: fk.X(n.col), y: fk.Y(n.row) + i * 17, fill: '#D6473C', 'font-size': 13, 'font-weight': 700, 'font-family': 'Figtree, Arial, sans-serif'}, g); t.textContent = l; });
+}
+
+// ---- the pictures beside the chart: the fib call tree, the dock pallets, the take-or-skip tree ----
+const TINT = ['#E9EBF2', '#FBEFC4', '#D9EEFA', '#DCF4E6', '#E1E4FF', '#FADCD8', '#FFFFFF'];
+function fibTree(host) {
+  const T = SIM.tree, dx = 31, dy = 42, cols = Math.max(SIM.leaves, 5), W = cols * dx + 12, H = SIM.levels * dy + 10;
+  const svg = sv('svg', {viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Call tree of fib(' + CFG.fibn + ')'}, host);
+  svg.style.maxHeight = Math.min(230, H * 1.1) + 'px';
+  const px = t => 6 + (cols - SIM.leaves) * dx / 2 + t.x * dx + dx / 2, py = t => 14 + t.depth * dy;
+  const gE = sv('g', {}, svg), gN = sv('g', {}, svg), els = [];
+  T.forEach((t, i) => {
+    const e = t.parent === null ? null : sv('line', {x1: px(T[t.parent]), y1: py(T[t.parent]) + 9, x2: px(t), y2: py(t) - 9, stroke: '#8A90B8', 'stroke-width': 1.5}, gE);
+    const g = sv('g', {transform: 'translate(' + px(t) + ',' + py(t) + ')'}, gN);
+    const r = sv('rect', {x: -14, y: -9.5, width: 28, height: 19, rx: 9.5, fill: TINT[t.n], stroke: '#3F4A8F', 'stroke-width': 1.5}, g);
+    const tx = sv('text', {y: 4, 'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", Consolas, monospace', fill: '#1A1D2E'}, g); tx.textContent = 'f(' + t.n + ')';
+    const val = sv('text', t.kids.length ? {x: 16, y: 4, 'text-anchor': 'start', 'font-size': 10, 'font-weight': 700, 'font-family': '"Red Hat Mono", Consolas, monospace', fill: '#2E9E63'} : {y: 21, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, 'font-family': '"Red Hat Mono", Consolas, monospace', fill: '#2E9E63'}, g);
+    const title = sv('title', {}, g); title.textContent = 'fib(' + t.n + ')';
+    els.push({g: g, e: e, r: r, val: val});
+  });
+  return {draw(v, prev, animate) {
+    const top = v.stack.length ? v.stack[v.stack.length - 1].tid : -1;
+    els.forEach((el, i) => {
+      const st = v.viz.st[i] || 0, was = prev && prev.viz ? prev.viz.st[i] || 0 : st;
+      el.g.style.display = st ? '' : 'none'; if (el.e) el.e.style.display = st ? '' : 'none';
+      el.r.setAttribute('stroke', i === top ? '#E0B840' : st === 3 ? '#2E9E63' : '#3F4A8F'); el.r.setAttribute('stroke-width', i === top ? 3.5 : st === 3 ? 2 : 1.5);
+      el.r.setAttribute('stroke-dasharray', st === 2 && i !== top ? '4 3' : 'none');
+      el.val.textContent = st === 3 ? '=' + v.viz.val[i] : '';
+      if (animate && hasGSAP && !reduceMotion && st && !was) gsap.from(el.g, {opacity: 0, duration: .3 / speed});
+    });
+  }};
+}
+function subsetTree(host) {
+  const T = SIM.tree, n = SIM.names.length, dx = SIM.leaves > 8 ? 26 : 44, dy = 40, left = 34, W = left + SIM.leaves * dx + 8, H = (n + 1) * dy + 16;
+  const svg = sv('svg', {viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Take or skip tree for ' + SIM.names.join(', ')}, host);
+  svg.style.maxHeight = Math.min(230, H * 1.15) + 'px';
+  const px = t => left + t.x * dx + dx / 2, py = t => 14 + t.depth * dy;
+  SIM.names.forEach((nm, i) => { const t = sv('text', {x: 2, y: 14 + i * dy + dy / 2 + 4, 'font-size': 11, 'font-weight': 700, 'font-family': '"Red Hat Mono", Consolas, monospace', fill: '#5d6178'}, svg); t.textContent = nm + '?'; });
+  const gE = sv('g', {}, svg), gN = sv('g', {}, svg), els = [];
+  T.forEach((t, i) => {
+    const leaf = !t.kids.length, rad = leaf ? 8.5 : 6.5;
+    const e = t.parent === null ? null : sv('line', {x1: px(T[t.parent]), y1: py(T[t.parent]), x2: px(t), y2: py(t), stroke: '#8A90B8', 'stroke-width': 1.6, 'stroke-dasharray': t.choice === 'skip' ? '4 3' : 'none'}, gE);
+    const g = sv('g', {transform: 'translate(' + px(t) + ',' + py(t) + ')'}, gN);
+    const ring = sv('circle', {r: rad + 4.5, fill: 'none', stroke: '#E0B840', 'stroke-width': 3}, g);
+    const c = sv('circle', {r: rad, fill: '#FFFFFF', stroke: '#3F4A8F', 'stroke-width': 1.6}, g);
+    const lab = leaf ? sv('text', {y: 24, 'text-anchor': 'middle', 'font-size': SIM.leaves > 8 ? 10.5 : 11.5, 'font-weight': 700, 'font-family': '"Red Hat Mono", Consolas, monospace', fill: '#1A1D2E'}, g) : null;
+    if (lab) lab.textContent = t.fee;
+    const title = sv('title', {}, g); title.textContent = t.w + ' lb, ' + t.fee + ' dollars';
+    els.push({g: g, e: e, c: c, ring: ring, leaf: leaf});
+  });
+  return {draw(v, prev, animate) {
+    const top = v.stack.length ? v.stack[v.stack.length - 1].tid : -1;
+    els.forEach((el, i) => {
+      const st = v.viz.st[i] || 0, was = prev && prev.viz ? prev.viz.st[i] || 0 : st;
+      el.g.style.display = st ? '' : 'none'; if (el.e) el.e.style.display = st ? '' : 'none';
+      el.c.setAttribute('fill', st === 3 ? '#6FD49B' : st === 4 ? '#F0786A' : st === 5 ? '#DADDEA' : i === top ? '#FBEFC4' : '#FFFFFF');
+      el.c.setAttribute('stroke', i === top ? '#B8921F' : st === 3 ? '#2E9E63' : st === 4 ? '#D6473C' : '#3F4A8F'); el.c.setAttribute('stroke-width', i === top ? 3 : 1.6);
+      el.ring.style.display = v.viz.best === i ? '' : 'none';
+      if (animate && hasGSAP && !reduceMotion && st && !was) gsap.from(el.g, {opacity: 0, duration: .3 / speed});
+    });
+  }};
+}
+function pallets(host) {
+  const n = CFG.crates, CH = 20, FLOOR = 34 + n * CH, W = 360, H = FLOOR + 34, PX = {A: 62, B: 180, C: 298};
+  const svg = sv('svg', {viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Three dock pallets A, B, and C with crates'}, host);
+  svg.style.maxHeight = Math.round(H * 1.15) + 'px';
+  ['A', 'B', 'C'].forEach(p => {
+    sv('rect', {x: PX[p] - 54, y: FLOOR, width: 108, height: 7, rx: 2, fill: '#C9A45A', stroke: '#8a6a08', 'stroke-width': 1.2}, svg);
+    [-40, 0, 40].forEach(o => sv('rect', {x: PX[p] + o - 7, y: FLOOR + 7, width: 14, height: 6, fill: '#B08A3E', stroke: '#8a6a08', 'stroke-width': 1}, svg));
+    const t = sv('text', {x: PX[p], y: FLOOR + 28, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 800, 'font-family': 'Archivo, Arial, sans-serif', fill: '#283068'}, svg); t.textContent = 'Pallet ' + p;
+  });
+  const crates = {}, pos = {};
+  for (let k = n; k >= 1; k--) {
+    const w = 34 + k * 16, g = sv('g', {}, svg);
+    const r = sv('rect', {x: -w / 2, y: -CH / 2, width: w, height: CH - 2, rx: 3, fill: TINT[k], stroke: '#3F4A8F', 'stroke-width': 1.6}, g);
+    const t = sv('text', {y: 3.5, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, 'font-family': '"Red Hat Mono", Consolas, monospace', fill: '#1A1D2E'}, g); t.textContent = k;
+    crates[k] = {g: g, r: r};
+  }
+  const where = pegs => { const o = {}; ['A', 'B', 'C'].forEach(p => pegs[p].forEach((k, lvl) => { o[k] = [PX[p], FLOOR - CH / 2 - lvl * CH]; })); return o; };
+  const put = (k, x, y) => { if (hasGSAP) gsap.set(crates[k].g, {x: x, y: y}); else crates[k].g.setAttribute('transform', 'translate(' + x + ',' + y + ')'); };
+  return {draw(v, prev, animate) {
+    const to = where(v.viz.pegs), last = v.viz.last;
+    Object.keys(crates).forEach(k => {
+      const c = crates[k], moved = last && +k === last[0];
+      c.r.setAttribute('stroke', moved ? '#B8921F' : '#3F4A8F'); c.r.setAttribute('stroke-width', moved ? 3 : 1.6);
+      if (hasGSAP) gsap.killTweensOf(c.g);
+      const from = pos[k];
+      if (animate && hasGSAP && !reduceMotion && from && (from[0] !== to[k][0] || from[1] !== to[k][1])) {
+        gsap.timeline().to(c.g, {y: 12, duration: .22 / speed, ease: 'power1.in'}).to(c.g, {x: to[k][0], duration: .3 / speed, ease: 'power1.inOut'}).to(c.g, {y: to[k][1], duration: .22 / speed, ease: 'power1.out'});
+      } else put(k, to[k][0], to[k][1]);
+      pos[k] = to[k];
+    });
+  }};
+}
+function buildViz() {
+  const card = $('#vizcard'), host = $('#viz'); host.innerHTML = ''; VIZ = null;
+  if (CFG.mode === 'fib') { card.hidden = false; $('#vizTitle').innerHTML = 'Call tree <small>one node per call</small>'; VIZ = fibTree(host); $('#vizKey').textContent = 'f(3) means fib(3). Same color: the same call done again. Gold ring: running now. Green: returned.'; }
+  else if (CFG.mode === 'hanoi') { card.hidden = false; $('#vizTitle').innerHTML = 'Dock pallets <small>goal: every crate on C</small>'; VIZ = pallets(host); $('#vizKey').textContent = 'One crate moves at a time, and a bigger crate never sits on a smaller one.'; }
+  else if (CFG.mode === 'subsets') { card.hidden = false; $('#vizTitle').innerHTML = 'Take or skip tree <small>one leaf per load</small>'; VIZ = subsetTree(host); $('#vizKey').textContent = 'Solid line: take. Dashed line: skip. Under each leaf: the fee of that load. Green fits 900 lb, coral is too heavy, the gold ring is the best so far.'; }
+  else card.hidden = true;
+}
+
+// ---- building the chart, the code, the memory, and the picture for the current choice ----
+function build() {
+  const box = $('#chartbox'); box.innerHTML = ''; if (window.__flows) window.__flows.length = 0;
+  SIM = simulate(CFG); STEPS = SIM.steps; CHART = chartFor(CFG);
+  fk = FlowKit(box, CHART);
+  CHART.loops.forEach(k => fk.edges[k].path.setAttribute('stroke-dasharray', '9 6'));
+  CHART.rets.forEach(k => fk.edges[k].path.setAttribute('stroke-dasharray', '2 6'));
+  CHART.flights.forEach(k => { fk.edges[k].g.style.opacity = 0; });
+  CHART.tags.forEach(t => tag(t[0], t[1], t[2]));
+  if (CHART.note) chartNote(CHART.note);
+  INFO = infoFor(CFG); fk.onPick(id => { $('#info').innerHTML = INFO[id] || ''; });
+  $('#info').innerHTML = 'Click any symbol in the flowchart to learn what it does.';
+  MEM = FlowKit.memory($('#memory'), SIM.memVars.map(v => ({name: v[0], label: v[1]})));
+  buildViz();
+  const nb = CFG.nobase && isLinear();
+  $('#codeTitle').textContent = nb ? 'recursion.py with the base case removed' : CFG.mode === 'subsets' ? 'dispatch.py: the part that runs now' : 'recursion.py: the part that runs now';
+  $('#codeNote').hidden = CFG.mode !== 'subsets';
+  $('#stage').setAttribute('aria-label', 'Flowchart of ' + callText() + ' with the call stack at its right. Press Step to move the data token through the symbols; use the zoom buttons or scroll to zoom, drag to move.');
+}
+
+// ---- drawing one snapshot (after K steps). Step back simply draws the snapshot before ----
+const view = k => k === 0 ? SIM.init : STEPS[k - 1];
+const PILL = {call: 'call', test: 'call', base: 'base', rec: 'rec', work: 'rec', ret: 'ret'};
+const PNAME = {call: 'Call', test: 'Test', base: 'Base case', rec: 'Recursive case', work: 'The move', ret: 'Return', err: 'Error'};
+function setPhase(p) {
+  const pill = PILL[p] || null; let color = 'var(--silk-dim)';
+  document.querySelectorAll('.phases li').forEach(li => { const on = li.dataset.p === pill; li.classList.toggle('on', on); if (on) color = getComputedStyle(li).getPropertyValue('--c'); });
+  $('#phaseTag').textContent = p ? PNAME[p] : 'Ready'; $('#phaseTag').style.setProperty('--pc', p === 'err' ? 'var(--ctrl)' : color);
+}
+function renderCode(active) {
+  $('#code').innerHTML = SIM.lines.map((l, i) => '<span class="ln' + (i + 1 === active ? ' on' : '') + '"><span class="no">' + (i + 1) + '</span>' +
+    (window.Prism ? Prism.highlight(l, Prism.languages.python, 'python') : esc(l)) + '</span>').join('');
+}
+function drawStack(v, prev, animate) {
+  const host = $('#frames'), n = v.stack.length, nb = CFG.nobase && isLinear(); let html = '';
+  if (v.err) html += '<div class="frame boom"><div class="fh"><b>Stack overflow</b></div><div class="fs">Python allows 1,000 frames, then raises RecursionError. No call ever returned.</div></div>';
+  for (let i = n - 1; i >= 0; i--) {
+    const f = v.stack[i], top = i === n - 1;
+    const cls = f.ret !== null ? 'ret' : top ? 'run' : 'wait';
+    const status = f.ret !== null ? 'returns ' + f.ret : f.wait ? 'waiting for ' + f.wait : 'running';
+    html += '<div class="frame ' + cls + '"><div class="fh"><b>' + esc(f.label) + '</b><span class="fs">' + esc(status) + '</span></div><div class="fv">' +
+      f.vars.map(p => '<span' + (p[1] === null ? ' class="e"' : '') + '><i>' + esc(p[0]) + '</i>' + (p[1] === null ? 'empty' : esc(p[1])) + '</span>').join('') + '</div></div>';
+  }
+  html += '<div class="frame main"><div class="fh"><b>MAIN</b><span class="fs">' + (n ? 'waiting for ' + esc(v.stack[0].label) : K === 0 ? 'has not called yet' : 'running again: the stack is empty') + '</span></div></div>';
+  host.innerHTML = html; host.classList.toggle('over', nb); host.classList.toggle('compact', !!VIZ); host.scrollTop = 0;
+  const d = $('#depth'); d.classList.toggle('over', nb && n > 4);
+  $('#depthN').textContent = n; $('#depthBar').style.width = Math.min(100, n / Math.max(1, SIM.deepest) * 100) + '%';
+  $('#depthMax').textContent = nb ? 'Python\'s limit: 1,000' : 'tallest in this run: ' + SIM.deepest;
+  if (animate && hasGSAP && !reduceMotion && prev) {
+    const first = host.querySelector('.frame:not(.boom)');
+    if (n > prev.stack.length && first) gsap.from(first, {y: -22, opacity: 0, duration: .3 / speed, ease: 'power2.out'});
+    else if (n < prev.stack.length && first) gsap.fromTo(first, {scale: 1.04}, {scale: 1, duration: .3 / speed});
+  }
+}
+function draw(k, animate) {
+  const v = view(k), prev = animate && k > 0 ? view(k - 1) : null;
+  fk.clear(); v.seen.forEach(id => fk.highlight(id, 'done')); if (v.node) fk.highlight(v.node, v.err ? 'error' : 'active');
+  if (v.tok) v.tok.edges.forEach(key => { const e = fk.edges[key]; if (e && CHART.flights.indexOf(key) < 0) { e.path.setAttribute('stroke', '#E0B840'); e.path.setAttribute('marker-end', 'url(#fk-arrow-hot)'); } });
+  drawStack(v, prev, animate);
+  SIM.memVars.forEach(m => { const val = v.mem[m[0]]; MEM.set(m[0], val, {pop: !!(prev && prev.mem[m[0]] !== val)}); });
+  CON.clear(); v.con.forEach(l => CON.print(l)); const scr = $('#screen'); scr.classList.toggle('err', !!v.err); scr.scrollTop = scr.scrollHeight;
+  if (VIZ) VIZ.draw(v, prev, animate);
+  const c = $('#cond');
+  if (v.cond) { c.hidden = false; c.innerHTML = '<span class="k">Test</span><code>' + esc(v.cond[0]) + '</code><span>is</span><code>' + esc(v.cond[1]) + '</code><span>which is</span><b class="' + (v.cond[2] ? 't' : 'f') + '">' + pyBool(v.cond[2]) + '</b>'; }
+  else c.hidden = true;
+}
+function introText() {
+  const base = 'Press Step to run ' + callText() + ', or Run to play every step. ';
+  if (CFG.nobase && isLinear()) return base + 'The base case is removed, so watch how tall the call stack gets.';
+  return base + ({power: 'Watch the call stack at the right of the chart: one frame per call.', factorial: 'Watch the call stack: one frame per call, each with its own n.',
+    fib: 'Watch the call tree grow and the Calls box count every call.', evenodd: 'Watch the token cross between the two charts.',
+    hanoi: 'Watch the crates on the pallets and the moves counter.', subsets: 'Watch the take or skip tree and the Best so far box.'})[CFG.mode];
+}
+function render() {
+  const N = STEPS.length, v = view(K), lin = isLinear(), nb = CFG.nobase && lin;
+  $('#hudStep').textContent = K; $('#ctx').textContent = 'Step ' + K + ' of ' + N;
+  $('#btnBack').disabled = K === 0; $('#btnStep').disabled = K >= N; $('#btnRun').textContent = running ? 'Pause' : 'Run'; $('#btnRun').disabled = K >= N && !running;
+  renderCode(v.line);
+  if (K === 0) guide(2, 'Press <b>Step</b> to start ' + esc(callText()) + ', or pick another function first.');
+  else if (K < N) guide(3, 'Read the explanation, then press <b>Step</b> for step ' + (K + 1) + ' of ' + N + '. <b>Step back</b> shows a step again.');
+  else if (nb) guide(4, 'That was a stack overflow. Press <b>Remove the base case</b> again to put the base case back, then try another function.');
+  else if (lin) guide(4, 'Done: ' + esc(callText()) + ' returned ' + SIM.result + '. Now press <b>Remove the base case</b> and then <b>Run</b>.');
+  else guide(CFG.mode === 'subsets' ? 6 : 5, CFG.mode === 'subsets' ? 'Done. Scroll down to <b>Try it</b> and run the tests, or press <b>Reset</b> to watch again.' : 'Done. Under <b>Pick a function</b> choose another one, or change the argument and press <b>Step</b>.');
+}
+
+// ---- the step engine ----
+function finish() { tl = null; K++; draw(K, true); render(); if (running) { if (K >= STEPS.length) stop(); else timer = setTimeout(stepFwd, 380 / speed); } }
+function stepFwd(animated) {
+  if (tl) { tl.progress(1); return; }
+  if (K >= STEPS.length) return;
+  const m = STEPS[K]; setPhase(m.phase); $('#narration').textContent = m.text; renderCode(m.line);
+  if (animated !== false && hasGSAP && !reduceMotion && m.tok) {
+    const cur = view(K).node; if (cur) fk.highlight(cur, 'done');
+    tl = gsap.timeline({onComplete: finish});
+    const f = fk.token(m.tok.edges, m.tok.label, m.tok.color); if (f) tl.add(f);
+    tl.to({}, {duration: .12}); tl.timeScale(speed);
+  } else finish();
+}
+function back() { stop(); if (tl) { tl.kill(); tl = null; } if (K === 0) return; K--; const v = view(K); setPhase(v.phase); draw(K, false); $('#narration').textContent = K === 0 ? introText() : v.text; render(); }
+function run() { if (K >= STEPS.length) return; running = true; render(); stepFwd(); }
+function stop() { running = false; clearTimeout(timer); render(); }
+function reset() { stop(); if (tl) { tl.kill(); tl = null; } K = 0; setPhase(null); draw(0, false); $('#narration').textContent = introText(); render(); }
+function rebuild() { running = false; clearTimeout(timer); if (tl) { tl.kill(); tl = null; } build(); K = 0; setPhase(null); draw(0, false); $('#narration').textContent = introText(); render(); }
+
+// ---- argument pickers ----
+const clampInt = (v, lo, hi, d) => { const n = parseInt(v, 10); return isNaN(n) ? d : Math.min(hi, Math.max(lo, n)); };
+function argsUI() {
+  const m = CFG.mode, a = $('#args'); let h = '';
+  const num = (id, label, lo, hi, val) => '<label>' + label + ' <input type="number" id="' + id + '" min="' + lo + '" max="' + hi + '" step="1" value="' + val + '" inputmode="numeric"></label>';
+  if (m === 'power') h = '<div class="row">' + num('aBase', 'base (1 to 5)', 1, 5, CFG.base) + num('aExp', 'exp (0 to 6)', 0, 6, CFG.exp) + '</div><div class="presets" aria-label="Examples">' +
+    [[2, 3], [2, 5], [3, 2], [5, 0]].map(p => '<button type="button" class="btn" data-pre="' + p.join(',') + '">power(' + p[0] + ', ' + p[1] + ')</button>').join('') + '</div>';
+  else if (m === 'factorial') h = '<div class="row">' + num('aN', 'n (0 to 6)', 0, 6, CFG.n) + '</div>';
+  else if (m === 'fib') h = '<div class="row">' + num('aFib', 'n (0 to 6)', 0, 6, CFG.fibn) + '</div><p class="hint">fib(4) makes 9 calls, fib(5) makes 15, and fib(6) makes 25. Use a faster Speed for the big ones.</p>';
+  else if (m === 'evenodd') h = '<div class="row"><label>First call <select id="aEo"><option value="is_even"' + (CFG.eo === 'is_even' ? ' selected' : '') + '>is_even(n)</option><option value="is_odd"' + (CFG.eo === 'is_odd' ? ' selected' : '') + '>is_odd(n)</option></select></label>' + num('aEon', 'n (0 to 6)', 0, 6, CFG.eon) + '</div>';
+  else if (m === 'hanoi') h = '<div class="row">' + num('aCr', 'crates (1 to 4)', 1, 4, CFG.crates) + '</div><p class="hint">Moves needed: 1, 3, 7, and 15 for 1, 2, 3, and 4 crates (2 to the power n, minus 1).</p>';
+  else h = '<div class="row"><label>Rush orders <select id="aSet"><option value="a"' + (CFG.set === 'a' ? ' selected' : '') + '>R1, R2, R3 (8 loads)</option><option value="b"' + (CFG.set === 'b' ? ' selected' : '') + '>R1, R3, R4, R5 (16 loads)</option></select></label></div>' +
+    '<div id="ordersHost">' + ordersTable() + '</div>';
+  a.innerHTML = h;
+  const lin = isLinear();
+  $('#btnNoBase').hidden = !lin; if (!lin) CFG.nobase = false;
+  syncToggle();
+  $('#pickHint').textContent = lin ? 'Any change here redraws the chart and resets the run. Remove the base case deletes the test that stops the calls, so you can watch what Python does then.'
+    : 'Any change here redraws the chart and resets the run.';
+}
+function ordersTable() {
+  return '<table class="orders"><caption>VAN-2 carries 900 lb</caption><tr><th>Order</th><th>Position i</th><th>Weight</th><th>Fee</th></tr>' + SETS[CFG.set].map((nm, i) => '<tr><td>' + nm + '</td><td>' + i + '</td><td>' + RUSH[nm][0] + ' lb</td><td>$' + RUSH[nm][1] + '</td></tr>').join('') + '</table>';
+}
+function syncToggle() { const b = $('#btnNoBase'); b.setAttribute('aria-pressed', CFG.nobase ? 'true' : 'false'); b.textContent = 'Remove the base case: ' + (CFG.nobase ? 'on' : 'off'); }
+// write the accepted values back into the pickers without rebuilding them, so the control in use keeps the focus
+function syncArgs() {
+  const put = (id, v) => { const e = document.getElementById(id); if (e && e.value !== String(v)) e.value = v; };
+  put('aBase', CFG.base); put('aExp', CFG.exp); put('aN', CFG.n); put('aFib', CFG.fibn); put('aEon', CFG.eon); put('aCr', CFG.crates);
+  const o = document.getElementById('ordersHost'); if (o) o.innerHTML = ordersTable();
+}
+function readArgs() {
+  const g = id => document.getElementById(id);
+  if (g('aBase')) { CFG.base = clampInt(g('aBase').value, 1, 5, 2); CFG.exp = clampInt(g('aExp').value, 0, 6, 3); }
+  if (g('aN')) CFG.n = clampInt(g('aN').value, 0, 6, 4);
+  if (g('aFib')) CFG.fibn = clampInt(g('aFib').value, 0, 6, 4);
+  if (g('aEo')) { CFG.eo = g('aEo').value; CFG.eon = clampInt(g('aEon').value, 0, 6, 3); }
+  if (g('aCr')) CFG.crates = clampInt(g('aCr').value, 1, 4, 3);
+  if (g('aSet')) CFG.set = g('aSet').value;
+}
+$('#fnSel').addEventListener('change', e => { CFG.mode = e.target.value; argsUI(); rebuild(); });
+$('#args').addEventListener('change', () => { const before = JSON.stringify(CFG); readArgs(); syncArgs(); if (JSON.stringify(CFG) !== before) rebuild(); });
+$('#args').addEventListener('click', e => { const b = e.target.closest('button[data-pre]'); if (!b) return; const p = b.dataset.pre.split(','); CFG.base = +p[0]; CFG.exp = +p[1]; syncArgs(); rebuild(); });
+$('#btnNoBase').addEventListener('click', () => { CFG.nobase = !CFG.nobase; syncToggle(); rebuild(); });
+
+$('#btnStep').addEventListener('click', () => { stop(); stepFwd(true); });
+$('#btnRun').addEventListener('click', () => running ? stop() : run());
+$('#btnBack').addEventListener('click', back);
+$('#btnReset').addEventListener('click', reset);
+$('#speed').addEventListener('input', e => { speed = SPEEDS[+e.target.value]; $('#speedOut').textContent = speed + '×'; if (tl) tl.timeScale(speed); });
+document.addEventListener('keydown', e => { const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'BUTTON') return;
+  if (e.key === ' ') { e.preventDefault(); stop(); stepFwd(true); } else if (e.key === 'b' || e.key === 'B') back(); else if (e.key === 'r' || e.key === 'R') $('#btnRun').click(); });
+
+// ---- Try it: the real functions on real Python ----
+const SANDBOX_CODE = ['# recursion.py: four recursive functions. Edit them and press Run.', '',
+  'def power(base, exp):', '    if exp == 0:', '        return 1  # base case', '    smaller = power(base, exp - 1)  # recursive case', '    return base * smaller', '',
+  'def factorial(n):', '    if n == 0:', '        return 1', '    smaller = factorial(n - 1)', '    return n * smaller', '',
+  'def fib(n):', '    if n < 2:', '        return n', '    return fib(n - 1) + fib(n - 2)', '',
+  'def hanoi_moves(n):', '    if n == 0:', '        return 0', '    return hanoi_moves(n - 1) + 1 + hanoi_moves(n - 1)', '',
+  'print(power(2, 3))', 'print(factorial(4))', 'print(fib(6))', 'print(hanoi_moves(3))'].join('\n');
+PySandbox($('#sandbox'), {title: 'recursion.py', code: SANDBOX_CODE, inputs: '',
+  tests: [{expr: 'power(2, 3)', expect: '8'}, {expr: 'power(2, 10)', expect: '1024'}, {expr: 'factorial(4)', expect: '24'}, {expr: 'factorial(0)', expect: '1'}, {expr: 'fib(6)', expect: '8'}, {expr: 'hanoi_moves(3)', expect: '7'}],
+  onTests: (p, t) => { if (p === t && K >= STEPS.length) guide(7, 'All ' + t + ' tests pass. Now put a <b>#</b> in front of the two base case lines of factorial and press <b>Run</b> in the box to read the real RecursionError.'); }});
+
+window.__rr = {cfg: CFG, k: () => K, total: () => STEPS.length, sim: () => SIM, view: () => view(K), running: () => running};
+argsUI(); build(); draw(0, false); $('#narration').textContent = introText(); render();
+window.addEventListener('load', () => { if (fk) fk.fitAll(); });
+})();
+</script>
+</body>
+</html>

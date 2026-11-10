@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Build the flowchart</title>
-<meta name="description" content="COP1411 Week 1 interactive: Drag symbols into empty slots, run the token, and earn points when the chart reaches END with the right label on the screen.">
+<meta name="description" content="COP1411 Week 1 practice: Drag symbols into empty slots, run the token, and earn points when the chart reaches END with the right label on the screen.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700&family=Red+Hat+Mono:wght@400;500;600;700&display=swap">
@@ -402,13 +402,13 @@
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand-logo" href="https://www.cbt.edu" target="_blank" rel="noopener" aria-label="CBT Technology Institute"><img src="https://raw.githubusercontent.com/luisleon-cbt/items/main/cbt-logo-mark.png" alt="CBT Technology Institute"></a>
-    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 1 · Interactive B</div>
+    <div class="crumb"><a href="../index.html"><b>COP1411</b> Algorithmic Thinking</a> · Week 1 · Practice</div>
   </div>
 </header>
 
 <main class="wrap">
   <section class="hero split reveal" style="--i:0">
-    <div><span class="eyebrow">COP1411 · Week 1 · Interactive B · Challenge</span><h1>Build the flowchart</h1><p class="lede">Dante, the Palmetto Parcel dispatcher, describes a job in one sentence. You build it as a flowchart: drag the symbols into the empty slots, press Run, and watch the data token walk the chart. It reaches END with the right text on the screen, or it stops coral at the first symbol that uses a value nobody has read or computed yet.</p></div>
+    <div><span class="eyebrow">COP1411 · Week 1 · Practice</span><h1>Build the flowchart</h1><p class="lede">Dante, the Palmetto Parcel dispatcher, describes a job in one sentence. You build it as a flowchart: drag the symbols into the empty slots, press Run, and watch the data token walk the chart. It reaches END with the right text on the screen, or it stops coral at the first symbol that uses a value nobody has read or computed yet.</p></div>
     <div class="spec"><div><b id="specRounds">10</b><span>rounds</span></div><div><b>100</b><span>points</span></div><div><b>Half</b><span>credit for one swapped pair</span></div><div><b>Shuffled</b><span>every attempt</span></div></div>
   </section>
   <aside class="card reveal" style="--i:1" data-ref="FLOWCHART">
@@ -940,7 +940,7 @@ $('#btnPlay').addEventListener('click', () => { if (R.type === 'build') playBuil
 $('#btnNext').addEventListener('click', () => { if (r < ROUNDS.length - 1) { r++; showRound(); } else finishAll(); });
 function finishAll() {
   guide(4, 'All rounds done. Review your results below, or press <b>Try again</b>.');
-  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent: you can order the symbols of a job and write a precise prompt.' : total >= 70 ? ' Good. Replay the rounds you missed: the rule is always the same, a symbol cannot use a value nobody has produced yet.' : ' Try again after Interactive A: watch where each value is born on the chart.'); $('#opts').innerHTML = ''; $('#work').innerHTML = ''; $('#btnCheck').disabled = true; $('#btnNext').disabled = true; $('#btnPlay').disabled = true;
+  $('#results').hidden = false; $('#qTitle').textContent = 'Finished'; $('#qText').textContent = 'Your score: ' + total + ' out of 100.' + (total >= 90 ? ' Excellent: you can order the symbols of a job and write a precise prompt.' : total >= 70 ? ' Good. Replay the rounds you missed: the rule is always the same, a symbol cannot use a value nobody has produced yet.' : ' Try again after Interactive 1A, Flowchart runner: watch where each value is born on the chart.'); $('#opts').innerHTML = ''; $('#work').innerHTML = ''; $('#btnCheck').disabled = true; $('#btnNext').disabled = true; $('#btnPlay').disabled = true;
   $('#resTable').innerHTML = '<tr><th>Round</th><th>Your answer</th><th>Points</th></tr>' + log.map((l, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(l.a) + '</td><td>' + l.pts + ' / ' + l.max + '</td></tr>').join('') + '<tr><td colspan="2"><b>Total</b></td><td><b>' + total + ' / 100</b></td></tr>';
   if (total >= 90 && window.confetti) confetti({particleCount: 120, spread: 70, origin: {y: .6}, colors: ['#E0B840', '#38B0E0', '#FFFFFF']});
   drawProgress(); $('#results').scrollIntoView({behavior: 'smooth', block: 'start'});
